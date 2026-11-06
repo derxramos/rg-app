@@ -14,7 +14,7 @@ Time: about 2 to 3 hours the first time. Cost: $0 (but read the Vercel note in s
 
 1. Never paste a secret into a chat, an email, a screenshot, or the code.
 2. Use a password manager (for example Bitwarden, free) to keep every password and key from this guide.
-3. Turn on 2-step login (2FA) on GitHub, Supabase, Vercel, Brevo and Cloudflare.
+3. Turning on 2-step login (2FA) on your accounts is not required for now. Add it later, once the site works.
 
 ---
 
@@ -22,7 +22,6 @@ Time: about 2 to 3 hours the first time. Cost: $0 (but read the Vercel note in s
 
 - A computer with Google Chrome.
 - Your business Gmail (`rgsbookkeeping73@gmail.com`).
-- An authenticator app on your phone (Google Authenticator or Microsoft Authenticator).
 - Node.js 22 and pnpm on your computer (only for steps 4 and 5). Ask the developer to do steps 4 and 5 with you if you are not sure.
 
 ---
@@ -32,7 +31,7 @@ Time: about 2 to 3 hours the first time. Cost: $0 (but read the Vercel note in s
 The repository is public, so anyone can read the code. That is fine **because no secret is in the code**. A test checks this
 every time. Do these once:
 
-1. Sign in at github.com. Turn on 2FA: top right picture > **Settings** > **Password and authentication** > **Enable two-factor authentication**.
+1. Sign in at github.com with your regular login.
 2. Open your repo > **Settings** > **Code security** (or **Advanced Security**).
 3. Turn **ON**: **Secret scanning** and **Push protection** (they block a key from being pushed by mistake) and **Private vulnerability reporting**. Also turn on **Dependabot alerts**.
 4. **Settings** > **Branches** > **Add branch ruleset** (or **Add rule**) for `main`: tick **Block force pushes** and **Restrict deletions**. If you use a pull request flow, tick **Require a pull request**.
@@ -44,7 +43,7 @@ every time. Do these once:
 
 ## Step 2. Supabase (database, files, admin login)
 
-1. Go to supabase.com > **Start your project** > sign in (use GitHub or your Gmail). Turn on 2FA in your account.
+1. Go to supabase.com > **Start your project** > sign in (use GitHub or your Gmail).
 2. Click **New project**. Fill in:
    - **Name:** `rg-bookkeeping`
    - **Database password:** click **Generate a password**. **Save it in your password manager now.** You cannot see it again.
@@ -67,7 +66,7 @@ every time. Do these once:
 
 ## Step 3. Cloudflare Turnstile (spam check)
 
-1. Go to dash.cloudflare.com > sign up (free) > turn on 2FA.
+1. Go to dash.cloudflare.com > sign up (free)
 2. Left menu > **Turnstile** > **Add widget** (or **Add site**).
 3. **Widget name:** `rg-bookkeeping`. **Hostname:** add your Vercel address (for example `rg-bookkeeping.vercel.app`; you get it in step 8, so you can come back and add it). Also add `localhost` if you test on your computer.
 4. **Widget Mode:** **Managed**. Click **Create**.
@@ -77,7 +76,7 @@ every time. Do these once:
 
 ## Step 4. Brevo (emails)
 
-1. Go to brevo.com > **Sign up free** > confirm your email. Turn on 2FA.
+1. Go to brevo.com > **Sign up free** > confirm your email.
 2. **Senders, Domains & Dedicated IPs** (menu top right) > **Senders** > **Add a sender**. Name: `RG'S Bookkeeping and Accounting Services`. Email: `rgsbookkeeping73@gmail.com`. Brevo emails you a code. Enter it.
 3. **SMTP & API** > **API Keys** > **Generate a new API key**. Name: `rg-app`. Copy it (you see it only once).
 
@@ -154,7 +153,7 @@ The app refuses to start in production without `TOKEN_HASH_SECRET` and `TURNSTIL
 
 ## Step 8. Vercel (put the website online)
 
-1. Go to vercel.com > **Sign Up** > **Continue with GitHub** > turn on 2FA.
+1. Go to vercel.com > **Sign Up** > **Continue with GitHub**
 2. **Add New** > **Project** > pick your `rg-app` repo > **Import**.
 3. If the repo has other folders, set **Root Directory** to the folder that holds `package.json` (`rg-app`).
 4. Framework: **Next.js** (found by itself). Do not change the build settings.
