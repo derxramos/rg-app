@@ -2,10 +2,10 @@
 
 Update this file at the end of every work session.
 
-**Current status:** Phase 7 (security hardening, tests, deploy prep) is finished and committed. The live deploy and real-account checks are NOT done (see the Phase 7 report). Work continues with Phase 8.
+**Current status:** All 8 phases are built and each is committed. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
 **Last updated:** 2026-11-06
 
-**Next step:** Phase 8: portfolio case study page.
+**Next step:** Owner: answer the open questions, set up the real accounts, and run the live checklist. Then deploy a preview.
 
 ---
 
@@ -21,7 +21,7 @@ Details for each phase are in `docs/PHASES.md`.
 - [x] Phase 5 — Admin area(code done, checked on this computer)
 - [x] Phase 6 — Emails and tracking page(code done, checked on this computer)
 - [x] Phase 7 — Security hardening, tests, deploy(code done, checked on this computer)
-- [ ] Phase 8 — Portfolio case study page
+- [x] Phase 8 — Portfolio case study page(code done, checked on this computer)
 
 ---
 
@@ -78,6 +78,8 @@ Details for each phase are in `docs/PHASES.md`.
 | 2026-11-06 | Phase 7: old QR pictures are kept (not deleted after 30 days) | They are tiny, and we can compare after a QR swap. No file listing in the storage wrapper |
 | 2026-11-06 | Phase 7: "Delete client data" added (owner only, fresh 2FA, typed DELETE) | It was promised in SECURITY_AND_PRIVACY.md but was not built |
 | 2026-11-06 | Phase 7: every file in `src/server` must start with `import "server-only"` (tested), with a short allow-list for files the Node scripts import | Enforces CLAUDE.md. The scripts cannot import files with that line |
+| 2026-11-06 | Phase 8: the case study page is in the app at `/case-study`, noindex and not linked, until the owner approves it | It shows her business. The owner approves it first (PHASES.md done-when) |
+| 2026-11-06 | Phase 8: screenshots are real pictures of the app with fake data, made by a script | They stay true to the real screens and can be remade after any design change |
 
 ---
 
@@ -99,6 +101,9 @@ Details for each phase are in `docs/PHASES.md`.
 14. **Dead links for now.** "Start a request" and "Track my request" point to `/request` and `/track`, which are built in Phases 3 and 6. Until then they show the 404 page. Is that OK, or do you want a small "coming soon" page?
 15. **Contact page details.** Phone, email, address, hours, Messenger and Viber all come from the database settings and are empty now. The owner fills them in the admin area (Phase 5). Until then only empty states show.
 16. **Turnstile.** The contact form has no spam-check area yet. It is added together with sending, in Phase 6.
+17. **Case study.** Do you approve the page at `/case-study` (it names the business and shows the product)? When yes, it can be linked and indexed.
+18. **Real receipts.** Can you share 3 to 5 real receipts per app (GCash, Maya, BDO), with names blurred, so the parsers and the accuracy numbers can be made real?
+19. **Live checks.** The whole live checklist (Supabase, Brevo, Turnstile, Netlify, GitHub) is still open. See docs/SECURITY_CHECKLIST.md section 3.
 
 ---
 
@@ -329,6 +334,21 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ---
 
+## Phase 8 report
+
+### What is done
+- **Case study page** at `/case-study` (in this app): the problem and the people, the constraints ($0, slow data, privacy), an architecture diagram (SVG with a text description for screen readers), 8 key decisions with their trade-offs, the security story (QR swap, private files, tracking design), the receipt reader story, screens, how it was checked, what I learned, and what I would do next. The content and the numbers are in `src/content/case-study.ts` with an "as of" date.
+- **Screenshots** are made from the running app with **fake data only** (`pnpm screenshots`, six JPEG files of 29 to 66 KB in `public/case-study`). I looked at the admin and receipt pictures: only made-up names, a "SAMPLE - not real" account, and a fake QR. The browser test also checks that no test names appear on the page.
+- **The page is not indexed and not linked** from the menu or the sitemap, because it shows the owner's business. The owner must approve it first. README links to it.
+- **Honest numbers:** the OCR speed (2 to 3 seconds) and size (4.2 MB) are labeled as measured with a **synthetic** receipt. There are **no accuracy numbers**, and the page says so, because no real receipts were collected.
+- **Tests:** a browser test for the page (sections, honest note, every picture loads, noindex, no test names).
+
+### Needs the owner
+- Approve the page (it names her business and shows the product) before it is linked or indexed. To publish: remove `robots` from the page metadata and add a link.
+- Real receipts to fill in the OCR accuracy numbers.
+
+---
+
 ## Risks to watch
 
 - **Netlify free plan is a hard limit (300 credits/month).** When credits run out, the site is paused until next month. A production deploy costs about 15 credits. Keep production deploys few. Check usage weekly.
@@ -372,3 +392,6 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ### Phase 7 session
 - Built Phase 7 and committed it. See "Phase 7 report" above.
+
+### Phase 8 session
+- Built Phase 8 and committed it. See "Phase 8 report" above.

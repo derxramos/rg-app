@@ -21,7 +21,8 @@
     "dev:db": "tsx scripts/dev-db.ts",
     "e2e:clean": "tsx scripts/e2e-seed.ts --clean",
     "job:cleanup": "tsx scripts/cleanup-files.ts",
-    "job:keep-alive": "tsx scripts/keep-alive.ts"
+    "job:keep-alive": "tsx scripts/keep-alive.ts",
+    "screenshots": "tsx scripts/e2e-seed.ts && playwright test -c playwright.screenshots.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
