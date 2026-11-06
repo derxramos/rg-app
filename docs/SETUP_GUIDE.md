@@ -89,7 +89,7 @@ Until then, the "new request" emails to you may go to Spam. Mark them "Not spam"
 
 This step uses the terminal. If it is new for you, do it together with the developer.
 
-1. Install **Node.js 22** (nodejs.org, "LTS") and then open a terminal and type `corepack enable`.
+1. Install **Node.js 22** (nodejs.org, "LTS"). Then open a terminal and type `pnpm --version`. If it prints a number, pnpm is ready. If it says "command not found", type `npm install -g pnpm`. (Do not use `corepack enable` on Windows unless the terminal runs as Administrator. It fails with "EPERM: operation not permitted".)
 2. Download the code (`git clone <your repo address>`), open the folder `rg-app` in the terminal.
 3. Copy the file `.env.example` to a new file named `.env.local`.
 4. Fill `.env.local` with the values from steps 2, 3 and 4 and the table in step 7. For the first owner:
