@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { notify } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { useTwoFactorRequired } from "@/components/admin/two-factor-context";
 import type { ActionResult } from "@/server/auth/admin";
 
 type Props = {
@@ -43,6 +44,7 @@ export function ActionForm({
 }: Props) {
   const [state, run, pending] = useActionState(action, null);
   const [, startTransition] = useTransition();
+  const twoFactorRequired = useTwoFactorRequired();
   const form = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export function ActionForm({
           ))
         : null}
       {children}
-      {fresh ? (
+      {fresh && twoFactorRequired ? (
         <div className="flex flex-col gap-2">
           <Label htmlFor={id}>Your 6-digit code (from your authenticator app)</Label>
           <Input

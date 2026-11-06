@@ -98,3 +98,15 @@ describe("fresh 2FA cookie", () => {
     expect(isFresh2faValid("s", OWNER, "garbage", now)).toBe(false);
   });
 });
+
+describe("isTwoFactorRequired", () => {
+  it("is required unless the setting is the word false", async () => {
+    const { isTwoFactorRequired } = await import("@/server/auth/admin-core");
+    expect(isTwoFactorRequired(undefined)).toBe(true);
+    expect(isTwoFactorRequired("")).toBe(true);
+    expect(isTwoFactorRequired("true")).toBe(true);
+    expect(isTwoFactorRequired("0")).toBe(true);
+    expect(isTwoFactorRequired("false")).toBe(false);
+    expect(isTwoFactorRequired(" FALSE ")).toBe(false);
+  });
+});

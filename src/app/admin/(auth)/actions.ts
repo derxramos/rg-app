@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import type { ActionResult } from "@/server/auth/admin";
+import { isTwoFactorRequired } from "@/server/auth/admin-core";
 import { createSupabaseServer, supabaseAuthConfigured } from "@/server/auth/supabase-server";
 import { getDb } from "@/server/db/client";
 import { activityLog, adminProfiles } from "@/server/db/schema";
@@ -78,6 +79,7 @@ export async function loginAction(
     .where(eq(adminProfiles.id, profile.id));
   await logLogin("login.success", ipHash, profile.id);
 
+  if (!isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA)) redirect("/admin");
   const { data: factors } = await supabase.auth.mfa.listFactors();
   redirect(factors?.totp.some((f) => f.status === "verified") ? "/admin/mfa" : "/admin/mfa/setup");
 }

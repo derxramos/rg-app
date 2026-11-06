@@ -145,6 +145,7 @@ Put these in `.env.local` (your computer) and, except the `SEED_` ones, in Verce
 | `APP_BASE_URL` | No | Optional on Vercel (it is found by itself). Fill it only when you add your own domain, for example `https://rgbookkeeping.ph` |
 | `TOKEN_HASH_SECRET` | **Yes** | The random text from step 6 |
 | `SEED_OWNER_EMAIL`, `SEED_OWNER_NAME`, `SEED_OWNER_PASSWORD` | **Yes** (password) | Only for `pnpm db:seed` on your computer. **Do not add to Vercel** |
+| `ADMIN_REQUIRE_2FA` | No | Type `false` for now: admins sign in with email and password only. To turn 2FA on later, delete this variable in Vercel and redeploy (see "Turn 2FA on later") |
 | `DEV_ADMIN_BYPASS_EMAIL`, `DB_POOL_MAX` | | **Leave empty / do not add** on Vercel. They are for development only |
 
 The app refuses to start in production without `TOKEN_HASH_SECRET` and `TURNSTILE_SECRET_KEY`. That is on purpose.
@@ -186,8 +187,8 @@ These keep Supabase awake and delete old client files.
 
 1. Open `https://<your address>/admin`.
 2. Sign in with the owner email and the seed password.
-3. The page asks you to set up 2FA. Scan the QR code with your authenticator app and enter the 6-digit code. Also add a **second device** as a backup if you can.
-4. **Settings**: change the password if you want, check the contact details, and add your payment methods (GCash, Maya, BDO) with the real QR and the exact account name. Each change asks for a fresh 2FA code.
+3. With `ADMIN_REQUIRE_2FA=false` there is no 2FA step. You go straight to the dashboard. A yellow box reminds you that 2FA is off.
+4. **Settings**: change the password if you want, check the contact details, and add your payment methods (GCash, Maya, BDO) with the real QR and the exact account name. (While 2FA is off, these changes do not ask for a code.)
 5. **Services**: the six service names are there. Add the requirement checklists yourself (the app does not invent requirements or fees).
 6. Open the public site on your phone. Send one test request with an email like `zolb-test+1@example.com`, add a test payment, then check the request in `/admin` and verify the payment. Check that:
    - you got the "new request" email (also look in Spam),
@@ -199,6 +200,17 @@ These keep Supabase awake and delete old client files.
 
 ---
 
+## Turn 2FA on later (when you hand the project to the owner)
+
+While `ADMIN_REQUIRE_2FA=false`, anyone who knows the admin email and password can open the admin area, change payment methods and see client data. That is acceptable only for testing. Before real clients use the site:
+
+1. Install an authenticator app on the owner's phone (Google Authenticator or Microsoft Authenticator).
+2. Vercel > Project > Settings > Environment Variables: **delete** `ADMIN_REQUIRE_2FA` (or set it to `true`). Then **Redeploy**.
+3. Sign in to `/admin`. The page asks you to scan a QR code with the app and type the 6-digit code. Add a second device as a backup if you can.
+4. From then on, risky changes (payment methods, admin users, deleting client data) ask for a fresh code.
+
+---
+
 ## If something goes wrong
 
 | What you see | What to try |
@@ -206,6 +218,6 @@ These keep Supabase awake and delete old client files.
 | Vercel build fails with "DATABASE_URL" | The variable is missing or has the wrong password. Fix it in Vercel > Settings > Environment Variables, then **Redeploy** |
 | The page says the spam check failed | The Turnstile hostname list does not include your address (step 3), or the two Turnstile keys are swapped |
 | No emails arrive | Check Brevo > **Transactional** > **Logs**. Check Spam. Check the sender is verified |
-| Cannot sign in to admin | Check the seed ran (step 5) and the email is the same. Check that the clock on your phone is automatic (2FA codes depend on it) |
+| Cannot sign in to admin | Check the seed ran (step 5) and the email is the same. If 2FA is on, check that the clock on your phone is automatic (2FA codes depend on it) |
 | PowerShell says "running scripts is disabled on this system" | Use **Git Bash** instead (it does not have this block). Or in PowerShell run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and answer Y. Or type `pnpm.cmd` instead of `pnpm` |
 | Uploads fail | Run `pnpm storage:setup` again, and check that `SUPABASE_SECRET_KEY` is the **Secret** key, not the Publishable key |

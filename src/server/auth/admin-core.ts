@@ -68,6 +68,13 @@ export function devBypassSession(env: { nodeEnv?: string; email?: string }): Adm
   return { userId: "dev-bypass", email: env.email.trim(), aal: "aal2" };
 }
 
+// ---------- Is 2FA required? ----------
+// 2FA is required unless ADMIN_REQUIRE_2FA is set to the word false. This lets the owner use only the
+// password at first and turn 2FA on later (see docs/SETUP_GUIDE.md). Any other value means required.
+export function isTwoFactorRequired(value: string | undefined): boolean {
+  return value?.trim().toLowerCase() !== "false";
+}
+
 // ---------- Fresh 2FA ----------
 // Risky actions (changing a QR, account details, admin users) need a 6-digit code typed in the last
 // 5 minutes. After a good code the server sets a short signed cookie that says "fresh until ...".

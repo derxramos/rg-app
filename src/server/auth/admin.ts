@@ -15,6 +15,7 @@ import {
   checkAdmin,
   devBypassSession,
   isFresh2faValid,
+  isTwoFactorRequired,
   makeFresh2faValue,
   FRESH_2FA_SECONDS,
   type AdminAuthCode,
@@ -51,7 +52,11 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   return {
     userId: data.user.id,
     email: data.user.email ?? "",
-    aal: level?.currentLevel === "aal2" ? "aal2" : "aal1",
+    // With 2FA switched off (ADMIN_REQUIRE_2FA=false) a password login is enough.
+    aal:
+      level?.currentLevel === "aal2" || !isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA)
+        ? "aal2"
+        : "aal1",
   };
 }
 
@@ -83,6 +88,9 @@ export async function guardAdminPage(
 // ---------- Fresh 2FA ----------
 
 export async function hasFresh2fa(adminId: string): Promise<boolean> {
+  // With 2FA switched off there is no code to ask for. The owner-only rule, the activity log and the
+  // alert email still protect payment methods.
+  if (!isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA)) return true;
   const jar = await cookies();
   return isFresh2faValid(getTokenSecret(), adminId, jar.get(FRESH_COOKIE)?.value, Date.now());
 }
