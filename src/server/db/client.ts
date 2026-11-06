@@ -5,6 +5,16 @@ import postgres from "postgres";
 
 import * as schema from "./schema";
 
+// postgres 4 already turns a jsonb value into a JavaScript value, and Drizzle then runs JSON.parse on it a
+// second time. That turned the text "1.0" into the number 1 and broke the build. These settings make
+// postgres pass jsonb as plain text, so Drizzle is the only one that reads and writes the JSON.
+const jsonAsText = (to: number) => ({
+  to,
+  from: [to],
+  serialize: (value: unknown) => value as string,
+  parse: (value: string) => value,
+});
+
 export type Db = PostgresJsDatabase<typeof schema>;
 
 // Dev mode reloads modules often. We keep one connection pool on globalThis so reloads do not open new pools.
@@ -27,6 +37,7 @@ function createDb(): Db {
   }
   const client = postgres(url, {
     prepare: false,
+    types: { json: jsonAsText(114), jsonb: jsonAsText(3802) },
     // A small pool: serverless functions each run their own copy, and the pooler has a limit.
     // 3 by default. DB_POOL_MAX=1 is for the local test database, which allows one query at a time.
     max: Number(process.env.DB_POOL_MAX) || 3,
