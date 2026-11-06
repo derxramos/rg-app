@@ -18,6 +18,13 @@ function createDb(): Db {
   if (!url) {
     throw new Error("DATABASE_URL is not set. Copy .env.example to .env.local and fill it in.");
   }
+  // Supabase's direct address (db.<id>.supabase.co) only works over IPv6, which Vercel cannot use.
+  // Say so clearly, instead of showing a confusing ENETUNREACH error.
+  if (/@db.[a-z0-9]+.supabase.co/i.test(url)) {
+    throw new Error(
+      "DATABASE_URL is the Supabase DIRECT address. Use the Transaction pooler address instead (host has pooler.supabase.com, port 6543). See docs/SETUP_GUIDE.md.",
+    );
+  }
   const client = postgres(url, {
     prepare: false,
     // A small pool: serverless functions each run their own copy, and the pooler has a limit.
