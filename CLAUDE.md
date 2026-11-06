@@ -30,7 +30,8 @@ Target cost: **$0 per month.**
 | OCR | Tesseract.js 7 in the browser only |
 | Email | Brevo transactional REST API |
 | Spam protection | Cloudflare Turnstile + rate limiting in Postgres |
-| Hosting | Netlify free plan (code must stay host-independent) |
+| Package manager | pnpm (Next.js docs list it as a supported package manager) |
+| Hosting | Vercel (free subdomain for now; code must stay host-independent) |
 | Scheduled jobs | GitHub Actions (keep-alive, file cleanup) |
 | Tests | Vitest (unit), Playwright (a few end-to-end checks) |
 
@@ -43,7 +44,7 @@ Exact versions and the date we checked them are in `docs/ARCHITECTURE.md` → "V
 3. **Never put secrets in code.** Every environment variable is listed in `.env.example` with a short comment.
 4. **Server checks everything.** Never trust values from the browser, including OCR values. Validate with Zod on the server.
 5. **Every server action and route checks access first.** Use `requireAdmin()` or `requireRequestAccess()` before any read or write.
-6. **No host-only features.** Do not use Netlify Forms, Netlify Blobs, Netlify scheduled functions, or Vercel-only APIs. Use plain Node.js and Web APIs.
+6. **No host-only features.** Do not use Vercel-only or Netlify-only features (forms, blobs, KV, cron, edge config). Reading Vercel's built-in environment variables for the site address is the one allowed exception. Use plain Node.js and Web APIs.
 7. **Do not invent government requirements or fees.** Service checklists start empty. The owner fills them in.
 8. **Do not use government agency logos.** Text names only (SSS, Pag-IBIG, PhilHealth, BIR, etc.).
 9. **Client documents never appear on the tracking page.** Only status, timeline, and the admin's message.
@@ -51,7 +52,7 @@ Exact versions and the date we checked them are in `docs/ARCHITECTURE.md` → "V
 11. **Log sensitive admin changes** in `activity_log` (payment methods, status changes, settings, file opens, exports).
 12. **Keep functions small.** One job per function. Comments explain *why*, in plain English.
 13. **Write tests** for OCR parsers, Zod validation, status changes, and permission checks.
-14. **Watch the free limits.** Netlify free plan has a hard credit limit. Do not deploy to production for every small change. Use deploy previews.
+14. **Watch the free limits.** The Vercel free (Hobby) plan has usage limits, and it is meant for non-commercial use. Check Vercel's current terms before real clients use the site. Do not deploy to production for every small change. Use preview deployments.
 
 ## Code conventions
 
@@ -64,21 +65,23 @@ Exact versions and the date we checked them are in `docs/ARCHITECTURE.md` → "V
 - Server-only code lives in `src/server/` and starts with `import "server-only"`.
 - Shared Zod schemas live in `src/lib/validation/`.
 
-## How to run (after Phase 1 exists)
+## How to run
 
 ```bash
 cp .env.example .env.local     # then fill in the values
-npm install
-npm run db:migrate             # apply Drizzle migrations
-npm run db:seed                # add sample services and settings
-npm run dev                    # open http://localhost:3000
-npm test                       # unit tests (Vitest)
-npm run test:e2e               # end-to-end tests (Playwright)
-npm run lint && npm run typecheck
+pnpm install
+pnpm db:migrate                # apply Drizzle migrations
+pnpm db:seed                   # add sample services and settings
+pnpm dev                       # open http://localhost:3000
+pnpm test                      # unit tests (Vitest)
+pnpm test:e2e                  # end-to-end tests (Playwright)
+pnpm lint && pnpm typecheck
 ```
 
 ## Docs
 
+- `docs/SETUP_GUIDE.md` — beginner step-by-step guide to go live (accounts, keys, Vercel)
+- `docs/OWNER_GUIDE.md` — daily use for the owner
 - `PROGRESS.md` — what is done, what is next, decisions, open questions
 - `docs/ARCHITECTURE.md` — folders, data flow, auth, uploads, OCR, email, jobs, hosting, versions
 - `docs/DATABASE.md` — tables, fields, indexes, access rules

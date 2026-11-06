@@ -63,7 +63,7 @@ describe("rule: no secrets in the browser", () => {
     const used = new Set<string>();
     for (const file of sourceFiles)
       for (const m of read(file).matchAll(/process\.env\.([A-Z][A-Z0-9_]+)/g)) used.add(m[1]);
-    const builtIn = new Set(["NODE_ENV", "NEXT_RUNTIME", "CI"]);
+    const builtIn = new Set(["NODE_ENV", "NEXT_RUNTIME", "CI", "VERCEL_PROJECT_PRODUCTION_URL"]);
     const missing = [...used].filter(
       (name) => !builtIn.has(name) && !new RegExp(`^${name}=`, "m").test(example),
     );

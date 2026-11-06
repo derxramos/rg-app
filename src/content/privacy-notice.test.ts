@@ -32,11 +32,11 @@ describe("buildPrivacyNotice", () => {
     expect(text).not.toContain("[Contact person and contact details to be added by the owner]");
   });
 
-  it("marks missing details in square brackets for the owner", () => {
+  it("has the chosen record keeping time and data region, and marks a missing contact for the owner", () => {
     const text = buildPrivacyNotice(base);
     expect(text).toContain("[Contact person and contact details to be added by the owner]");
-    expect(text).toContain("[period to be confirmed by the owner]");
-    expect(text).toContain("[region to be confirmed by the owner]");
+    expect(text).toContain("5 years (for tax and business records)");
+    expect(text).toContain("Singapore");
   });
 
   it("does not use any agency logo or name as a service provider", () => {

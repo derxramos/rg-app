@@ -61,6 +61,9 @@
   --status-completed-fg: #0f5a33;
   --status-cancelled-bg: #fce4e4;
   --status-cancelled-fg: #8f1d1d;
+  /* The 9th status. Lime green: different from Completed (mint) and In progress (teal). Text contrast about 7 to 1. */
+  --status-payment-verified-bg: #eaf3cf;
+  --status-payment-verified-fg: #3f5b0a;
 }
 
 /* Alternative palette "Harbor Navy". Only the values that differ. */
@@ -171,6 +174,8 @@
   --color-status-completed-fg: var(--status-completed-fg);
   --color-status-cancelled-bg: var(--status-cancelled-bg);
   --color-status-cancelled-fg: var(--status-cancelled-fg);
+  --color-status-payment-verified-bg: var(--status-payment-verified-bg);
+  --color-status-payment-verified-fg: var(--status-payment-verified-fg);
 }
 
 @theme {
@@ -222,6 +227,16 @@
 }
 
 /* ---------- Base ---------- */
+/* People who ask their device for MORE contrast (a setting on phones and computers) get stronger text and borders. */
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme="light"],
+  [data-theme="alt"] {
+    --text-muted: var(--text);
+    --border: var(--input-border);
+  }
+}
+
 @layer base {
   * {
     border-color: var(--border);

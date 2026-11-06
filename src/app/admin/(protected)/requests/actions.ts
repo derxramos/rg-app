@@ -7,7 +7,7 @@ import { withAdmin, type ActionResult } from "@/server/auth/admin";
 import { OWNER_ONLY } from "@/server/auth/admin-core";
 import { getDb } from "@/server/db/client";
 import { CLIENT_FILES_BUCKET, getStorage } from "@/server/storage/storage";
-import { emailContext, notifyClientUpdate } from "@/server/email/notify";
+import { emailContext, notifyClientUpdate, notifyPaymentVerified } from "@/server/email/notify";
 import { EMAIL_STATUSES, retryEmail } from "@/server/email/send";
 import {
   addNote,
@@ -72,6 +72,8 @@ export async function verifyPaymentAction(
         foundInAccount: formData.get("found") === "on",
         ipHash,
       });
+      // A simple acknowledgment email for the client (not an official receipt).
+      await notifyPaymentVerified(requestId);
       revalidatePath(`/admin/requests/${requestId}`);
       return { ok: true, message: "Payment marked as verified." };
     } catch (error) {

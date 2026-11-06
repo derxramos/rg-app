@@ -7,6 +7,7 @@ import { and, count, desc, eq, gte } from "drizzle-orm";
 
 import { STATUS_LABELS, type RequestStatus } from "@/lib/status";
 import { formatPesos } from "@/lib/money";
+import { formatManilaDate } from "@/lib/time";
 import { emailLog, payments, requests, services } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 
@@ -19,6 +20,7 @@ export type EmailTemplateKey =
   | "request_submitted_admin"
   | "request_submitted_client"
   | "payment_submitted_admin"
+  | "payment_verified_client"
   | "status_changed_client"
   | "client_message_client"
   | "payment_method_changed_owner"
@@ -29,6 +31,7 @@ export const RETRYABLE: readonly EmailTemplateKey[] = [
   "request_submitted_admin",
   "request_submitted_client",
   "payment_submitted_admin",
+  "payment_verified_client",
   "status_changed_client",
   "client_message_client",
 ];
@@ -195,6 +198,27 @@ async function buildRequestMessage(
           method: (pay.methodSnapshot as { name?: string }).name ?? "payment",
           reference: pay.referenceNumber,
           adminUrl,
+        }),
+      };
+    }
+    case "payment_verified_client": {
+      const [pay] = await db
+        .select()
+        .from(payments)
+        .where(and(eq(payments.requestId, r.id), eq(payments.status, "verified")))
+        .orderBy(desc(payments.verifiedAt))
+        .limit(1);
+      if (!pay) return null;
+      return {
+        to: toClient,
+        ...templates.paymentVerifiedClient({
+          name: r.clientFullName,
+          trackingCode: r.trackingCode,
+          amount: formatPesos(pay.amountCentavos),
+          method: (pay.methodSnapshot as { name?: string }).name ?? "payment",
+          reference: pay.referenceNumber,
+          paidOn: formatManilaDate(`${pay.paidOn}T00:00:00+08:00`),
+          trackUrl,
         }),
       };
     }

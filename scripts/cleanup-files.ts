@@ -1,5 +1,5 @@
 // Daily cleanup job. Run by GitHub Actions (.github/workflows/scheduled-jobs.yml), or by hand: pnpm job:cleanup
-// It talks to Supabase directly, so it does not use any Netlify credits (docs/ARCHITECTURE.md section 9).
+// It talks to Supabase directly, so it does not use any hosting limits (docs/ARCHITECTURE.md section 9).
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 

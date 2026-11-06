@@ -171,6 +171,14 @@ export function RequestForm({ services, selectedSlug }: Props) {
               className="font-bold text-primary underline underline-offset-4"
             >
               privacy notice
+            </Link>{" "}
+            and the{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              className="font-bold text-primary underline underline-offset-4"
+            >
+              terms of service
             </Link>
             .
           </span>

@@ -6,7 +6,7 @@
 export const METRICS_AS_OF = "2026-11-06";
 
 export const METRICS = {
-  unitTests: 321,
+  unitTests: 329,
   browserTests: 68,
   // Lighthouse on the public pages, mobile settings, production build, local test database (Phase 2).
   lighthouse: { performance: "95 to 100", accessibility: "100", seo: "100" },

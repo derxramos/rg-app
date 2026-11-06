@@ -116,7 +116,7 @@ Fixes:
 ## 3. Key rotation steps (if a secret leaks)
 
 1. Make a new key in the service dashboard (Supabase, Brevo, Turnstile).
-2. Update it in Netlify and GitHub secrets.
+2. Update it in Vercel and GitHub secrets.
 3. Re-deploy.
 4. Remove the old key.
 5. Check `activity_log` for strange actions.

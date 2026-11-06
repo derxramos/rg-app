@@ -1,4 +1,4 @@
-# Two small jobs that keep the free plans healthy. They talk to Supabase directly, so they cost no Netlify credits.
+# Two small jobs that keep the free plans healthy. They talk to Supabase directly, so they use none of the hosting limits.
 #   keep-alive: every 3 days. A tiny query so Supabase does not pause the project after 7 quiet days.
 #   cleanup:    every day. Deletes old client files and unsent drafts (see src/server/jobs/cleanup-core.ts).
 # You can also run them by hand: GitHub > Actions > Scheduled jobs > Run workflow.

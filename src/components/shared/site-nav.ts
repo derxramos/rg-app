@@ -11,6 +11,7 @@ export const MAIN_NAV = [
 export const FOOTER_NAV = [
   ...MAIN_NAV.filter((item) => item.href !== "/"),
   { href: "/privacy", label: "Privacy notice" },
+  { href: "/terms", label: "Terms of service" },
 ] as const;
 
 export const BUSINESS_NAME = "RG'S BOOKKEEPING AND ACCOUNTING SERVICES";

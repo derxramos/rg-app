@@ -25,7 +25,7 @@ export function ArchitectureDiagram() {
     <figure className="flex flex-col gap-3">
       <svg viewBox="0 0 860 430" role="img" aria-labelledby="arch-title arch-desc" className="h-auto w-full max-w-4xl rounded-lg border bg-card">
         <title id="arch-title">How the system fits together</title>
-        <desc id="arch-desc">The client phone and the admin browser talk to a Next.js app on Netlify. The app talks to Supabase (database, files, login), Brevo (email) and Cloudflare Turnstile (spam check). GitHub Actions runs two small jobs. The receipt reader runs only in the browser.</desc>
+        <desc id="arch-desc">The client phone and the admin browser talk to a Next.js app on Vercel. The app talks to Supabase (database, files, login), Brevo (email) and Cloudflare Turnstile (spam check). GitHub Actions runs two small jobs. The receipt reader runs only in the browser.</desc>
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0 0 L10 5 L0 10 z" fill="var(--text-muted)" />
@@ -35,7 +35,7 @@ export function ArchitectureDiagram() {
         {box(20, 20, 230, 96, "Client's phone", ["Public pages, request flow", "Receipt reader (Tesseract.js)", "The picture never leaves here"], "c")}
         {box(20, 160, 230, 76, "Owner and staff", ["Admin area, phone or computer", "Password + 2FA code"], "c")}
 
-        {box(330, 70, 230, 150, "Next.js app (Netlify)", ["Static public pages", "Server Actions and routes", "Every one checks access first", "Zod checks on every input"], "a")}
+        {box(330, 70, 230, 150, "Next.js app (Vercel)", ["Static public pages", "Server Actions and routes", "Every one checks access first", "Zod checks on every input"], "a")}
 
         {box(630, 20, 210, 76, "Supabase", ["Postgres (RLS on, no policies)", "Private file bucket, Login"], "b")}
         {box(630, 114, 210, 56, "Brevo", ["Email (plain fetch)"], "b")}

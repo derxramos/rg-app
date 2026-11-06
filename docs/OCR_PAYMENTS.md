@@ -22,7 +22,7 @@ Receipt reading (OCR = Optical Character Recognition: software that turns text i
 
 - Tesseract.js is loaded **only when the client taps "Read my receipt"** (dynamic `import()`). Pages without OCR do not download it.
 - Before loading, show: "This needs about X MB of data. Or type the values yourself." (X measured in Phase 4.)
-- Use the English "fast" language data and the default jsDelivr CDN (free, and it does not use our Netlify traffic). The browser caches it for next time.
+- Use the English "fast" language data and the default jsDelivr CDN (free, and it does not use our hosting traffic). The browser caches it for next time.
 - One worker, created once, and closed when the client leaves the page.
 - Time limit: if reading takes more than 30 seconds, stop and show the manual form with a message.
 - If the browser has no WebAssembly support, hide the OCR button and show the manual form only.

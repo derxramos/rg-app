@@ -25,7 +25,8 @@ export const metadata: Metadata = { title: "Your request", robots: { index: fals
 const PAYMENT_TEXT = {
   none: "No payment yet.",
   pending: "Payment received. We are checking it.",
-  verified: "Payment verified. Thank you.",
+  verified:
+    "Payment verified. Thank you. For an official receipt copy, please send us a message using the Contact page.",
   rejected: "We could not confirm your payment. Please read our message above.",
 } as const;
 

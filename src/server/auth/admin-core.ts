@@ -30,9 +30,8 @@ export class AdminAuthError extends Error {
 }
 
 // Who may do what. Kept in one place, so an owner decision changes one line.
-// OPEN QUESTION (PROGRESS.md): can staff verify payments? For now both roles can,
-// because the design shows Verify to everyone who sees the request.
-export const PAYMENT_VERIFY_ROLES: readonly AdminRole[] = ["owner", "staff"];
+// Only the OWNER verifies or rejects payments (decided by the owner). One line to change.
+export const PAYMENT_VERIFY_ROLES: readonly AdminRole[] = ["owner"];
 // Payment methods, admin users and CSV export are owner only (docs/FEATURES.md A6, A9, A11).
 export const OWNER_ONLY: readonly AdminRole[] = ["owner"];
 

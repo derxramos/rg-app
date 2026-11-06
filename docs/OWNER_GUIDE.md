@@ -44,6 +44,9 @@ On a phone, use the bar at the bottom: Dashboard, Requests, Settings, Activity.
 2. Open your own app. Find the payment with the same reference number and amount.
 3. Tick **"I found this payment in our account."**
 4. Tap **Mark payment verified**.
+5. The client gets a short email: a simple payment acknowledgment (amount, method, reference, date). It says it is **not an official receipt**. If the client wants an official receipt copy, they send you a message with the Contact page.
+
+**Only the owner** can verify or reject a payment. Staff can see payments but the buttons are not for them.
 
 If you cannot find it: write a short reason and tap **Reject payment**. The client sees your reason and can send a new receipt.
 
@@ -126,7 +129,7 @@ Open the request. Use **Delete client data (privacy request)**. Type **DELETE** 
 | **A cleanup or keep-alive job says "check the job"** | Open GitHub > Actions > Scheduled jobs > Run workflow. If it fails, send the error to the developer |
 | **Storage is red** | Lower the days files are kept, or ask the developer to clean up. New uploads stop at 95 percent |
 | **The site says it cannot send emails** | Clients and you can still use Messenger and Viber. Tell the developer |
-| **The Netlify credits are almost used up** | The site stops until next month. Avoid new deployments. Tell the developer |
+| **Vercel says a usage limit is almost reached** | The site may pause. Avoid new deployments and tell the developer. Also check Vercel's terms about using the free plan for a business |
 | **You think data was leaked** | Turn off all admin accounts except yours. Tell the developer. Write down what happened. The law may require you to tell clients and the National Privacy Commission. Ask a lawyer |
 
 ---

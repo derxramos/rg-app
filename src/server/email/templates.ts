@@ -195,3 +195,34 @@ export function clientMessageClient(i: {
     ),
   };
 }
+
+// A simple payment acknowledgment for the client, sent when the owner verifies the payment.
+// It is NOT an official receipt, and it says so. The client already knows these values (they typed them).
+export function paymentVerifiedClient(i: {
+  name: string;
+  trackingCode: string;
+  amount: string;
+  method: string;
+  reference: string;
+  paidOn: string;
+  trackUrl: string;
+}): Rendered {
+  const intro = `Hello ${i.name}. We found your payment and marked it as verified. Thank you.`;
+  const lines = [
+    `Request: ${i.trackingCode}`,
+    `Amount: ${i.amount}`,
+    `Paid with: ${i.method}`,
+    `Reference number: ${i.reference}`,
+    `Date on your receipt: ${i.paidOn}`,
+  ];
+  const note =
+    "This is a simple payment acknowledgment, not an official receipt. If you want an official receipt copy, please send us a message using the Contact page of our website.";
+  return {
+    subject: `Payment received for ${i.trackingCode}`,
+    text: [intro, "", ...lines, "", note, "", `See your request: ${i.trackUrl}`].join("\n"),
+    html: layout(
+      "Payment received",
+      p(intro) + lines.map(p).join("") + p(note) + button(i.trackUrl, "See my request"),
+    ),
+  };
+}

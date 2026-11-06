@@ -109,6 +109,8 @@ Note on the name `accent`: shadcn/ui uses `--accent` for a soft hover background
   --status-completed-fg: #0F5A33;
   --status-cancelled-bg: #FCE4E4;
   --status-cancelled-fg: #8F1D1D;
+  --status-payment-verified-bg: #EAF3CF;
+  --status-payment-verified-fg: #3F5B0A;
 }
 
 /* Alternative palette. Only values that differ. */
@@ -357,13 +359,14 @@ Lucide (`lucide-react`). Stroke 2 px, 20 px in buttons, 16 px beside small text,
 
 ## 5. Request status badges
 
-All 8 statuses from FEATURES.md. Each has a pair of colors, an icon and words. Never use color alone.
+All 9 statuses (8 from FEATURES.md, plus **Payment verified** from DATABASE.md). Each has a pair of colors, an icon and words. Never use color alone.
 
 | Status | Token pair | Icon |
 |---|---|---|
 | Draft | `status-draft-bg` / `status-draft-fg` | `file-pen-line` |
 | Submitted | `status-submitted-bg` / `status-submitted-fg` | `send` |
 | Payment submitted | `status-payment-submitted-bg` / `status-payment-submitted-fg` | `receipt-text` |
+| Payment verified | `status-payment-verified-bg` / `status-payment-verified-fg` (lime: #EAF3CF / #3F5B0A) | `badge-check` |
 | Under review | `status-under-review-bg` / `status-under-review-fg` | `search` |
 | Waiting for client | `status-waiting-for-client-bg` / `status-waiting-for-client-fg` | `hourglass` |
 | In progress | `status-in-progress-bg` / `status-in-progress-fg` | `loader-circle` |
@@ -457,7 +460,7 @@ Not drawn yet: Admin users (A9), Export (A11 / A16), and the full Files settings
 
 ## 8. Questions (nothing was changed in features or flows)
 
-1. DESIGN_HANDOFF.md says **9 request statuses**. FEATURES.md names **8**. What is the 9th? It needs one more color pair and icon.
+1. DESIGN_HANDOFF.md says **9 request statuses**. FEATURES.md names **8**. What is the 9th? It needs one more color pair and icon. **Answered:** the 9th is `payment_verified`. It has its own badge: lime green pair and the `badge-check` icon (it must not look like Completed or In progress).
 2. DESIGN_HANDOFF.md asks for "big monospace" for the tracking code. I used the system monospace font (no file) so the site stays at 2 font files. Is that OK?
 3. To keep **2 font files**, only weights 400 and 700 are used (no semibold). Is that OK?
 4. Which palette do you choose: Teal Ledger or Harbor Navy?

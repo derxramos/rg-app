@@ -131,6 +131,32 @@ describe("permissions: staff are refused on owner-only actions", () => {
       "wrong-role",
     );
   });
+  it("verifying and rejecting payments (owner decision)", async () => {
+    const requestId = await sentRequest("zolb-test+vs@example.com");
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+    const r = await savePayment(t.db, {
+      requestId,
+      raw: {
+        paymentMethodId: methodId,
+        reference: "STAFFREF001",
+        amount: "10",
+        paidOn: today,
+        confirmed: true,
+        entryMethod: "manual",
+        ocrRaw: null,
+      },
+    });
+    if (!r.ok) throw new Error("setup failed");
+    expect(
+      await rejects(verifyPayment(t.db, staff, { paymentId: r.paymentId, foundInAccount: true })),
+    ).toBe("wrong-role");
+    expect(
+      await rejects(rejectPayment(t.db, staff, { paymentId: r.paymentId, reason: "No match" })),
+    ).toBe("wrong-role");
+    expect((await t.db.select().from(payments).where(eq(payments.id, r.paymentId)))[0].status).toBe(
+      "pending",
+    );
+  });
   it("admin users, export and file settings", async () => {
     expect(
       await rejects(
@@ -280,9 +306,9 @@ describe("verify and reject payments", () => {
   });
   it("verifies, logs, and moves the request to payment verified", async () => {
     const { requestId, paymentId } = await pendingPayment("VERIFYREF02");
-    await verifyPayment(t.db, staff, { paymentId, foundInAccount: true });
+    await verifyPayment(t.db, owner, { paymentId, foundInAccount: true });
     const [p] = await t.db.select().from(payments).where(eq(payments.id, paymentId));
-    expect(p).toMatchObject({ status: "verified", verifiedBy: staff.id });
+    expect(p).toMatchObject({ status: "verified", verifiedBy: owner.id });
     expect((await t.db.select().from(requests).where(eq(requests.id, requestId)))[0].status).toBe(
       "payment_verified",
     );

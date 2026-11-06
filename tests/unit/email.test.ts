@@ -270,3 +270,35 @@ describe("sending with a log", () => {
     expect(RETRYABLE).not.toContain("payment_method_changed_owner");
   });
 });
+
+describe("payment acknowledgment email", () => {
+  it("shows the payment values and says it is not an official receipt, with the Contact page note", () => {
+    const t = templates.paymentVerifiedClient({
+      name: "Ana",
+      trackingCode: "RG-7K3M9QXD",
+      amount: "₱1,250.00",
+      method: "GCash",
+      reference: "123456789012",
+      paidOn: "Nov 6, 2026",
+      trackUrl: "https://example.com/track",
+    });
+    for (const part of ["₱1,250.00", "GCash", "123456789012", "RG-7K3M9QXD"])
+      expect(t.text).toContain(part);
+    expect(t.text).toContain("not an official receipt");
+    expect(t.text).toContain("Contact page");
+    expect(t.html).toContain("Contact page");
+    expect(t.subject).toContain("RG-7K3M9QXD");
+  });
+  it("escapes the client name", () => {
+    const t = templates.paymentVerifiedClient({
+      name: "<script>x</script>",
+      trackingCode: "RG-AAAAAAAA",
+      amount: "₱1.00",
+      method: "GCash",
+      reference: "ABC123",
+      paidOn: "now",
+      trackUrl: "https://example.com",
+    });
+    expect(t.html).not.toContain("<script>");
+  });
+});

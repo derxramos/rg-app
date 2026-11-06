@@ -32,6 +32,9 @@ export async function notifyRequestSubmitted(requestId: string, hasPayment: bool
   if (hasPayment) await sendRequestEmail(db, ctx, "payment_submitted_admin", requestId);
 }
 
+export const notifyPaymentVerified = (requestId: string) =>
+  sendRequestEmail(getDb(), emailContext(), "payment_verified_client", requestId);
+
 export const notifyPaymentSubmitted = (requestId: string) =>
   sendRequestEmail(getDb(), emailContext(), "payment_submitted_admin", requestId);
 

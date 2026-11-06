@@ -1,8 +1,8 @@
 // Draft text of the privacy notice (docs/FEATURES.md P6, docs/SECURITY_AND_PRIVACY.md section 2).
 //
-// This is a DRAFT written from the project docs. It is not legal advice. The owner (and a lawyer
-// or the National Privacy Commission, if needed) must review it before the site goes live.
-// Text in [square brackets] is a value the owner must confirm.
+// Written from the project docs. It is not legal advice. The owner reviews and approves it before the site goes live.
+// Chosen values: request records are kept 5 years (tax and business records), and the data is stored in the
+// Supabase region Singapore (the owner must pick that region when creating the project). Change them here if needed.
 // Later the notice can be edited in the admin area. The version number comes from site settings.
 
 export const PRIVACY_NOTICE_DATE = "2026-11-06";
@@ -59,7 +59,7 @@ We ask for your consent (the tick box) before you send a request.
 
 - Uploaded documents are deleted ${retentionDays} days after your request is Completed or Cancelled.
 - A request that you start but never send (a draft) is deleted, with its files, after 7 days.
-- The text records of your request (name, contact details, status and payment values) are kept for business records for [period to be confirmed by the owner].
+- The text records of your request (name, contact details, status and payment values) are kept for business records for 5 years (for tax and business records).
 
 ## Who can see your information
 
@@ -70,8 +70,8 @@ We ask for your consent (the tick box) before you send a request.
 
 We use other companies to run the website. They handle data for us only for these purposes:
 
-- **Supabase** stores our database and your uploaded files. Data location: [region to be confirmed by the owner].
-- **Netlify** hosts the website.
+- **Supabase** stores our database and your uploaded files. Data location: Singapore.
+- **Vercel** hosts the website.
 - **Brevo** sends emails to you and to us.
 - **Cloudflare Turnstile** checks that a form is filled in by a person and not by a robot.
 

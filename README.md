@@ -7,7 +7,9 @@ their request with a code. The owner and staff manage requests in an admin area.
 Read `CLAUDE.md` first (rules and stack), then `PROGRESS.md` (what is done and what is next).
 All planning docs are in `docs/`.
 
-The portfolio case study is the page `/case-study` (in this app, not linked from the menu and not indexed until the owner approves it). Its pictures are made with `pnpm screenshots` from fake data.
+The portfolio case study is the page `/case-study` (in this app, public, not in the menu). Its pictures are made with `pnpm screenshots` from fake data.
+
+**Going live? Follow `docs/SETUP_GUIDE.md` (beginner step by step, with the list of every setting).**
 
 ## Run it on your computer
 

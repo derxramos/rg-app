@@ -40,7 +40,9 @@ export function TrackingCode({ code, className }: { code: string; className?: st
     >
       <div className="min-w-0">
         <p className="text-sm text-primary-ink">Your tracking code</p>
-        <p className="font-mono text-2xl font-bold tracking-wider break-all text-primary-ink md:text-3xl">
+        {/* Big, with wide letter spacing, so letters and numbers are easy to tell apart for people with eye problems.
+            One tap selects the whole code. The code never uses 0, O, 1, I or L (src/lib/tracking-code.ts). */}
+        <p className="font-mono text-3xl font-bold tracking-[0.18em] break-all text-primary-ink select-all md:text-4xl">
           {code}
         </p>
       </div>

@@ -5,10 +5,10 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 **Legend**
 
 - ✅ **Verified.** A test or a run on the developer's computer proves it. The proof is named.
-- 🟡 **Built, but not verified live.** The code and its tests exist, but it needs your real accounts (Supabase, Brevo, Cloudflare, Netlify) to prove it.
+- 🟡 **Built, but not verified live.** The code and its tests exist, but it needs your real accounts (Supabase, Brevo, Cloudflare, Vercel) to prove it.
 - ⬜ **Your action.** A setting in a dashboard or a decision only the owner can make.
 
-"Unit tests" means `pnpm test` (321 tests, includes a real Postgres in memory). "E2E" means the Playwright tests in a real Chrome.
+"Unit tests" means `pnpm test` (329 tests, includes a real Postgres in memory). "E2E" means the Playwright tests in a real Chrome.
 
 ---
 
@@ -92,6 +92,7 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 |---|---|---|
 | OCR only helps, admin must check the real account | ✅ | E2E: the strong warning is shown above Verify |
 | Admin must tick "I found this payment in our account" | ✅ | Unit and E2E |
+| **Only the owner** can verify or reject a payment (staff cannot) | ✅ | Unit: `admin-services.test.ts` (staff get `wrong-role`) |
 | Reference unique per payment method | ✅ | Unit: `db-migrations.test.ts`, `payments.test.ts`. E2E: clear message |
 | Entry method and first OCR values saved | ✅ | Unit and E2E (admin sees "OCR first read") |
 
@@ -122,7 +123,7 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 | Item | Status | Proof |
 |---|---|---|
 | Keep-alive every 3 days | ✅ / 🟡 | The script runs on the test database. The schedule on GitHub has not run |
-| Few production deploys | ⬜ | Use deploy previews. Check Netlify credits weekly |
+| Few production deploys | ⬜ | Use deploy previews. Check the Vercel usage page weekly |
 | Dashboard warnings for old jobs and storage | ✅ | Unit and E2E |
 | Error page shows Messenger and Viber | ✅ | E2E on the error screen (Phase 2) |
 
@@ -133,7 +134,7 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 | Idea | Status | Proof or what is missing |
 |---|---|---|
 | **Consent**: unticked box, link to the notice, date and version saved | ✅ | Unit and E2E |
-| **Transparency**: privacy notice page | 🟡 | Built. The text is a **draft**. ⬜ The owner must fill the `[brackets]` and have it reviewed |
+| **Transparency**: privacy notice page and Terms of service page | 🟡 | Both are written in plain words with the real contact details (records kept 5 years, data region Singapore). ⬜ The owner reads both and approves them (a lawyer check is a good idea) |
 | **Collect only what is needed**; the receipt picture is never sent | ✅ | E2E: no request contains the picture bytes |
 | **Limited keeping**: files after N days, drafts after 7 days | ✅ | Unit: `cleanup.test.ts`. ⬜ Owner decides how long request records are kept |
 | **Access control**: every request and file checked on the server | ✅ | Unit and source tests |
@@ -141,13 +142,15 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 | **Security**: HTTPS, private storage, 2FA, rate limits | 🟡 | HSTS header ✅. HTTPS, private bucket and 2FA need the live setup |
 | **Data subject rights**: copy, fix, delete | 🟡 | **Delete client data** is built (owner only, fresh 2FA, typed DELETE, logged, unit tested). A "copy of my data" and "fix my data" are done by hand: use the request page and the CSV export |
 | **Breach response**: steps in `SECURITY_AND_PRIVACY.md` section 3 | ⬜ | Owner reads and agrees. Tell the NPC and clients when the law requires it |
-| **Data location**: Supabase region near the Philippines | ⬜ | Choose the region when you create the project. Write it in the privacy notice |
+| **Data location**: Supabase region near the Philippines | ⬜ | Choose **Singapore** when you create the project (the notice says Singapore) |
 
 ---
 
 ## 3. What is still open before real clients
 
-1. Everything marked 🟡 needs one pass with the real accounts (Supabase, Brevo, Cloudflare Turnstile, Netlify, GitHub).
+1. Everything marked 🟡 needs one pass with the real accounts (Supabase, Brevo, Cloudflare Turnstile, Vercel, GitHub).
 2. Everything marked ⬜ is a dashboard setting or a decision.
-3. The privacy notice text must be finished and reviewed.
-4. The owner completes one real test request on her phone (Phase 7 goal), including a real email and a real payment check.
+3. The owner reads and approves the privacy notice and the Terms of service.
+4. Check Vercel's terms: the free Hobby plan is meant for non-commercial use. A business site may need a paid plan.
+5. Repository is public: turn on GitHub secret scanning and push protection, and branch protection (see `.github/SECURITY.md` and `docs/SETUP_GUIDE.md` step 2). A test (`tests/unit/repo-safety.test.ts`) fails if a key is ever committed.
+6. The owner completes one real test request on her phone (Phase 7 goal), including a real email and a real payment check.

@@ -17,7 +17,7 @@ function origin(value: string | undefined): string | null {
 
 // What each directive allows, and why:
 //  - script-src 'unsafe-inline': Next.js puts small inline scripts in every page. A per-request "nonce" would
-//    make every page dynamic (no static pages, more Netlify credits). We accept this, because React escapes
+//    make every page dynamic (no static pages, more hosting usage). We accept this, because React escapes
 //    all text, there is no raw HTML anywhere (owner Markdown skips HTML), and the other directives stay strict.
 //  - 'wasm-unsafe-eval' and blob: workers and cdn.jsdelivr.net: the receipt reader (Tesseract.js) runs in a web
 //    worker and loads its files from the jsDelivr CDN (docs/OCR_PAYMENTS.md section 2).

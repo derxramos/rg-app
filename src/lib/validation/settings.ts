@@ -41,16 +41,22 @@ export const SETTING_KEYS = Object.keys(SETTING_SCHEMAS) as SettingKey[];
 // Starting values. Numbers match docs/DATABASE.md. Text starts empty: the owner fills it in.
 // Do not put invented business details, requirements, or fees here.
 export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
-  contact: { phone: "", email: "", address: "" },
+  // The business's public contact details (they are shown on the website anyway). The owner can change them in the admin area.
+  contact: {
+    phone: "+63 991 234 8299",
+    email: "rgsbookkeeping73@gmail.com",
+    address: "P. Zamora St. Pob. 17, Batangas City, Philippines 4200",
+  },
   business_hours: { text: "" },
-  social_links: { messenger: "", viber: "" },
+  // Viber opens a chat with the business number. No Messenger link was given yet: the button stays hidden until the owner adds one.
+  social_links: { messenger: "", viber: "viber://chat?number=%2B639912348299" },
   home_texts: { headline: "RG'S Bookkeeping and Accounting Services", intro: "" },
   file_retention_days: 30,
   max_files_per_request: 15,
   max_file_size_mb: 3,
   storage_warning_percent: 80,
   // Draft version. The owner replaces it when the real privacy notice is approved.
-  privacy_notice_version: "0.1-draft",
+  privacy_notice_version: "1.0",
   last_keep_alive_at: null,
   last_cleanup_at: null,
 };

@@ -1,7 +1,0 @@
-# The only file that knows about Netlify. All app code is plain Node.js and Web APIs,
-# so moving to another host needs only a new config file like this one.
-[build]
-  command = "pnpm build"
-
-[build.environment]
-  NODE_VERSION = "22"

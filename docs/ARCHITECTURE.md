@@ -12,14 +12,14 @@ I read the current official docs on **2026-11-06**. At install time (Phase 1) we
 |---|---|---|
 | Next.js | **16.4.x** (newest patch) | 16.x is the "Active LTS" line. 16.4 was released 2026-10-06. A security release came out 2026-11-03, so we must install the newest patch. |
 | React | 19.x (the version Next.js 16.4 asks for) | Comes with Next.js. |
-| Node.js | 22 LTS | Must match what Netlify builds with. Set it in `.nvmrc` and `netlify.toml`. |
+| Node.js | 22 LTS | Must match what Vercel builds with. Set it in `.nvmrc` (and in the Vercel project settings). |
 | Supabase JS | `@supabase/supabase-js` 2.x + `@supabase/ssr` (newest) | `@supabase/ssr` handles login cookies in Next.js. |
 | Supabase Auth 2FA | TOTP (authenticator app codes) | Supabase docs: TOTP MFA is free and on by default for all projects. Supabase gives no recovery codes. Instead, each admin can register a second TOTP device as a backup (up to 10). |
 | Drizzle ORM | `drizzle-orm` + `drizzle-kit` (newest stable) + `postgres` driver | Supabase and Drizzle docs both say: with the "Transaction" pooler, set `prepare: false`. |
 | Tesseract.js | **7.0.x** | v7 is 15–35% faster than v6. It runs in the browser as WebAssembly. |
 | Brevo | Transactional email REST API (v3), called with plain `fetch` | Free plan: 300 emails per day. Sender address or domain must be verified in Brevo. |
 | Cloudflare Turnstile | Free plan | The server **must** call the Siteverify API. A token is valid for 5 minutes and works only once. |
-| Netlify Next.js support | OpenNext adapter (installed automatically) | Netlify supports App Router, Server Actions, Route Handlers, and middleware/proxy. We do not pin the adapter version (Netlify's advice). |
+| Vercel Next.js support | Built in (Vercel makes Next.js) | App Router, Server Actions, Route Handlers and the proxy file all work with no extra adapter. |
 | Tailwind CSS, shadcn/ui, Zod, Vitest, Playwright | Newest stable at install | Not on the "must verify" list. We check their install guides in Phase 1. |
 
 ### Free plan limits that matter (checked 2026-11-06)
@@ -31,7 +31,7 @@ Please re-check these on the official pricing pages in Phase 1. Some numbers cam
 | Supabase | 500 MB database, 1 GB file storage, 5 GB egress (download traffic) per month, 2 projects | Files must be small and deleted after a time. Storage meter in admin. |
 | Supabase | Project pauses after 7 days with no activity | Weekly keep-alive job. |
 | Supabase | No automatic backups on the free plan | CSV export + optional weekly database dump. |
-| Netlify | 300 credits per month, **hard limit** (site pauses when used up) | About 15 credits per production deploy, about 20 credits per GB of traffic, about 10 credits per GB-hour of server time. Deploy previews do not cost credits. |
+| Vercel (Hobby, free) | Fixed monthly usage limits; the site can be paused when they are used up | **Hobby is meant for non-commercial use.** A real business site may need a paid plan. Check Vercel's current terms and limits before real clients use the site. Preview deployments count toward the limits too. |
 | Brevo | 300 emails per day | Enough for this business. We log each send. |
 | Turnstile | Free, up to 20 widgets | We need 1–2 widgets. |
 | GitHub Actions | Free for public repos; private repos get a monthly minutes allowance | Our jobs take about 1 minute each. |
@@ -101,7 +101,7 @@ Prisma is also a good tool, but it adds more moving parts for no benefit in this
     └─ proxy.ts                  Next.js 16 name for middleware (session refresh only)
 ```
 
-**Host-independent rule:** only `netlify.toml` knows about Netlify. All server code uses Node.js and standard Web APIs. Moving to another host should need only a new config file.
+**Host-independent rule:** the only host details in the code are the client IP header and the site address (`src/server/security/client-ip.ts`, `src/lib/site-url.ts`). All server code uses Node.js and standard Web APIs. Moving to another host should need only a new config file.
 
 ---
 
@@ -125,7 +125,7 @@ Client phone ──► Next.js pages (server rendered, small JS)
 GitHub Actions ──► scripts/*.ts ──► Supabase (direct, with secret key)
 ```
 
-- **Public pages** (Home, Services, etc.) are mostly static and re-built when the admin changes content (`revalidatePath`). This keeps them fast on slow data and cheap on Netlify credits.
+- **Public pages** (Home, Services, etc.) are mostly static and re-built when the admin changes content (`revalidatePath`). This keeps them fast on slow data and light on the free hosting limits.
 - **Forms** use Server Actions. File upload uses a Route Handler because it sends a file.
 - The browser never talks to the database directly.
 
@@ -178,7 +178,7 @@ Clients do not have accounts. They get access to **one request** in two ways:
 5. Server returns the file id. Browser shows it in the list.
 ```
 
-- Why through our server: so the server can check the real type before the file is saved. A 3 MB file fits inside the request size limits of Netlify (about 6 MB) and other hosts.
+- Why through our server: so the server can check the real type before the file is saved. A 3 MB file fits inside the request size limits of Vercel (about 4.5 MB for a function request body) and other hosts.
 - **Admin opens a file:** the server checks `requireAdmin()`, writes an `activity_log` row ("file opened"), and returns a **signed link that works for 60 seconds**.
 - Clients cannot open or download files after upload. They see only the file name and size in the flow.
 
@@ -228,7 +228,7 @@ If OCR fails, is slow, or the phone is too old, the client types the values by h
 
 ## 9. Scheduled jobs
 
-Both jobs are Node scripts in `/scripts`, run by **GitHub Actions** (`scheduled-jobs.yml`). They connect to Supabase directly with secrets stored in GitHub. They do not call the Netlify site, so they cost no Netlify credits.
+Both jobs are Node scripts in `/scripts`, run by **GitHub Actions** (`scheduled-jobs.yml`). They connect to Supabase directly with secrets stored in GitHub. They do not call the website, so they use none of its hosting limits.
 
 | Job | When | What it does |
 |---|---|---|
@@ -244,15 +244,15 @@ Both jobs are Node scripts in `/scripts`, run by **GitHub Actions** (`scheduled-
 
 ## 10. Hosting
 
-- **Netlify free plan**, Next.js handled by the OpenNext adapter (automatic).
-- `netlify.toml` sets the Node version and build command. Nothing else is Netlify-specific.
+- **Vercel**, on the free subdomain (`something.vercel.app`) for now. No domain yet. Next.js needs no adapter.
+- No host config file is needed. The build command is `pnpm build` (Vercel finds it by itself).
 - **Save credits:**
   - Static public pages, cached at the CDN.
   - Small images (`next/image`), no big hero videos.
-  - Few production deploys (batch changes). Use deploy previews for testing.
-  - Tesseract.js files load from the jsDelivr CDN (its default), so they do not use our Netlify traffic.
+  - Few production deploys (batch changes).
+  - Tesseract.js files load from the jsDelivr CDN (its default), so they do not use our hosting traffic.
 - Security headers (CSP, HSTS, etc.) are set in `next.config.ts` so they work on any host.
-- Environment variables are set in the Netlify dashboard. List in `.env.example`.
+- Environment variables are set in the Vercel dashboard (Project > Settings > Environment Variables). The full beginner guide is `docs/SETUP_GUIDE.md`. List in `.env.example`.
 
 ### Environment variables (`.env.example` will contain these)
 

@@ -38,6 +38,7 @@ const RETRYABLE_TEMPLATES: string[] = [
   "request_submitted_admin",
   "request_submitted_client",
   "payment_submitted_admin",
+  "payment_verified_client",
   "status_changed_client",
   "client_message_client",
 ];

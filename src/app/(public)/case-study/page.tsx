@@ -9,12 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DECISIONS, LESSONS, METRICS, METRICS_AS_OF, NEXT_STEPS } from "@/content/case-study";
 
-// Not indexed and not linked from the menu until the owner approves it (it shows her business).
+// Public: it uses fake data only. It is not in the menu (clients do not need it). Portfolio visitors find it from the README.
 export const metadata: Metadata = {
   title: "Case study",
   description:
     "How an online request system for a small bookkeeping business was designed and built.",
-  robots: { index: false, follow: false },
+  alternates: { canonical: "/case-study" },
 };
 
 const SHOTS = [
@@ -132,8 +132,8 @@ export default function CaseStudyPage() {
                 <CardHeader>
                   <CardTitle>$0 per month</CardTitle>
                   <CardDescription className="text-base">
-                    Free plans only: Supabase, Netlify (a hard credit limit), Brevo (300 emails a
-                    day), GitHub Actions. Static pages, few deploys, two small scheduled jobs.
+                    Free plans only: Supabase, Vercel (free plan limits), Brevo (300 emails a day),
+                    GitHub Actions. Static pages, few deploys, two small scheduled jobs.
                   </CardDescription>
                 </CardHeader>
               </Card>

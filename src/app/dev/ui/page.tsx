@@ -328,8 +328,7 @@ export default function DevUiPage() {
               ))}
             </div>
             <p className="text-sm text-muted-foreground">
-              The 9th status (payment_verified, shown last) is PROVISIONAL: it reuses the success
-              colors until the owner decides.
+              All 9 statuses are shown. Payment verified (lime green, check-badge icon) is the 9th.
             </p>
           </Section>
 

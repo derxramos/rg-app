@@ -83,27 +83,35 @@ Details for each phase are in `docs/PHASES.md`.
 
 ---
 
-## Open questions
+## Decisions from the owner (answers to the 19 questions, 2026-11-06)
 
-1. Does the business have its own domain name (for example `rgbookkeeping.ph`)? This decides the email sender address and the website address.
-2. Should staff accounts be able to verify payments, or only the owner?
-3. Public site language: English only, or English + Filipino?
-4. Starting values: how many days to keep files after Completed/Cancelled (proposal: 30), and max files per request (proposal: 15)?
-5. Will the GitHub repository be public (for the portfolio) or private?
-6. **9th status.** DATABASE.md has 9 request statuses (the extra one is `payment_verified`). FEATURES.md and DESIGN_SYSTEM.md list 8. Should `payment_verified` be its own status, and what color and icon should its badge have? (The badge has a TODO in `src/components/shared/status-badge.tsx`.)
-7. **npm or pnpm?** CLAUDE.md says npm, but the project uses pnpm. Which one do you want? (I used pnpm and did not change CLAUDE.md about it.)
-8. **Service names.** PHASES.md says the seed uses service names "from the brief", but the brief is not in the repository. `scripts/seed-data/services.ts` is empty. Please give me the list of names (names only, no fees or requirements).
-9. **Palette.** Teal Ledger (default now) or Harbor Navy? (Also asked in DESIGN_SYSTEM.md section 8.)
-10. **Tracking code font and font weights.** DESIGN_SYSTEM.md asks: is system monospace OK for the tracking code, and are weights 400 and 700 only OK? I built it that way.
-11. **Staff and payments** (same as question 2). Not decided. It matters in Phase 5.
-12. **Phone input and money input** have a prefix box (+63, peso sign) but no number rules yet. The rules come with the request form in Phase 3.
-13. **Privacy notice facts.** The draft needs: how long to keep the text records of requests, the data region (where Supabase stores data), the contact person and details, and a check by you or a lawyer. See `src/content/privacy-notice.ts`.
-14. **Dead links for now.** "Start a request" and "Track my request" point to `/request` and `/track`, which are built in Phases 3 and 6. Until then they show the 404 page. Is that OK, or do you want a small "coming soon" page?
-15. **Contact page details.** Phone, email, address, hours, Messenger and Viber all come from the database settings and are empty now. The owner fills them in the admin area (Phase 5). Until then only empty states show.
-16. **Turnstile.** The contact form has no spam-check area yet. It is added together with sending, in Phase 6.
-17. **Case study.** Do you approve the page at `/case-study` (it names the business and shows the product)? When yes, it can be linked and indexed.
-18. **Real receipts.** Can you share 3 to 5 real receipts per app (GCash, Maya, BDO), with names blurred, so the parsers and the accuracy numbers can be made real?
-19. **Live checks.** The whole live checklist (Supabase, Brevo, Turnstile, Netlify, GitHub) is still open. See docs/SECURITY_CHECKLIST.md section 3.
+All earlier open questions are answered. What was done for each:
+
+1. **Domain:** none yet. The site uses the free Vercel address. Hosting moved from Netlify to Vercel (`netlify.toml` removed, client IP header and site address code changed, docs updated).
+2. **Verify payments:** owner only (`PAYMENT_VERIFY_ROLES = ["owner"]`, test added that staff are refused).
+3. **Language:** English only.
+4. **Keep files 30 days, 15 files max per request:** these were already the defaults.
+5. **Repo is public.** Added: `tests/unit/repo-safety.test.ts` (fails if a key, token or private address is committed), `.github/SECURITY.md`, and the GitHub protections in `docs/SETUP_GUIDE.md` step 1. The database is still reachable only by the server, RLS is on, the file bucket is private.
+6. **9th status `payment_verified`:** built as a real badge. Light lime green (#EAF3CF background, #3F5B0A text, both pass AA), icon `badge-check`. It sits between "Payment submitted" (blue) and "In progress" in meaning: money is confirmed, work is not finished. Documented in `docs/DESIGN_SYSTEM.md`.
+7. **pnpm:** used. Next.js docs list pnpm as a supported package manager with its own commands. They do not say it is "recommended over npm". `CLAUDE.md` now says pnpm.
+8. **Services:** the six names are in `scripts/seed-data/services.ts` (names only, no fees or checklists).
+9. **Palette:** keep **Teal Ledger** (teal with a coral accent). Professional, warm, and not tied to a gender. Harbor Navy stays as the alternative theme.
+10. **Legibility:** tracking code is bigger (3xl/4xl), bold monospace, wide letter spacing, easy to select. Added a `prefers-contrast: more` style (darker muted text and stronger borders).
+11. **Staff and payments:** owner only (same as 2).
+12 and 15. **Contact details** are the defaults in `src/lib/validation/settings.ts`: phone and Viber +63 991 234 8299, email rgsbookkeeping73@gmail.com, address P. Zamora St. Pob. 17, Batangas City, Philippines 4200.
+13. **Terms and privacy notice:** written in plain words (`src/content/terms.ts`, `src/content/privacy-notice.ts`). Records kept 5 years, data region Singapore. The draft banner is gone. **The owner must read and approve both** (a lawyer check is wise).
+14. **Dead links:** the pages exist now. Everything that needs the owner's hands is in `docs/SETUP_GUIDE.md`.
+16. **Spam check:** Turnstile + hidden honeypot field + rate limits are on the contact, request and tracking forms. Needs the Turnstile keys (guide step 3).
+17. **Case study:** public at `/case-study`, indexed, in the sitemap, not in the menu. It uses fake data only.
+18. **Receipts:** no official receipt. When the owner verifies a payment the client gets a simple acknowledgment email (amount, method, reference, date) that says it is not an official receipt and tells them to send a message through the Contact page. The tracking page shows the same note (it must not show payment details, CLAUDE.md rule 9). The earlier ask for sample real receipts is still useful for OCR accuracy, but it does not block anything.
+19. **Live checks:** still need the owner's real accounts. The full list of variables and the beginner steps are in `docs/SETUP_GUIDE.md`.
+
+### Still open
+
+- Owner reads and approves the Terms and privacy notice.
+- Check Vercel's terms: the free Hobby plan is for non-commercial use.
+- Gmail as the email sender may land in spam. A custom domain fixes this later.
+- Live pass of `docs/SECURITY_CHECKLIST.md` section 3.
 
 ---
 

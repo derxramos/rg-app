@@ -104,7 +104,8 @@ test("case study page has its sections, loads every picture, and shows no test n
       .map((i) => i.src),
   );
   expect(broken).toEqual([]);
-  expect(await page.locator("meta[name=robots]").getAttribute("content")).toContain("noindex");
+  // It is public now (the owner agreed), so it must NOT be hidden from search engines.
+  expect(await page.locator("meta[name=robots]").count()).toBe(0);
   const text = await page.locator("main").innerText();
   expect(text).not.toMatch(/zolb-test|\(e2e\)/);
 });
