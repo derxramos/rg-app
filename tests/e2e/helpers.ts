@@ -81,3 +81,75 @@ export async function removeTestMethod() {
     await sql.end();
   }
 }
+
+// ---------- Admin tests ----------
+// The local dev server has DEV_ADMIN_BYPASS_EMAIL set in .env.local (development only). It needs a TEST owner
+// profile with that email. It is called out in PROGRESS.md and removed again by removeTestAdmin().
+export const E2E_ADMIN_ID = "88888888-8888-4888-8888-888888888888";
+export const E2E_ADMIN_EMAIL = "zolb-test+owner@example.com";
+
+export async function ensureTestAdmin() {
+  const sql = testSql();
+  try {
+    await sql`insert into admin_profiles (id, full_name, email, role, is_active)
+              values (${E2E_ADMIN_ID}, 'Test Owner', ${E2E_ADMIN_EMAIL}, 'owner', true)
+              on conflict (id) do update set is_active = true, role = 'owner'`;
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function removeTestAdmin() {
+  const sql = testSql();
+  try {
+    // The "last owner" rule would block this, so it is switched off for this one clean-up (test database only).
+    await sql`alter table admin_profiles disable trigger admin_profiles_protect_last_owner`;
+    await sql`delete from request_notes where author_id = ${E2E_ADMIN_ID}`;
+    await sql`update payments set verified_by = null where verified_by = ${E2E_ADMIN_ID}`;
+    await sql`update request_status_events set changed_by = null where changed_by = ${E2E_ADMIN_ID}`;
+    await sql`update payment_methods set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;
+    await sql`update site_settings set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;
+    await sql`delete from admin_profiles where id = ${E2E_ADMIN_ID}`;
+    await sql`alter table admin_profiles enable trigger admin_profiles_protect_last_owner`;
+  } finally {
+    await sql.end();
+  }
+}
+
+// A sent request with one pending payment, made directly in the database.
+export async function createPaidRequest(name: string) {
+  const sql = testSql();
+  try {
+    const [service] = await sql`select id from services where slug = 'test-service-e2e'`;
+    const code =
+      "RG-" +
+      Math.random()
+        .toString(36)
+        .slice(2, 10)
+        .toUpperCase()
+        .replace(/[01OIL]/g, "2");
+    const [request] =
+      await sql`insert into requests (tracking_code, service_id, status, client_full_name, client_email, client_phone, client_phone_last4, consent_version, consent_at, submitted_at)
+      values (${code}, ${service.id}, 'payment_submitted', ${name}, 'zolb-test+admin@example.com', '+639171234567', '4567', 'v1', now(), now()) returning id`;
+    const ref = "ADM" + Math.floor(Math.random() * 1e9);
+    const [payment] =
+      await sql`insert into payments (request_id, payment_method_id, method_snapshot, reference_number, amount_centavos, paid_on, entry_method, ocr_raw_values)
+      values (${request.id}, ${E2E_METHOD_ID}, ${sql.json({ name: "Test GCash (e2e)", accountName: "SAMPLE - not real", accountNumber: "0000 000 0000" })}, ${ref}, 125000, current_date, 'ocr_edited', ${sql.json({ reference: "ADM0", amount: "1250", date: "" })}) returning id`;
+    await sql`insert into request_status_events (request_id, from_status, to_status) values (${request.id}, null, 'draft'), (${request.id}, 'draft', 'payment_submitted')`;
+    return { requestId: request.id as string, code, paymentId: payment.id as string };
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function removeTestServices() {
+  const sql = testSql();
+  try {
+    await sql`delete from service_requirements where service_id in (select id from services where slug like 'test-service-two%')`;
+    await sql`delete from services where slug like 'test-service-two%'`;
+    await sql`update site_settings set value = ${sql.json({ phone: "", email: "", address: "" })} where key = 'contact'`;
+    await sql`update payment_methods set account_number = '0000 000 0000' where id = ${E2E_METHOD_ID}`;
+  } finally {
+    await sql.end();
+  }
+}

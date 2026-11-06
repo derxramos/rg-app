@@ -328,8 +328,8 @@ export default function DevUiPage() {
               ))}
             </div>
             <p className="text-sm text-muted-foreground">
-              TODO: DATABASE.md has a 9th status (payment_verified). It is not built yet. Waiting
-              for the owner&apos;s answer.
+              The 9th status (payment_verified, shown last) is PROVISIONAL: it reuses the success
+              colors until the owner decides.
             </p>
           </Section>
 

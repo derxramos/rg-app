@@ -2,10 +2,10 @@
 
 Update this file at the end of every work session.
 
-**Current status:** Phase 4 (payment QR page and receipt OCR) is finished and committed. Work continues with Phase 5 (admin area).
+**Current status:** Phase 5 (admin area) is finished and committed. Work continues with Phase 6 (emails and tracking).
 **Last updated:** 2026-11-06
 
-**Next step:** Phase 5: admin area.
+**Next step:** Phase 6: emails and tracking.
 
 ---
 
@@ -18,7 +18,7 @@ Details for each phase are in `docs/PHASES.md`.
 - [~] Phase 2 — Public pages with seed content (code done; approval pending)
 - [x] Phase 3 — Request flow and file upload(code done, checked on this computer)
 - [x] Phase 4 — Payment QR page and receipt OCR(code done, checked on this computer)
-- [ ] Phase 5 — Admin area
+- [x] Phase 5 — Admin area(code done, checked on this computer)
 - [ ] Phase 6 — Emails and tracking page
 - [ ] Phase 7 — Security hardening, tests, deploy
 - [ ] Phase 8 — Portfolio case study page
@@ -62,6 +62,12 @@ Details for each phase are in `docs/PHASES.md`.
 | 2026-11-06 | Phase 4: sample payment methods start OFF and are marked "SAMPLE - not real" | They must never show to real clients by accident |
 | 2026-11-06 | Phase 4: the client may add more than one payment to a request | A client can pay in two parts. The admin sees all of them |
 | 2026-11-06 | Phase 4: the receipt form sends the entry method (ocr, ocr_edited, manual) and the first OCR values as text | The server cannot see the picture. These values are for the admin to compare. They are not trusted for anything else |
+| 2026-11-06 | Phase 5: every admin service function takes the acting admin and checks the role itself | A page or action cannot forget a permission. Tests cover it |
+| 2026-11-06 | Phase 5: Server Actions use `withAdmin()`, and a unit test reads the source and fails if one forgets the check | Enforces CLAUDE.md rule 5 for future code too |
+| 2026-11-06 | Phase 5: fresh 2FA is a code field in the risky form and a signed 5 minute cookie, not a dialog | Simpler, same safety. The design shows a dialog |
+| 2026-11-06 | Phase 5: development bypass for the admin area (`DEV_ADMIN_BYPASS_EMAIL`), only when NODE_ENV is development | Lets the admin area be built and tested with no Supabase. Tested to be refused in production |
+| 2026-11-06 | Phase 5: owner and staff can both verify payments for now | Open question 2 is still open. One line to change |
+| 2026-11-06 | Phase 5: the `payment_verified` status has a PROVISIONAL badge | The admin must show it. The owner decides the final look |
 
 ---
 
@@ -232,6 +238,35 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ---
 
+## Phase 5 report
+
+### What is done
+- **Access checks** (`src/server/auth`): `requireAdmin()` checks a valid session, **AAL2** (password plus 2FA code), an **active** `admin_profiles` row, and the role. `withAdmin()` wraps every Server Action. `guardAdminPage()` redirects pages. A turned-off admin is blocked at once. Fresh 2FA (a code typed in the last 5 minutes) is a signed cookie.
+- **Login** `/admin/login` (5 tries per 15 minutes per visitor, the same message for every failure, success and failure written to the activity log), **2FA** `/admin/mfa`, **2FA setup** `/admin/mfa/setup` (QR picture, secret text, first code, then a "add a backup device" step), log out. `src/proxy.ts` refreshes the login cookie and sends logged-out people to the login page. It is not the real check.
+- **Dashboard:** counts by status, the "needs action" list, the storage meter (yellow at the warning percent, red at 95), emails today out of 300, last cleanup and keep-alive with a warning after 3 days, who last changed a payment method, and the weekly backup reminder.
+- **Requests:** list with filters (status, service, dates, search, show drafts), a table from 768 px and cards on a phone, 25 per page. Detail page: client info, files with **Open** (a 60 second signed link, every open is logged), payments with the strong OCR warning above **Mark payment verified** (disabled until "I found this payment in our account" is ticked), reject with a reason, status change with only the allowed next statuses and an optional message, timeline, internal notes (yellow dashed box, lock) and client messages (blue box, send icon).
+- **Settings:** payment methods (owner only, fresh 2FA to change the QR, account name or number or to add one, new QR files get a new random name, delete is blocked when payments used it), services and checklists (start empty), site content, file settings (owner only), admin users (owner only, fresh 2FA, last owner is protected). Changes to services and settings show on the public website **at once** (`updateTag`).
+- **Activity log** page (filters, payment method rows highlighted, read-only) and **CSV export** (owner only, formulas made safe, logged).
+- **Tests:** 267 unit tests (all pass). They include the permission tests: staff cannot change payment methods, change file settings, invite or change admins, or export; logged-out and password-only sessions are refused; a test that **reads the source** and fails if any admin Server Action or admin route forgets `withAdmin` or `requireAdmin`. Playwright admin tests (all pass on phone and desktop profiles): dashboard, filters, verify needs the tick, status change, notes look different, a QR/account change needs a fresh code and is logged twice (app row and database trigger row, with the admin id), a services change and a contact change show on the public site at once, CSV download, bottom bar and 44 px controls.
+- **Bug fixes along the way:** the dev-storage route now needs an admin for client files.
+
+### NOT verified here (needs your Supabase project)
+- The **real** login, 2FA enrol and verify, invite by email, and the proxy redirect. The code uses `@supabase/ssr` and `supabase.auth.mfa` as documented, but I could not run it. Please test: log in, set up 2FA, log out, log in again, invite a staff account, turn it off.
+- Real Supabase signed links and the public-assets bucket for QR pictures.
+- How the "fresh 2FA" check behaves with a real authenticator app (the 6-digit code is checked with `challengeAndVerify`).
+
+### Development-only bypass (called out on purpose)
+- `DEV_ADMIN_BYPASS_EMAIL` lets the admin area open on a development computer with no Supabase. It works **only** when `NODE_ENV` is `development` (a unit test proves it is refused in production and test), only for an email that has an active admin profile, and the fresh-2FA code in this mode is `000000`. A test also checks that only two source files read the variable. **Leave it empty on every real server.**
+- **Test owner account:** the end-to-end tests create ONE profile with role **owner** and the email `zolb-test+owner@example.com` in the **local test database only**. `pnpm e2e:clean` removes it. A search for `zolb-test` in requests, admin profiles, email log and settings found 0 rows at the end.
+
+### Decisions and assumptions to confirm
+- Who may verify payments is still an open question. Both owner and staff can for now. It is one line (`PAYMENT_VERIFY_ROLES` in `admin-core.ts`).
+- Staff can edit services, checklists and site content. Only the owner can edit file settings, payment methods, admin users and export. (Assumption.)
+- The fresh 2FA code is a field inside each risky form, not a pop-up dialog. Same safety, fewer screens.
+- The **9th status** `payment_verified` now has a PROVISIONAL badge (success colors) because the admin area must show it. The owner still decides the final look.
+
+---
+
 ## Risks to watch
 
 - **Netlify free plan is a hard limit (300 credits/month).** When credits run out, the site is paused until next month. A production deploy costs about 15 credits. Keep production deploys few. Check usage weekly.
@@ -266,3 +301,6 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ### Phase 4 session
 - Built Phase 4 and committed it. See "Phase 4 report" above.
+
+### Phase 5 session
+- Built Phase 5 and committed it. See "Phase 5 report" above.

@@ -1,0 +1,342 @@
+import { FileText, Lock, Send } from "lucide-react";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+
+import { ActionForm } from "@/components/admin/action-form";
+import { AdminTitle } from "@/components/admin/bits";
+import { PaymentStateBadge } from "@/components/shared/payment-state-badge";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { WarningBox } from "@/components/shared/warning-box";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox, CheckboxRow } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { formatFileSize } from "@/lib/image-compress";
+import { formatPesos } from "@/lib/money";
+import { STATUS_LABELS, nextStatusesFor } from "@/lib/status";
+import { formatManilaDate, formatManilaDateTime } from "@/lib/time";
+import { guardAdminPage } from "@/server/auth/admin";
+import { PAYMENT_VERIFY_ROLES, hasRole } from "@/server/auth/admin-core";
+import { getDb } from "@/server/db/client";
+import { getRequestDetail } from "@/server/services/admin-requests";
+
+import {
+  addNoteAction,
+  changeStatusAction,
+  rejectPaymentAction,
+  verifyPaymentAction,
+} from "../actions";
+
+export const metadata: Metadata = { title: "Request" };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-4">
+      <dt className="text-sm text-muted-foreground sm:w-40 sm:shrink-0">{label}</dt>
+      <dd className="min-w-0 text-base break-words">{children}</dd>
+    </div>
+  );
+}
+
+export default async function AdminRequestDetailPage({
+  params,
+}: PageProps<"/admin/requests/[id]">) {
+  const admin = await guardAdminPage();
+  const { id } = await params;
+  if (!UUID.test(id)) notFound();
+  const detail = await getRequestDetail(getDb(), id);
+  if (!detail) notFound();
+  const { request, files, payments, events, notes } = detail;
+  const nextStatuses = nextStatusesFor("admin", request.status);
+  const canVerify = hasRole(admin, PAYMENT_VERIFY_ROLES);
+
+  return (
+    <>
+      <AdminTitle
+        title={request.trackingCode}
+        intro={`${request.serviceName} · ${request.clientFullName}`}
+        actions={<StatusBadge status={request.status} />}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Client</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="flex flex-col gap-3">
+                <Row label="Name">{request.clientFullName}</Row>
+                <Row label="Email">{request.clientEmail}</Row>
+                <Row label="Mobile number">{request.clientPhone}</Row>
+                {request.businessName ? <Row label="Business">{request.businessName}</Row> : null}
+                {request.clientMessage ? <Row label="Message">{request.clientMessage}</Row> : null}
+                <Row label="Consent">
+                  Version {request.consentVersion}, {formatManilaDateTime(request.consentAt)}
+                </Row>
+                <Row label="Created">{formatManilaDateTime(request.createdAt)}</Row>
+              </dl>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Files</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {request.filesDeletedAt ? (
+                <p className="font-bold text-warning-ink">
+                  Files deleted on {formatManilaDate(request.filesDeletedAt)}
+                </p>
+              ) : null}
+              {files.length === 0 ? (
+                <p className="text-base text-muted-foreground">No files.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {files.map((f) => (
+                    <li
+                      key={f.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-surface-subtle p-3"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <FileText aria-hidden="true" className="size-5 shrink-0" />
+                        <span className="break-words">{f.originalName}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {formatFileSize(f.sizeBytes)}
+                        </span>
+                      </span>
+                      {f.deletedAt ? (
+                        <span className="text-sm font-bold text-warning-ink">Deleted</span>
+                      ) : (
+                        // The link makes a 60 second signed address and writes the open to the activity log.
+                        <a
+                          href={`/api/admin/file?id=${f.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-11 items-center rounded-md border border-input bg-background px-4 text-base font-bold text-primary hover:bg-accent"
+                        >
+                          Open (new tab)
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <section aria-labelledby="payments-title" className="flex flex-col gap-4">
+            <h2 id="payments-title" className="text-xl font-bold">
+              Payments
+            </h2>
+            {payments.length === 0 ? (
+              <p className="text-base text-muted-foreground">No payment yet.</p>
+            ) : null}
+            {payments.map((p) => {
+              const snapshot = p.methodSnapshot as {
+                name?: string;
+                accountName?: string;
+                accountNumber?: string;
+              };
+              const raw = p.ocrRawValues as {
+                reference?: string;
+                amount?: string;
+                date?: string;
+              } | null;
+              return (
+                <Card key={p.id}>
+                  <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+                    <CardTitle>
+                      {formatPesos(p.amountCentavos)} by {snapshot.name ?? "payment"}
+                    </CardTitle>
+                    <PaymentStateBadge state={p.status} />
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="flex flex-col gap-2">
+                      <Row label="Reference">{p.referenceNumber}</Row>
+                      <Row label="Date on receipt">
+                        {formatManilaDate(`${p.paidOn}T00:00:00+08:00`)}
+                      </Row>
+                      <Row label="How it was entered">
+                        {p.entryMethod === "ocr"
+                          ? "Read from the picture (OCR)"
+                          : p.entryMethod === "ocr_edited"
+                            ? "Read from the picture, then changed"
+                            : "Typed by hand"}
+                      </Row>
+                      <Row label="Account the client saw">
+                        {snapshot.accountName} ({snapshot.accountNumber})
+                      </Row>
+                      {p.entryMethod === "ocr_edited" && raw ? (
+                        <Row label="OCR first read">
+                          Reference {raw.reference || "-"}, amount {raw.amount || "-"}, date{" "}
+                          {raw.date || "-"}
+                        </Row>
+                      ) : null}
+                      {p.rejectionReason ? (
+                        <Row label="Rejected because">{p.rejectionReason}</Row>
+                      ) : null}
+                    </dl>
+                    {p.status === "pending" ? (
+                      canVerify ? (
+                        <div className="flex flex-col gap-4">
+                          <WarningBox
+                            variant="warning"
+                            strong
+                            title="Check this payment in your own GCash / Maya / BDO app first."
+                          >
+                            These values came from the client (typed or read by OCR from their
+                            screenshot). They can be wrong or fake.
+                          </WarningBox>
+                          <ActionForm
+                            action={verifyPaymentAction}
+                            hidden={{ paymentId: p.id }}
+                            submitLabel="Mark payment verified"
+                          >
+                            <CheckboxRow htmlFor={`found-${p.id}`}>
+                              <Checkbox id={`found-${p.id}`} name="found" />
+                              <span>I found this payment in our account.</span>
+                            </CheckboxRow>
+                          </ActionForm>
+                          <ActionForm
+                            action={rejectPaymentAction}
+                            hidden={{ paymentId: p.id }}
+                            submitLabel="Reject payment"
+                            variant="outline"
+                          >
+                            <div className="flex flex-col gap-2">
+                              <Label htmlFor={`reason-${p.id}`}>
+                                Reason (the client sees this)
+                              </Label>
+                              <Input id={`reason-${p.id}`} name="reason" maxLength={300} />
+                            </div>
+                          </ActionForm>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Only the owner can verify payments.
+                        </p>
+                      )
+                    ) : null}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </section>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Change status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {nextStatuses.length === 0 ? (
+                <p className="text-base text-muted-foreground">
+                  No change is possible from {STATUS_LABELS[request.status]}.
+                </p>
+              ) : (
+                <ActionForm
+                  action={changeStatusAction}
+                  hidden={{ requestId: request.id }}
+                  submitLabel="Change status"
+                >
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="status-to">New status</Label>
+                    <NativeSelect id="status-to" name="to" defaultValue={nextStatuses[0]}>
+                      {nextStatuses.map((s) => (
+                        <option key={s} value={s}>
+                          {STATUS_LABELS[s]}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="status-msg">Message to the client (optional)</Label>
+                    <Textarea id="status-msg" name="message" maxLength={2000} />
+                  </div>
+                </ActionForm>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Timeline</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="flex flex-col gap-3">
+                {events.map((e) => (
+                  <li key={e.id} className="flex flex-col gap-1">
+                    <StatusBadge status={e.toStatus} />
+                    <span className="text-sm text-muted-foreground">
+                      {formatManilaDateTime(e.createdAt)}
+                      {e.changedByName ? ` · ${e.changedByName}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <section aria-labelledby="notes-title" className="flex flex-col gap-4">
+        <h2 id="notes-title" className="text-xl font-bold">
+          Notes and messages
+        </h2>
+        <ActionForm
+          action={addNoteAction}
+          hidden={{ requestId: request.id }}
+          submitLabel="Save"
+          resetOnSuccess
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="note-kind">Who can see it?</Label>
+            <NativeSelect id="note-kind" name="visibility" defaultValue="internal">
+              <option value="internal">Internal note (staff only)</option>
+              <option value="client">Message to the client (shown on the tracking page)</option>
+            </NativeSelect>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="note-body">Text</Label>
+            <Textarea id="note-body" name="body" maxLength={2000} required />
+          </div>
+        </ActionForm>
+        <ul className="flex flex-col gap-3">
+          {notes.map((n) =>
+            n.visibility === "internal" ? (
+              // Staff only: yellow dashed box with a lock.
+              <li
+                key={n.id}
+                className="flex flex-col gap-1 rounded-lg border-2 border-dashed border-warning bg-warning-soft p-4 text-warning-ink"
+              >
+                <span className="flex items-center gap-2 text-sm font-bold">
+                  <Lock aria-hidden="true" className="size-4" />
+                  Internal note (staff only) · {n.authorName} · {formatManilaDateTime(n.createdAt)}
+                </span>
+                <span className="text-base whitespace-pre-line">{n.body}</span>
+              </li>
+            ) : (
+              // Shown to the client: blue box with a send icon.
+              <li
+                key={n.id}
+                className="flex flex-col gap-1 rounded-lg border border-info bg-info-soft p-4 text-info-ink"
+              >
+                <span className="flex items-center gap-2 text-sm font-bold">
+                  <Send aria-hidden="true" className="size-4" />
+                  Message to the client · {n.authorName} · {formatManilaDateTime(n.createdAt)}
+                </span>
+                <span className="text-base whitespace-pre-line">{n.body}</span>
+              </li>
+            ),
+          )}
+        </ul>
+      </section>
+    </>
+  );
+}

@@ -18,7 +18,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "storage:setup": "tsx scripts/setup-storage.ts",
-    "dev:db": "tsx scripts/dev-db.ts"
+    "dev:db": "tsx scripts/dev-db.ts",
+    "e2e:clean": "tsx scripts/e2e-seed.ts --clean"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

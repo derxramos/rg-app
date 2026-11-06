@@ -4,6 +4,7 @@ import {
   FilePenLine,
   Hourglass,
   LoaderCircle,
+  BadgeCheck,
   ReceiptText,
   Search,
   Send,
@@ -14,10 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { STATUS_LABELS, type RequestStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
-// TODO(owner question): DATABASE.md has 9 statuses, but FEATURES.md and DESIGN_SYSTEM.md list 8.
-// The extra one in the database is "payment_verified". It has no color pair and no icon yet,
-// so the badge does not accept it. Add it here when the owner answers the question.
-export type BadgeStatus = Exclude<RequestStatus, "payment_verified">;
+// OPEN QUESTION (PROGRESS.md): DATABASE.md has 9 statuses, but DESIGN_SYSTEM.md draws 8. The 9th is
+// "payment_verified". The admin area must show it, so it has a PROVISIONAL badge here that reuses the
+// success colors. The owner decides the final color and icon.
+export type BadgeStatus = RequestStatus;
 
 // Tailwind cannot see class names that are built from strings, so every class is written out in full.
 const STATUS_STYLES: Record<BadgeStatus, { icon: LucideIcon; className: string }> = {
@@ -32,6 +33,11 @@ const STATUS_STYLES: Record<BadgeStatus, { icon: LucideIcon; className: string }
   payment_submitted: {
     icon: ReceiptText,
     className: "bg-status-payment-submitted-bg text-status-payment-submitted-fg",
+  },
+  // PROVISIONAL (see the note above).
+  payment_verified: {
+    icon: BadgeCheck,
+    className: "bg-success-soft text-success-ink",
   },
   under_review: {
     icon: Search,

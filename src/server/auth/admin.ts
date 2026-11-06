@@ -1,0 +1,199 @@
+import "server-only";
+
+import { eq } from "drizzle-orm";
+import { cookies, headers } from "next/headers";
+import { connection } from "next/server";
+import { redirect } from "next/navigation";
+
+import { getDb } from "@/server/db/client";
+import { adminProfiles } from "@/server/db/schema";
+import { getTokenSecret, isProduction } from "@/server/env";
+import { hashIp, readClientIp } from "@/server/security/client-ip";
+
+import {
+  AdminAuthError,
+  checkAdmin,
+  devBypassSession,
+  isFresh2faValid,
+  makeFresh2faValue,
+  FRESH_2FA_SECONDS,
+  type AdminAuthCode,
+  type AdminProfile,
+  type AdminRole,
+  type AdminSession,
+} from "./admin-core";
+import { createSupabaseServer, supabaseAuthConfigured } from "./supabase-server";
+
+const FRESH_COOKIE = "rg_fresh2fa";
+
+// Who is logged in? Supabase checks the cookie (getUser asks the server, it does not just trust the cookie).
+export async function getAdminSession(): Promise<AdminSession | null> {
+  await connection(); // depends on cookies, so it runs at request time
+
+  const bypass = devBypassSession({
+    nodeEnv: process.env.NODE_ENV,
+    email: process.env.DEV_ADMIN_BYPASS_EMAIL,
+  });
+  if (bypass) {
+    const [profile] = await getDb()
+      .select({ id: adminProfiles.id })
+      .from(adminProfiles)
+      .where(eq(adminProfiles.email, bypass.email))
+      .limit(1);
+    return profile ? { ...bypass, userId: profile.id } : null;
+  }
+
+  if (!supabaseAuthConfigured()) return null;
+  const supabase = await createSupabaseServer();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
+  const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return {
+    userId: data.user.id,
+    email: data.user.email ?? "",
+    aal: level?.currentLevel === "aal2" ? "aal2" : "aal1",
+  };
+}
+
+// Called at the start of EVERY admin server action, route and page (CLAUDE.md rule 5).
+export async function requireAdmin(
+  options: { roles?: readonly AdminRole[] } = {},
+): Promise<AdminProfile> {
+  return checkAdmin(getDb(), await getAdminSession(), options);
+}
+
+// For pages: sends the person where they can fix it instead of showing an error.
+export async function guardAdminPage(
+  options: { roles?: readonly AdminRole[] } = {},
+): Promise<AdminProfile> {
+  let profile: AdminProfile | null = null;
+  let failure: AdminAuthCode | null = null;
+  try {
+    profile = await requireAdmin(options);
+  } catch (error) {
+    if (!(error instanceof AdminAuthError)) throw error;
+    failure = error.code;
+  }
+  if (profile) return profile;
+  if (failure === "needs-2fa") redirect("/admin/mfa");
+  if (failure === "wrong-role") redirect("/admin?denied=1");
+  redirect("/admin/login");
+}
+
+// ---------- Fresh 2FA ----------
+
+export async function hasFresh2fa(adminId: string): Promise<boolean> {
+  const jar = await cookies();
+  return isFresh2faValid(getTokenSecret(), adminId, jar.get(FRESH_COOKIE)?.value, Date.now());
+}
+
+async function markFresh(adminId: string) {
+  const jar = await cookies();
+  jar.set(FRESH_COOKIE, makeFresh2faValue(getTokenSecret(), adminId, Date.now()), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProduction(),
+    path: "/admin",
+    maxAge: FRESH_2FA_SECONDS,
+  });
+}
+
+// Checks a 6-digit code against the admin's authenticator app. In development with the bypass, the
+// code 000000 is accepted so the pages can be tried.
+export async function verifyFresh2fa(admin: AdminProfile, code: string): Promise<boolean> {
+  const clean = code.replace(/\s/g, "");
+  if (!/^\d{6}$/.test(clean)) return false;
+
+  const bypass = devBypassSession({
+    nodeEnv: process.env.NODE_ENV,
+    email: process.env.DEV_ADMIN_BYPASS_EMAIL,
+  });
+  if (bypass) {
+    if (clean !== "000000") return false;
+    await markFresh(admin.id);
+    return true;
+  }
+
+  const supabase = await createSupabaseServer();
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  const factor = factors?.totp.find((f) => f.status === "verified");
+  if (!factor) return false;
+  const { error } = await supabase.auth.mfa.challengeAndVerify({
+    factorId: factor.id,
+    code: clean,
+  });
+  if (error) return false;
+  await markFresh(admin.id);
+  return true;
+}
+
+// ---------- Server action wrapper ----------
+
+export type ActionResult =
+  | { ok: true; message?: string }
+  | {
+      ok: false;
+      message: string;
+      code?: AdminAuthCode | "invalid";
+      errors?: Record<string, string>;
+    };
+
+export type AdminContext = { admin: AdminProfile; ipHash: string; fresh2fa: boolean };
+
+const MESSAGES: Record<AdminAuthCode, string> = {
+  "no-session": "Please log in again.",
+  "needs-2fa": "Please enter your 2FA code to continue.",
+  "not-admin": "This account is not allowed here.",
+  inactive: "This account is turned off.",
+  "wrong-role": "Only the owner can do this.",
+  "needs-fresh-2fa":
+    "Please type a fresh 6-digit code from your authenticator app, then try again.",
+};
+
+// Wraps an admin Server Action: checks access FIRST (not just the page), reads the fresh 2FA state, turns
+// "not allowed" errors into messages, and keeps strange errors out of the browser.
+// If the form has a "fresh2faCode" field, that code is checked and starts a 5 minute fresh period.
+export async function withAdmin(
+  options: { roles?: readonly AdminRole[]; formData?: FormData },
+  run: (context: AdminContext) => Promise<ActionResult>,
+): Promise<ActionResult> {
+  try {
+    const admin = await requireAdmin({ roles: options.roles });
+    const code = options.formData?.get("fresh2faCode");
+    if (typeof code === "string" && code.trim()) await verifyFresh2fa(admin, code);
+    const ipHash = hashIp(readClientIp(await headers()));
+    return await run({ admin, ipHash, fresh2fa: await hasFresh2fa(admin.id) });
+  } catch (error) {
+    if (error instanceof AdminAuthError)
+      return { ok: false, code: error.code, message: MESSAGES[error.code] };
+    // Our own "please fix this" errors carry a safe message and a code.
+    const known = error as { code?: string; message?: string; name?: string };
+    if (
+      known &&
+      typeof known.code === "string" &&
+      [
+        "slug-taken",
+        "not-found",
+        "in-use",
+        "invalid",
+        "exists",
+        "last-owner",
+        "self",
+        "confirm-needed",
+        "not-pending",
+        "reason-needed",
+        "status-not-allowed",
+      ].includes(known.code)
+    ) {
+      return { ok: false, code: "invalid", message: known.message ?? "That could not be done." };
+    }
+    if (known?.name === "ZodError")
+      return {
+        ok: false,
+        code: "invalid",
+        message: "Please check the values. One of them is not allowed.",
+      };
+    console.error("Admin action failed:", error);
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
+}
