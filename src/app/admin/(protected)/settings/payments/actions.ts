@@ -73,7 +73,11 @@ export async function savePaymentMethodAction(
         { fresh2fa, ipHash },
       );
       // The owner gets an alert email when something risky changed (threat T1, the QR swap).
-    if (saved.risky) await notifyPaymentMethodChanged({ who: admin.fullName, what: `${text(formData, "name")}: QR, account name or account number changed` });
+      if (saved.risky)
+        await notifyPaymentMethodChanged({
+          who: admin.fullName,
+          what: `${text(formData, "name")}: QR, account name or account number changed`,
+        });
       if (!id || id === "new") newId = saved.id;
       revalidatePath("/admin/settings/payments");
       return {

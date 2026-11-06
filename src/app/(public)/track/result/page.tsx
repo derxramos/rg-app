@@ -54,42 +54,70 @@ async function Result() {
   return (
     <>
       <PageHeading title="Your request" intro={view.serviceName}>
-        <div><StatusBadge status={view.status} /></div>
+        <div>
+          <StatusBadge status={view.status} />
+        </div>
       </PageHeading>
       <PageContainer className="flex max-w-[640px] flex-col gap-6 py-10 md:py-14">
         {view.message ? (
           <div className="flex flex-col gap-1 rounded-lg border border-info bg-info-soft p-4 text-info-ink">
-            <span className="flex items-center gap-2 text-sm font-bold"><Send aria-hidden="true" className="size-4" />Message from us</span>
+            <span className="flex items-center gap-2 text-sm font-bold">
+              <Send aria-hidden="true" className="size-4" />
+              Message from us
+            </span>
             <span className="text-base whitespace-pre-line">{view.message}</span>
           </div>
         ) : null}
 
         <Card>
-          <CardHeader><CardTitle>Payment</CardTitle></CardHeader>
-          <CardContent><p className="text-base">{PAYMENT_TEXT[view.payment]}</p></CardContent>
+          <CardHeader>
+            <CardTitle>Payment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-base">{PAYMENT_TEXT[view.payment]}</p>
+          </CardContent>
         </Card>
 
-        {(view.canPay || view.canUploadMore) ? (
+        {view.canPay || view.canUploadMore ? (
           <div className="flex flex-wrap gap-3">
             {view.canPay ? (
-              <Link href={`/request/${requestId}/payment`} className={buttonVariants({ size: "lg" })}>Pay now<ArrowRight aria-hidden="true" /></Link>
+              <Link
+                href={`/request/${requestId}/payment`}
+                className={buttonVariants({ size: "lg" })}
+              >
+                Pay now
+                <ArrowRight aria-hidden="true" />
+              </Link>
             ) : null}
             {view.canUploadMore ? (
-              <Link href={`/request/${requestId}/documents`} className={buttonVariants({ variant: "outline", size: "lg" })}><Paperclip aria-hidden="true" />Upload more documents</Link>
+              <Link
+                href={`/request/${requestId}/documents`}
+                className={buttonVariants({ variant: "outline", size: "lg" })}
+              >
+                <Paperclip aria-hidden="true" />
+                Upload more documents
+              </Link>
             ) : null}
           </div>
         ) : null}
 
         <Card>
-          <CardHeader><CardTitle>What happened</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>What happened</CardTitle>
+          </CardHeader>
           <CardContent>
             <ol className="flex flex-col gap-4">
               {view.timeline.map((event, index) => (
                 <li key={index} className="flex items-start gap-3">
-                  <span aria-hidden="true" className="mt-2 size-3 shrink-0 rounded-full bg-primary" />
+                  <span
+                    aria-hidden="true"
+                    className="mt-2 size-3 shrink-0 rounded-full bg-primary"
+                  />
                   <span className="flex min-w-0 flex-col">
                     <span className="text-base font-bold">{STATUS_LABELS[event.status]}</span>
-                    <span className="text-sm text-muted-foreground">{formatManilaDateTime(event.at)}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatManilaDateTime(event.at)}
+                    </span>
                   </span>
                 </li>
               ))}
@@ -98,9 +126,13 @@ async function Result() {
         </Card>
 
         <WarningBox variant="info" title="Your documents are private">
-          This page never shows your documents or your contact details. To keep your information safe, this page closes by itself after 1 hour. You can open it again with your code.
+          This page never shows your documents or your contact details. To keep your information
+          safe, this page closes by itself after 1 hour. You can open it again with your code.
         </WarningBox>
-        <BackupContactBlock messengerUrl={settings.social_links.messenger} viberUrl={settings.social_links.viber} />
+        <BackupContactBlock
+          messengerUrl={settings.social_links.messenger}
+          viberUrl={settings.social_links.viber}
+        />
       </PageContainer>
     </>
   );

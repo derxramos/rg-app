@@ -49,7 +49,8 @@ describe('rule: server code starts with import "server-only"', () => {
 describe("rule: no secrets in the browser", () => {
   it("only these NEXT_PUBLIC_ variables exist, and none is a secret", () => {
     const names = new Set<string>();
-    for (const file of sourceFiles) for (const m of read(file).matchAll(/NEXT_PUBLIC_[A-Z0-9_]+/g)) names.add(m[0]);
+    for (const file of sourceFiles)
+      for (const m of read(file).matchAll(/NEXT_PUBLIC_[A-Z0-9_]+/g)) names.add(m[0]);
     expect([...names].sort()).toEqual([
       "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
       "NEXT_PUBLIC_SUPABASE_URL",
@@ -60,9 +61,12 @@ describe("rule: no secrets in the browser", () => {
   it(".env.example lists every variable the code reads, with a comment", () => {
     const example = readFileSync(path.resolve(__dirname, "../../.env.example"), "utf8");
     const used = new Set<string>();
-    for (const file of sourceFiles) for (const m of read(file).matchAll(/process\.env\.([A-Z][A-Z0-9_]+)/g)) used.add(m[1]);
+    for (const file of sourceFiles)
+      for (const m of read(file).matchAll(/process\.env\.([A-Z][A-Z0-9_]+)/g)) used.add(m[1]);
     const builtIn = new Set(["NODE_ENV", "NEXT_RUNTIME", "CI"]);
-    const missing = [...used].filter((name) => !builtIn.has(name) && !new RegExp(`^${name}=`, "m").test(example));
+    const missing = [...used].filter(
+      (name) => !builtIn.has(name) && !new RegExp(`^${name}=`, "m").test(example),
+    );
     expect(missing).toEqual([]);
   });
 
@@ -75,7 +79,13 @@ describe("rule: no secrets in the browser", () => {
 
 describe("rule: no host-only features (CLAUDE.md rule 6)", () => {
   it("does not use Netlify or Vercel only APIs", () => {
-    const bad = sourceFiles.filter((f) => /@netlify\/|@vercel\/(kv|blob|postgres|edge-config)|netlify-forms|NETLIFY_BLOBS/.test(read(f))).map(rel);
+    const bad = sourceFiles
+      .filter((f) =>
+        /@netlify\/|@vercel\/(kv|blob|postgres|edge-config)|netlify-forms|NETLIFY_BLOBS/.test(
+          read(f),
+        ),
+      )
+      .map(rel);
     expect(bad).toEqual([]);
   });
 });
@@ -84,7 +94,12 @@ describe("rule: money and time", () => {
   it("never formats money with toFixed or Math.round on pesos outside the helpers", () => {
     // Money is whole centavos. Showing money goes through formatPesos.
     const bad = sourceFiles
-      .filter((f) => !["lib/money.ts", "ocr/parsers/shared.ts", "server/services/admin-overview.ts"].includes(rel(f)))
+      .filter(
+        (f) =>
+          !["lib/money.ts", "ocr/parsers/shared.ts", "server/services/admin-overview.ts"].includes(
+            rel(f),
+          ),
+      )
       .filter((f) => /amountCentavos\s*\/\s*100/.test(read(f)))
       .map(rel);
     expect(bad).toEqual([]);

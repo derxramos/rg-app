@@ -169,8 +169,14 @@ export async function createSentRequest(status: string, name = "Track Test Clien
   const sql = testSql();
   try {
     const [service] = await sql`select id from services where slug = 'test-service-e2e'`;
-    const code = "RG-" + Array.from({ length: 8 }, () => "23456789ABCDEFGHJKMNPQRSTUVWXYZ"[Math.floor(Math.random() * 31)]).join("");
-    const [request] = await sql`insert into requests (tracking_code, service_id, status, client_full_name, client_email, client_phone, client_phone_last4, consent_version, consent_at, submitted_at, public_message)
+    const code =
+      "RG-" +
+      Array.from(
+        { length: 8 },
+        () => "23456789ABCDEFGHJKMNPQRSTUVWXYZ"[Math.floor(Math.random() * 31)],
+      ).join("");
+    const [request] =
+      await sql`insert into requests (tracking_code, service_id, status, client_full_name, client_email, client_phone, client_phone_last4, consent_version, consent_at, submitted_at, public_message)
       values (${code}, ${service.id}, ${status}, ${name}, 'zolb-test+private@example.com', '+639171234567', '4567', 'v1', now(), now(), ${status === "waiting_for_client" ? "Please send your valid ID." : null}) returning id`;
     await sql`insert into request_status_events (request_id, from_status, to_status) values (${request.id}, null, 'draft'), (${request.id}, 'draft', 'submitted')`;
     await sql`insert into request_files (request_id, storage_path, original_name, mime_type, size_bytes) values (${request.id}, ${"requests/" + request.id + "/old-secret.pdf"}, 'my-private-passport.pdf', 'application/pdf', 10)`;
@@ -183,7 +189,8 @@ export async function createSentRequest(status: string, name = "Track Test Clien
 export async function emailTemplatesFor(requestId: string): Promise<string[]> {
   const sql = testSql();
   try {
-    const rows = await sql`select template, status from email_log where request_id = ${requestId} order by created_at`;
+    const rows =
+      await sql`select template, status from email_log where request_id = ${requestId} order by created_at`;
     return rows.map((r) => `${r.template}:${r.status}`);
   } finally {
     await sql.end();
@@ -198,7 +205,9 @@ export async function watchCsp(page: Page) {
   await page.addInitScript(() => {
     (window as unknown as { __csp: string[] }).__csp = [];
     document.addEventListener("securitypolicyviolation", (event) => {
-      (window as unknown as { __csp: string[] }).__csp.push(`${event.violatedDirective} blocked ${event.blockedURI}`);
+      (window as unknown as { __csp: string[] }).__csp.push(
+        `${event.violatedDirective} blocked ${event.blockedURI}`,
+      );
     });
   });
 }
@@ -211,8 +220,12 @@ export async function getCspViolations(page: Page): Promise<string[]> {
 // Without a key (normal development) there is no widget, and this returns at once.
 export async function waitForTurnstile(page: Page) {
   if ((await page.locator(".cf-turnstile").count()) === 0) return;
-  await page.waitForFunction(() => {
-    const input = document.querySelector<HTMLInputElement>("[name=\"cf-turnstile-response\"]");
-    return Boolean(input?.value);
-  }, undefined, { timeout: 20_000 });
+  await page.waitForFunction(
+    () => {
+      const input = document.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]');
+      return Boolean(input?.value);
+    },
+    undefined,
+    { timeout: 20_000 },
+  );
 }

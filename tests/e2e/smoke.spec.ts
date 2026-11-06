@@ -73,19 +73,36 @@ test("the peso sign is shown", async ({ page }) => {
 });
 
 // The portfolio case study page (Phase 8). Not indexed until the owner approves it.
-test("case study page has its sections, loads every picture, and shows no test names", async ({ page }) => {
+test("case study page has its sections, loads every picture, and shows no test names", async ({
+  page,
+}) => {
   await page.goto("/case-study");
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-  for (const heading of ["The problem and the people", "How it fits together", "Key decisions", "The security story", "The receipt reader", "Screens (fake data only)", "What I learned", "What I would do next"]) {
+  for (const heading of [
+    "The problem and the people",
+    "How it fits together",
+    "Key decisions",
+    "The security story",
+    "The receipt reader",
+    "Screens (fake data only)",
+    "What I learned",
+    "What I would do next",
+  ]) {
     await expect(page.getByRole("heading", { level: 2, name: heading })).toBeVisible();
   }
   await expect(page.getByRole("img", { name: /How the system fits together/ })).toBeVisible();
   // The honest OCR note is there.
   await expect(page.getByText(/no accuracy numbers/)).toBeVisible();
   // The pictures load lazily. Ask for all of them now, then check that none is broken (a broken picture has width 0).
-  await page.locator("img").evaluateAll((images) => images.forEach((i) => ((i as HTMLImageElement).loading = "eager")));
+  await page
+    .locator("img")
+    .evaluateAll((images) => images.forEach((i) => ((i as HTMLImageElement).loading = "eager")));
   await page.waitForLoadState("networkidle");
-  const broken = await page.evaluate(() => [...document.querySelectorAll("img")].filter((i) => !i.complete || i.naturalWidth === 0).map((i) => i.src));
+  const broken = await page.evaluate(() =>
+    [...document.querySelectorAll("img")]
+      .filter((i) => !i.complete || i.naturalWidth === 0)
+      .map((i) => i.src),
+  );
   expect(broken).toEqual([]);
   expect(await page.locator("meta[name=robots]").getAttribute("content")).toContain("noindex");
   const text = await page.locator("main").innerText();

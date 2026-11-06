@@ -24,17 +24,30 @@ export async function trackAction(_previous: TrackState, formData: FormData): Pr
   const db = getDb();
   const ip = readClientIp(await headers());
 
-  const limit = await rateLimit(db, { key: `track:ip:${hashIp(ip)}`, limit: 10, windowSeconds: 900 });
+  const limit = await rateLimit(db, {
+    key: `track:ip:${hashIp(ip)}`,
+    limit: 10,
+    windowSeconds: 900,
+  });
   if (!limit.allowed) {
-    return { status: "limited", message: `Too many tries from this device. Please wait about ${Math.ceil(limit.retryAfterSeconds / 60)} minutes.` };
+    return {
+      status: "limited",
+      message: `Too many tries from this device. Please wait about ${Math.ceil(limit.retryAfterSeconds / 60)} minutes.`,
+    };
   }
   if (!(await verifyTurnstile({ token: text(formData, "cf-turnstile-response"), ip }))) {
     return { status: "error", message: "The spam check did not pass. Please try again." };
   }
 
-  const attempt = await attemptTracking(db, { code: text(formData, "code"), last4: text(formData, "last4").trim() });
+  const attempt = await attemptTracking(db, {
+    code: text(formData, "code"),
+    last4: text(formData, "last4").trim(),
+  });
   if (attempt.kind === "locked") {
-    return { status: "locked", message: `Too many tries. Please wait ${Math.ceil(attempt.retryAfterSeconds / 60)} minutes and try again.` };
+    return {
+      status: "locked",
+      message: `Too many tries. Please wait ${Math.ceil(attempt.retryAfterSeconds / 60)} minutes and try again.`,
+    };
   }
   if (attempt.kind === "not-found") return { status: "error", message: TRACK_NOT_FOUND };
 

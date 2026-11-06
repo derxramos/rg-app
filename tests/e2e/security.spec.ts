@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { cleanTestData, ensureTestAdmin, getCspViolations, removeTestAdmin, watchCsp } from "./helpers";
+import {
+  cleanTestData,
+  ensureTestAdmin,
+  getCspViolations,
+  removeTestAdmin,
+  watchCsp,
+} from "./helpers";
 
 test.beforeAll(async () => {
   await ensureTestAdmin();
@@ -24,7 +30,21 @@ test("every page sends the security headers", async ({ request }) => {
 
 test("the pages work under the Content-Security-Policy (no violations)", async ({ page }) => {
   await watchCsp(page);
-  const pages = ["/", "/services", "/how-it-works", "/contact", "/privacy", "/track", "/request", "/admin", "/admin/requests", "/admin/settings/payments", "/admin/settings/site", "/admin/activity", "/dev/ui"];
+  const pages = [
+    "/",
+    "/services",
+    "/how-it-works",
+    "/contact",
+    "/privacy",
+    "/track",
+    "/request",
+    "/admin",
+    "/admin/requests",
+    "/admin/settings/payments",
+    "/admin/settings/site",
+    "/admin/activity",
+    "/dev/ui",
+  ];
   for (const path of pages) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");

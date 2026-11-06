@@ -42,7 +42,9 @@ export type EmailContext = {
 };
 
 const startOfManilaDay = (now: Date) =>
-  new Date(`${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(now)}T00:00:00+08:00`);
+  new Date(
+    `${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(now)}T00:00:00+08:00`,
+  );
 
 export async function emailsSentToday(db: AppDb, now: Date = new Date()): Promise<number> {
   const [{ n }] = await db
@@ -134,17 +136,67 @@ async function buildRequestMessage(
 
   switch (template) {
     case "request_submitted_client":
-      return { to: toClient, ...templates.requestSubmittedClient({ name: r.clientFullName, trackingCode: r.trackingCode, trackUrl }) };
+      return {
+        to: toClient,
+        ...templates.requestSubmittedClient({
+          name: r.clientFullName,
+          trackingCode: r.trackingCode,
+          trackUrl,
+        }),
+      };
     case "request_submitted_admin":
-      return toAdmin ? { to: toAdmin, ...templates.requestSubmittedAdmin({ trackingCode: r.trackingCode, serviceName: r.serviceName, clientName: r.clientFullName, adminUrl }) } : null;
+      return toAdmin
+        ? {
+            to: toAdmin,
+            ...templates.requestSubmittedAdmin({
+              trackingCode: r.trackingCode,
+              serviceName: r.serviceName,
+              clientName: r.clientFullName,
+              adminUrl,
+            }),
+          }
+        : null;
     case "status_changed_client":
-      return { to: toClient, ...templates.statusChangedClient({ name: r.clientFullName, trackingCode: r.trackingCode, statusLabel: STATUS_LABELS[r.status], message, trackUrl }) };
+      return {
+        to: toClient,
+        ...templates.statusChangedClient({
+          name: r.clientFullName,
+          trackingCode: r.trackingCode,
+          statusLabel: STATUS_LABELS[r.status],
+          message,
+          trackUrl,
+        }),
+      };
     case "client_message_client":
-      return message ? { to: toClient, ...templates.clientMessageClient({ name: r.clientFullName, trackingCode: r.trackingCode, message, trackUrl }) } : null;
+      return message
+        ? {
+            to: toClient,
+            ...templates.clientMessageClient({
+              name: r.clientFullName,
+              trackingCode: r.trackingCode,
+              message,
+              trackUrl,
+            }),
+          }
+        : null;
     case "payment_submitted_admin": {
-      const [pay] = await db.select().from(payments).where(eq(payments.requestId, r.id)).orderBy(desc(payments.createdAt)).limit(1);
+      const [pay] = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.requestId, r.id))
+        .orderBy(desc(payments.createdAt))
+        .limit(1);
       if (!pay || !toAdmin) return null;
-      return { to: toAdmin, ...templates.paymentSubmittedAdmin({ trackingCode: r.trackingCode, amount: formatPesos(pay.amountCentavos), method: (pay.methodSnapshot as { name?: string }).name ?? "payment", reference: pay.referenceNumber, adminUrl }) };
+      return {
+        to: toAdmin,
+        ...templates.paymentSubmittedAdmin({
+          trackingCode: r.trackingCode,
+          amount: formatPesos(pay.amountCentavos),
+          method: (pay.methodSnapshot as { name?: string }).name ?? "payment",
+          reference: pay.referenceNumber,
+          adminUrl,
+        }),
+      };
     }
     default:
       return null;
@@ -165,7 +217,13 @@ export async function sendRequestEmail(
     const message = await buildRequestMessage(db, ctx, template, request, override);
     if (!message) {
       // For example ADMIN_NOTIFY_EMAIL is not set. Write it down so it shows in the admin area.
-      await db.insert(emailLog).values({ template, toEmail: "(not set)", requestId, status: "failed", error: "No recipient. Check ADMIN_NOTIFY_EMAIL." });
+      await db.insert(emailLog).values({
+        template,
+        toEmail: "(not set)",
+        requestId,
+        status: "failed",
+        error: "No recipient. Check ADMIN_NOTIFY_EMAIL.",
+      });
       return { ok: false };
     }
     return { ok: (await deliver(db, ctx, { template, message, requestId })).ok };
@@ -176,21 +234,39 @@ export async function sendRequestEmail(
 }
 
 // The Retry button. Builds the email again from the database and sends it. A new log row is written.
-export async function retryEmail(db: AppDb, ctx: EmailContext, logId: string): Promise<{ ok: boolean; reason?: string }> {
+export async function retryEmail(
+  db: AppDb,
+  ctx: EmailContext,
+  logId: string,
+): Promise<{ ok: boolean; reason?: string }> {
   const [row] = await db.select().from(emailLog).where(eq(emailLog.id, logId)).limit(1);
   if (!row) return { ok: false, reason: "not-found" };
   if (row.status !== "failed") return { ok: false, reason: "not-failed" };
-  if (!row.requestId || !RETRYABLE.includes(row.template as EmailTemplateKey)) return { ok: false, reason: "cannot-retry" };
+  if (!row.requestId || !RETRYABLE.includes(row.template as EmailTemplateKey))
+    return { ok: false, reason: "cannot-retry" };
   return sendRequestEmail(db, ctx, row.template as EmailTemplateKey, row.requestId);
 }
 
 export async function listEmailsForRequest(db: AppDb, requestId: string) {
   return db
-    .select({ id: emailLog.id, template: emailLog.template, toEmail: emailLog.toEmail, status: emailLog.status, error: emailLog.error, createdAt: emailLog.createdAt })
+    .select({
+      id: emailLog.id,
+      template: emailLog.template,
+      toEmail: emailLog.toEmail,
+      status: emailLog.status,
+      error: emailLog.error,
+      createdAt: emailLog.createdAt,
+    })
     .from(emailLog)
     .where(eq(emailLog.requestId, requestId))
     .orderBy(desc(emailLog.createdAt));
 }
 
 // Statuses that email the client. Quiet ones (submitted, under review) do not.
-export const EMAIL_STATUSES: readonly RequestStatus[] = ["waiting_for_client", "payment_verified", "in_progress", "completed", "cancelled"];
+export const EMAIL_STATUSES: readonly RequestStatus[] = [
+  "waiting_for_client",
+  "payment_verified",
+  "in_progress",
+  "completed",
+  "cancelled",
+];

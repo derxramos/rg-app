@@ -13,7 +13,8 @@ import { safeEqual } from "@/server/security/tokens";
 const ERASED_NAME = "Deleted client";
 
 // The SAME message for a wrong code and wrong digits, so an attacker learns nothing.
-export const TRACK_NOT_FOUND = "We could not find a request with those details. Please check the code and the 4 digits.";
+export const TRACK_NOT_FOUND =
+  "We could not find a request with those details. Please check the code and the 4 digits.";
 
 export const MAX_WRONG_TRIES = 5;
 export const LOCK_MINUTES = 15;
@@ -45,7 +46,13 @@ export async function attemptTracking(
     .orderBy(asc(rateLimits.windowStart))
     .limit(1);
   if (lock) {
-    return { kind: "locked", retryAfterSeconds: Math.max(1, Math.ceil((lock.at.getTime() + WINDOW_MS - now.getTime()) / 1000)) };
+    return {
+      kind: "locked",
+      retryAfterSeconds: Math.max(
+        1,
+        Math.ceil((lock.at.getTime() + WINDOW_MS - now.getTime()) / 1000),
+      ),
+    };
   }
 
   // 2. Check the request. A draft is not a sent request, so it cannot be tracked.
@@ -54,7 +61,13 @@ export async function attemptTracking(
     const [row] = await db
       .select({ id: requests.id, last4: requests.clientPhoneLast4 })
       .from(requests)
-      .where(and(eq(requests.trackingCode, code), ne(requests.status, "draft"), ne(requests.clientFullName, ERASED_NAME)))
+      .where(
+        and(
+          eq(requests.trackingCode, code),
+          ne(requests.status, "draft"),
+          ne(requests.clientFullName, ERASED_NAME),
+        ),
+      )
       .limit(1);
     if (row && safeEqual(row.last4, input.last4)) requestId = row.id;
   }
@@ -65,13 +78,19 @@ export async function attemptTracking(
   }
 
   // 3. A wrong try. At 5 wrong tries in 15 minutes the code is locked for 15 minutes.
-  await db.insert(rateLimits).values({ key: failKey(code), windowStart: now, count: 1 }).onConflictDoNothing();
+  await db
+    .insert(rateLimits)
+    .values({ key: failKey(code), windowStart: now, count: 1 })
+    .onConflictDoNothing();
   const [{ n }] = await db
     .select({ n: count() })
     .from(rateLimits)
     .where(and(eq(rateLimits.key, failKey(code)), gt(rateLimits.windowStart, since)));
   if (n >= MAX_WRONG_TRIES) {
-    await db.insert(rateLimits).values({ key: lockKey(code), windowStart: now, count: 1 }).onConflictDoNothing();
+    await db
+      .insert(rateLimits)
+      .values({ key: lockKey(code), windowStart: now, count: 1 })
+      .onConflictDoNothing();
   }
   return { kind: "not-found" };
 }
@@ -94,7 +113,11 @@ const PAY_STATUSES: readonly RequestStatus[] = ["submitted", "under_review", "wa
 // summary. Never files, file names, email, phone, or payment details (CLAUDE.md rule 9).
 export async function getTrackingView(db: AppDb, requestId: string): Promise<TrackingView | null> {
   const [request] = await db
-    .select({ status: requests.status, message: requests.publicMessage, serviceName: services.name })
+    .select({
+      status: requests.status,
+      message: requests.publicMessage,
+      serviceName: services.name,
+    })
     .from(requests)
     .innerJoin(services, eq(services.id, requests.serviceId))
     .where(eq(requests.id, requestId))
@@ -104,11 +127,22 @@ export async function getTrackingView(db: AppDb, requestId: string): Promise<Tra
   const events = await db
     .select({ status: requestStatusEvents.toStatus, at: requestStatusEvents.createdAt })
     .from(requestStatusEvents)
-    .where(and(eq(requestStatusEvents.requestId, requestId), ne(requestStatusEvents.toStatus, "draft")))
+    .where(
+      and(eq(requestStatusEvents.requestId, requestId), ne(requestStatusEvents.toStatus, "draft")),
+    )
     .orderBy(asc(requestStatusEvents.createdAt));
 
-  const paid = await db.select({ status: payments.status }).from(payments).where(eq(payments.requestId, requestId));
-  const payment = paid.some((p) => p.status === "verified") ? "verified" : paid.some((p) => p.status === "pending") ? "pending" : paid.some((p) => p.status === "rejected") ? "rejected" : "none";
+  const paid = await db
+    .select({ status: payments.status })
+    .from(payments)
+    .where(eq(payments.requestId, requestId));
+  const payment = paid.some((p) => p.status === "verified")
+    ? "verified"
+    : paid.some((p) => p.status === "pending")
+      ? "pending"
+      : paid.some((p) => p.status === "rejected")
+        ? "rejected"
+        : "none";
 
   return {
     serviceName: request.serviceName,

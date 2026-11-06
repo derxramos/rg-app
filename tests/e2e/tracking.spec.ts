@@ -24,7 +24,8 @@ test.afterAll(async () => {
   void E2E_ADMIN_ID;
 });
 
-const manilaToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+const manilaToday = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
 
 async function track(page: Page, code: string, last4: string) {
   await page.goto("/track");
@@ -54,12 +55,21 @@ test("the right details show a minimal view: no files, no email, no phone", asyn
   await expect(page.getByRole("link", { name: /Upload more documents/ })).toHaveCount(0);
 
   const html = await page.content();
-  for (const secret of ["my-private-passport", "old-secret", "zolb-test+private", "+639171234567", "9171234567", "Very Private Person"]) {
+  for (const secret of [
+    "my-private-passport",
+    "old-secret",
+    "zolb-test+private",
+    "+639171234567",
+    "9171234567",
+    "Very Private Person",
+  ]) {
     expect(html, secret).not.toContain(secret);
   }
 });
 
-test("after 5 wrong tries the code is locked, and the 6th is refused even with the right digits", async ({ page }) => {
+test("after 5 wrong tries the code is locked, and the 6th is refused even with the right digits", async ({
+  page,
+}) => {
   const r = await createSentRequest("submitted");
   for (let i = 0; i < 5; i++) {
     await track(page, r.code, "1111");
@@ -75,7 +85,9 @@ test("a visitor with no session is sent back to the form", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Track my request" })).toBeVisible();
 });
 
-test("Upload more documents shows only when Waiting for client, with no old files and no Remove", async ({ page }) => {
+test("Upload more documents shows only when Waiting for client, with no old files and no Remove", async ({
+  page,
+}) => {
   const r = await createSentRequest("waiting_for_client");
   await track(page, r.code, "4567");
   await expect(page.getByText("Please send your valid ID.")).toBeVisible();
@@ -86,7 +98,9 @@ test("Upload more documents shows only when Waiting for client, with no old file
   await expect(page.getByRole("link", { name: "Done. Back to my request" })).toBeVisible();
 });
 
-test("paying from the tracking page moves the request, tells the admin, and a failed email can be retried", async ({ page }) => {
+test("paying from the tracking page moves the request, tells the admin, and a failed email can be retried", async ({
+  page,
+}) => {
   const r = await createSentRequest("submitted");
   await track(page, r.code, "4567");
   await page.getByRole("link", { name: /Pay now/ }).click();
@@ -118,7 +132,9 @@ test("paying from the tracking page moves the request, tells the admin, and a fa
   await expect(page.getByText(/could not be sent again/).first()).toBeVisible();
 });
 
-test("an admin message and a status change are emailed (failed here: no Brevo key) and logged", async ({ page }) => {
+test("an admin message and a status change are emailed (failed here: no Brevo key) and logged", async ({
+  page,
+}) => {
   const r = await createSentRequest("submitted");
   await page.goto(`/admin/requests/${r.requestId}`);
   await page.getByLabel("New status").selectOption({ label: "Waiting for client" });
@@ -131,7 +147,9 @@ test("an admin message and a status change are emailed (failed here: no Brevo ke
   await expect(page.getByText("Please send your valid ID.")).toBeVisible();
 });
 
-test("the contact form shows the failed state with the backup links when the email cannot be sent", async ({ page }) => {
+test("the contact form shows the failed state with the backup links when the email cannot be sent", async ({
+  page,
+}) => {
   await page.goto("/contact");
   await page.getByLabel("Your name").fill("Contact Tester");
   await page.getByLabel("Email").fill("zolb-test+contact@example.com");

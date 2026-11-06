@@ -37,7 +37,10 @@ test.afterAll(async () => {
 
 // The Next.js development button must not appear in a picture.
 async function shoot(page: Page, name: string) {
-  await page.addStyleTag({ content: "nextjs-portal, [data-nextjs-toast], [data-next-badge-root] { display: none !important; }" });
+  await page.addStyleTag({
+    content:
+      "nextjs-portal, [data-nextjs-toast], [data-next-badge-root] { display: none !important; }",
+  });
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(OUT, `${name}.jpg`), type: "jpeg", quality: 72 });
 }
@@ -71,7 +74,12 @@ test.describe("phone", () => {
     await shoot(page, "payment-phone");
 
     await page.goto(`/request/${id}/receipt`);
-    const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
+    const today = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "Asia/Manila",
+    });
     const dataUrl = await page.evaluate((day) => {
       const c = document.createElement("canvas");
       c.width = 900;
@@ -88,9 +96,15 @@ test.describe("phone", () => {
       x.fillText(day + " 9:37 AM", 50, 390);
       return c.toDataURL("image/png");
     }, today);
-    await page.getByLabel("Receipt screenshot").setInputFiles({ name: "sample-receipt.png", mimeType: "image/png", buffer: Buffer.from(dataUrl.split(",")[1], "base64") });
+    await page.getByLabel("Receipt screenshot").setInputFiles({
+      name: "sample-receipt.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(dataUrl.split(",")[1], "base64"),
+    });
     await page.getByRole("button", { name: "Read my receipt" }).click();
-    await expect(page.getByLabel("Reference number")).toHaveValue("123456789012", { timeout: 90_000 });
+    await expect(page.getByLabel("Reference number")).toHaveValue("123456789012", {
+      timeout: 90_000,
+    });
     await page.getByLabel("Reference number").scrollIntoViewIfNeeded();
     await page.getByRole("button", { name: "Read my receipt" }).scrollIntoViewIfNeeded();
     await shoot(page, "receipt-phone");
@@ -120,9 +134,13 @@ test.describe("desktop admin", () => {
       await sql.end();
     }
     await page.goto(`/admin/requests/${paid.requestId}`);
-    await expect(page.getByText("Check this payment in your own GCash / Maya / BDO app first.")).toBeVisible();
+    await expect(
+      page.getByText("Check this payment in your own GCash / Maya / BDO app first."),
+    ).toBeVisible();
     await page.getByRole("heading", { name: "Payments" }).scrollIntoViewIfNeeded();
-    await page.getByRole("heading", { name: "Payments" }).evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await page
+      .getByRole("heading", { name: "Payments" })
+      .evaluate((el) => el.scrollIntoView({ block: "start" }));
     await shoot(page, "admin-verify-desktop");
 
     await page.goto("/admin");

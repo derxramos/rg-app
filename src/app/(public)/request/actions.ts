@@ -95,7 +95,6 @@ export async function createDraftAction(
     return fail("We could not save your request. Please try again, or contact us.");
   }
 
-
   await setDraftCookie(created.requestId, created.token, created.draftExpiresAt);
   redirect(`/request/${created.requestId}/code`);
 }

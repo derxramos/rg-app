@@ -19,9 +19,11 @@ export const METRICS = {
 
 export const DECISIONS: { decision: string; why: string; tradeOff: string }[] = [
   {
-    decision: "Only the server talks to the database. Row Level Security is ON for every table with no policies.",
+    decision:
+      "Only the server talks to the database. Row Level Security is ON for every table with no policies.",
     why: "Clients have no login, so per-user rules do not fit. One place for all checks is easier to read, test and explain. If a public key ever leaks, it can read nothing.",
-    tradeOff: "The server connects with a strong role, so every function must check access first. A source test fails if an admin action forgets to.",
+    tradeOff:
+      "The server connects with a strong role, so every function must check access first. A source test fails if an admin action forgets to.",
   },
   {
     decision: "Drizzle ORM with plain SQL migrations (not Prisma).",
@@ -29,9 +31,11 @@ export const DECISIONS: { decision: string; why: string; tradeOff: string }[] = 
     tradeOff: "A few things (triggers, the auth link) are hand-written SQL, not generated.",
   },
   {
-    decision: "Clients get access to ONE request with a random cookie token. Only a hash of it is stored.",
+    decision:
+      "Clients get access to ONE request with a random cookie token. Only a hash of it is stored.",
     why: "No accounts to forget passwords for. A stolen database cannot open drafts.",
-    tradeOff: "Another phone or browser cannot continue a draft. The tracking page covers that after the request is sent.",
+    tradeOff:
+      "Another phone or browser cannot continue a draft. The tracking page covers that after the request is sent.",
   },
   {
     decision: "Files go through our server, not straight to storage.",
@@ -41,22 +45,26 @@ export const DECISIONS: { decision: string; why: string; tradeOff: string }[] = 
   {
     decision: "Public pages are static and refreshed from the database with tagged caching.",
     why: "Fast on slow data and cheap on the free hosting credits. An admin change clears the cache at once.",
-    tradeOff: "The build needs a database. Cached content can be up to 5 minutes old if a tag is missed.",
+    tradeOff:
+      "The build needs a database. Cached content can be up to 5 minutes old if a tag is missed.",
   },
   {
     decision: "Receipt reading runs in the browser only (Tesseract.js).",
     why: "The receipt picture never leaves the phone, so we cannot store or leak it.",
-    tradeOff: "A 4 MB download the first time, and slower on old phones. Typing the values always works.",
+    tradeOff:
+      "A 4 MB download the first time, and slower on old phones. Typing the values always works.",
   },
   {
-    decision: "The tracking lock is counted per code in a log of wrong tries, not on the request row.",
+    decision:
+      "The tracking lock is counted per code in a log of wrong tries, not on the request row.",
     why: "A code that does not exist behaves exactly like one that does, so nobody can learn which codes exist.",
     tradeOff: "A few more small rows, cleaned up every day.",
   },
   {
     decision: "A development-only admin bypass, refused by a test in production.",
     why: "The whole admin area could be built and tested with no Supabase account.",
-    tradeOff: "It is a risky switch by nature. It works only when NODE_ENV is development, and a test checks which files may read it.",
+    tradeOff:
+      "It is a risky switch by nature. It works only when NODE_ENV is development, and a test checks which files may read it.",
   },
 ];
 

@@ -12,7 +12,14 @@
 import { and, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 
 import { DEFAULT_SETTINGS, parseSetting } from "../../lib/validation/settings";
-import { activityLog, payments, rateLimits, requestFiles, requests, siteSettings } from "../db/schema";
+import {
+  activityLog,
+  payments,
+  rateLimits,
+  requestFiles,
+  requests,
+  siteSettings,
+} from "../db/schema";
 import type { AppDb } from "../db/types";
 import type { StorageDriver } from "../storage/types";
 
@@ -32,7 +39,11 @@ export type CleanupSummary = {
 async function liveFiles(db: AppDb, requestIds: string[]) {
   if (requestIds.length === 0) return [];
   return db
-    .select({ id: requestFiles.id, requestId: requestFiles.requestId, path: requestFiles.storagePath })
+    .select({
+      id: requestFiles.id,
+      requestId: requestFiles.requestId,
+      path: requestFiles.storagePath,
+    })
     .from(requestFiles)
     .where(and(inArray(requestFiles.requestId, requestIds), isNull(requestFiles.deletedAt)));
 }
@@ -53,7 +64,10 @@ export async function runCleanup(
     errors: 0,
   };
 
-  const [setting] = await db.select({ value: siteSettings.value }).from(siteSettings).where(eq(siteSettings.key, "file_retention_days"));
+  const [setting] = await db
+    .select({ value: siteSettings.value })
+    .from(siteSettings)
+    .where(eq(siteSettings.key, "file_retention_days"));
   if (setting) summary.retentionDays = parseSetting("file_retention_days", setting.value);
   const cutoff = new Date(now.getTime() - summary.retentionDays * DAY);
 
@@ -66,8 +80,16 @@ export async function runCleanup(
         inArray(requests.status, ["completed", "cancelled"]),
         isNull(requests.filesDeletedAt),
         or(
-          and(eq(requests.status, "completed"), isNotNull(requests.completedAt), lt(requests.completedAt, cutoff)),
-          and(eq(requests.status, "cancelled"), isNotNull(requests.cancelledAt), lt(requests.cancelledAt, cutoff)),
+          and(
+            eq(requests.status, "completed"),
+            isNotNull(requests.completedAt),
+            lt(requests.completedAt, cutoff),
+          ),
+          and(
+            eq(requests.status, "cancelled"),
+            isNotNull(requests.cancelledAt),
+            lt(requests.cancelledAt, cutoff),
+          ),
         ),
       ),
     );
@@ -75,11 +97,23 @@ export async function runCleanup(
   for (const { id } of closed) {
     try {
       const files = await liveFiles(db, [id]);
-      if (files.length > 0) await storage.remove(options.clientFilesBucket, files.map((f) => f.path));
+      if (files.length > 0)
+        await storage.remove(
+          options.clientFilesBucket,
+          files.map((f) => f.path),
+        );
       // Storage worked. Now the database (the file rows stay, marked as deleted, for the record).
       await db.transaction(async (tx) => {
         if (files.length > 0) {
-          await tx.update(requestFiles).set({ deletedAt: now }).where(inArray(requestFiles.id, files.map((f) => f.id)));
+          await tx
+            .update(requestFiles)
+            .set({ deletedAt: now })
+            .where(
+              inArray(
+                requestFiles.id,
+                files.map((f) => f.id),
+              ),
+            );
         }
         await tx.update(requests).set({ filesDeletedAt: now }).where(eq(requests.id, id));
       });
@@ -99,14 +133,21 @@ export async function runCleanup(
     .where(
       and(
         eq(requests.status, "draft"),
-        or(and(isNotNull(requests.draftExpiresAt), lt(requests.draftExpiresAt, now)), lt(requests.createdAt, draftCutoff)),
+        or(
+          and(isNotNull(requests.draftExpiresAt), lt(requests.draftExpiresAt, now)),
+          lt(requests.createdAt, draftCutoff),
+        ),
       ),
     );
 
   for (const { id } of drafts) {
     try {
       const files = await liveFiles(db, [id]);
-      if (files.length > 0) await storage.remove(options.clientFilesBucket, files.map((f) => f.path));
+      if (files.length > 0)
+        await storage.remove(
+          options.clientFilesBucket,
+          files.map((f) => f.path),
+        );
       await db.transaction(async (tx) => {
         // A payment row blocks deleting its request, and a draft was never sent, so it goes too.
         await tx.delete(payments).where(eq(payments.requestId, id));
@@ -122,7 +163,10 @@ export async function runCleanup(
   }
 
   // ---------- 3. Old counters and old log rows ----------
-  const oldLimits = await db.delete(rateLimits).where(lt(rateLimits.windowStart, new Date(now.getTime() - DAY))).returning({ key: rateLimits.key });
+  const oldLimits = await db
+    .delete(rateLimits)
+    .where(lt(rateLimits.windowStart, new Date(now.getTime() - DAY)))
+    .returning({ key: rateLimits.key });
   summary.rateLimitRowsDeleted = oldLimits.length;
   try {
     // The only way to remove log rows: a database function that removes rows older than 1 year.
@@ -133,7 +177,12 @@ export async function runCleanup(
   }
 
   // ---------- Write down what happened ----------
-  await db.insert(activityLog).values({ actorType: "system", action: "cleanup.run", entityType: "job", details: { ...summary, at: now.toISOString() } });
+  await db.insert(activityLog).values({
+    actorType: "system",
+    action: "cleanup.run",
+    entityType: "job",
+    details: { ...summary, at: now.toISOString() },
+  });
   await db
     .insert(siteSettings)
     .values({ key: "last_cleanup_at", value: now.toISOString() })

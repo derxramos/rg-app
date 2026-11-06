@@ -48,7 +48,10 @@ async function Documents({ params }: { params: PageProps<"/request/[id]/document
         maxBytes={limits.maxBytes}
       />
       <div>
-        <Link href={fromTracking ? "/track/result" : nextStepAfterDocuments(id)} className={buttonVariants({ size: "lg" })}>
+        <Link
+          href={fromTracking ? "/track/result" : nextStepAfterDocuments(id)}
+          className={buttonVariants({ size: "lg" })}
+        >
           {fromTracking ? "Done. Back to my request" : "Continue"}
           <ArrowRight aria-hidden="true" />
         </Link>

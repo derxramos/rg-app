@@ -30,11 +30,25 @@ export function buildCsp({ development, supabaseUrl }: Options): string {
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "blob:", jsdelivr, turnstile, ...(development ? ["'unsafe-eval'"] : [])],
+    "script-src": [
+      "'self'",
+      "'unsafe-inline'",
+      "'wasm-unsafe-eval'",
+      "blob:",
+      jsdelivr,
+      turnstile,
+      ...(development ? ["'unsafe-eval'"] : []),
+    ],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", ...(supabase ? [supabase] : [])],
     "font-src": ["'self'"],
-    "connect-src": ["'self'", "blob:", jsdelivr, turnstile, ...(development ? ["ws:", "wss:"] : [])],
+    "connect-src": [
+      "'self'",
+      "blob:",
+      jsdelivr,
+      turnstile,
+      ...(development ? ["ws:", "wss:"] : []),
+    ],
     "worker-src": ["'self'", "blob:"],
     "frame-src": [turnstile],
     // Nobody may put this site in a frame (clickjacking).
@@ -58,12 +72,18 @@ export function securityHeaders(options: Options): { key: string; value: string 
     { key: "X-Frame-Options", value: "DENY" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     // No camera, microphone, location or payment APIs are used. File pickers do not need a permission.
-    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+    {
+      key: "Permissions-Policy",
+      value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   ];
   // Only on the real site (HTTPS). One year. Not "preload": that is a long promise the owner can make later.
   if (!options.development) {
-    headers.push({ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" });
+    headers.push({
+      key: "Strict-Transport-Security",
+      value: "max-age=31536000; includeSubDomains",
+    });
   }
   return headers;
 }

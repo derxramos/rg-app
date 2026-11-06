@@ -383,7 +383,11 @@ export async function eraseClientData(
   if (actor.role !== "owner") throw new AdminAuthError("wrong-role");
   if (!input.fresh2fa) throw new AdminAuthError("needs-fresh-2fa");
 
-  const [request] = await db.select({ id: requests.id }).from(requests).where(eq(requests.id, input.requestId)).limit(1);
+  const [request] = await db
+    .select({ id: requests.id })
+    .from(requests)
+    .where(eq(requests.id, input.requestId))
+    .limit(1);
   if (!request) throw new PaymentActionFailure("not-found");
 
   // Files first. If storage fails, nothing else is changed.
@@ -391,12 +395,24 @@ export async function eraseClientData(
     .select({ id: requestFiles.id, path: requestFiles.storagePath })
     .from(requestFiles)
     .where(and(eq(requestFiles.requestId, input.requestId), isNull(requestFiles.deletedAt)));
-  if (files.length > 0) await storage.remove(input.bucket, files.map((f) => f.path));
+  if (files.length > 0)
+    await storage.remove(
+      input.bucket,
+      files.map((f) => f.path),
+    );
 
   await db.transaction(async (tx) => {
     const now = new Date();
     if (files.length > 0) {
-      await tx.update(requestFiles).set({ deletedAt: now, originalName: "deleted" }).where(inArray(requestFiles.id, files.map((f) => f.id)));
+      await tx
+        .update(requestFiles)
+        .set({ deletedAt: now, originalName: "deleted" })
+        .where(
+          inArray(
+            requestFiles.id,
+            files.map((f) => f.id),
+          ),
+        );
     }
     await tx
       .update(requests)
@@ -412,8 +428,14 @@ export async function eraseClientData(
       })
       .where(eq(requests.id, input.requestId));
     // Notes can hold personal details too.
-    await tx.update(requestNotes).set({ body: "[deleted]" }).where(eq(requestNotes.requestId, input.requestId));
-    await tx.update(emailLog).set({ toEmail: "deleted@example.invalid" }).where(eq(emailLog.requestId, input.requestId));
+    await tx
+      .update(requestNotes)
+      .set({ body: "[deleted]" })
+      .where(eq(requestNotes.requestId, input.requestId));
+    await tx
+      .update(emailLog)
+      .set({ toEmail: "deleted@example.invalid" })
+      .where(eq(emailLog.requestId, input.requestId));
     await tx.insert(activityLog).values({
       actorType: "admin",
       actorId: actor.id,

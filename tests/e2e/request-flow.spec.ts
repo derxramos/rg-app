@@ -87,7 +87,9 @@ test("a client can start a request, upload files, and send it", async ({
 
   // Sending the request wrote the emails to the log (they failed here, because no Brevo key is set).
   const emails = await emailTemplatesFor(requestId);
-  expect(emails).toEqual(expect.arrayContaining(["request_submitted_admin:failed", "request_submitted_client:failed"]));
+  expect(emails).toEqual(
+    expect.arrayContaining(["request_submitted_admin:failed", "request_submitted_client:failed"]),
+  );
 
   // After sending, the draft cookie no longer works.
   await page.goto(`/request/${requestId}/documents`);

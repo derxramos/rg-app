@@ -28,4 +28,3 @@ export function createSupabaseStorage(url: string, secretKey: string): StorageDr
     },
   };
 }
-

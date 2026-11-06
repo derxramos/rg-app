@@ -27,13 +27,19 @@ export async function sendWithBrevo(
   config: BrevoConfig,
   fetchImpl: typeof fetch = fetch,
 ): Promise<SendResult> {
-  if (!config.apiKey) return { ok: false, error: "Email is not set up (BREVO_API_KEY is missing)." };
-  if (!config.fromAddress) return { ok: false, error: "Email is not set up (EMAIL_FROM_ADDRESS is missing)." };
+  if (!config.apiKey)
+    return { ok: false, error: "Email is not set up (BREVO_API_KEY is missing)." };
+  if (!config.fromAddress)
+    return { ok: false, error: "Email is not set up (EMAIL_FROM_ADDRESS is missing)." };
 
   try {
     const response = await fetchImpl(BREVO_URL, {
       method: "POST",
-      headers: { accept: "application/json", "content-type": "application/json", "api-key": config.apiKey },
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "api-key": config.apiKey,
+      },
       body: JSON.stringify({
         sender: { email: config.fromAddress, name: config.fromName || undefined },
         to: [message.to],
@@ -51,6 +57,12 @@ export async function sendWithBrevo(
     const data = (await response.json().catch(() => ({}))) as { messageId?: string };
     return { ok: true, messageId: data.messageId ?? null };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? `Could not reach Brevo (${error.name}).` : "Could not reach Brevo." };
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? `Could not reach Brevo (${error.name}).`
+          : "Could not reach Brevo.",
+    };
   }
 }
