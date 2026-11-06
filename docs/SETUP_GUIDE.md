@@ -96,10 +96,11 @@ This step uses the terminal. If it is new for you, do it together with the devel
    - `SEED_OWNER_EMAIL=rgsbookkeeping73@gmail.com` (or the owner's own email)
    - `SEED_OWNER_NAME=` the owner's name
    - `SEED_OWNER_PASSWORD=` a strong password of 12 or more characters (save it in your password manager)
-5. Run these commands one by one:
+5. Run these commands one by one. `pnpm db:check` proves that your database addresses and password work (it never prints the password):
 
    ```bash
    pnpm install
+   pnpm db:check          # both lines must say CONNECTED
    pnpm db:migrate        # makes the tables
    pnpm storage:setup     # makes the two storage buckets (client-files is private)
    pnpm db:seed           # default settings, the 6 services, and the OWNER account
@@ -130,7 +131,7 @@ Put these in `.env.local` (your computer) and, except the `SEED_` ones, in Verce
 | Name | Secret? | Value / where to get it |
 |---|---|---|
 | `DATABASE_URL` | **Yes** | Supabase > Connect > **Transaction pooler** string. Check: host has `pooler.supabase.com`, port `6543`, user `postgres.<project id>`. Never the direct `db.xxxx.supabase.co` address on Vercel |
-| `DIRECT_DATABASE_URL` | **Yes** | Supabase > Connect > **Direct** string (port 5432), password filled in. Needed only for your computer and GitHub jobs, not for Vercel |
+| `DIRECT_DATABASE_URL` | **Yes** | Supabase > Connect > **Session pooler** string (host has `pooler.supabase.com`, port **5432**), password filled in. Do not use the `db.xxxx.supabase.co` address: it needs IPv6 and fails on most networks. Needed only for your computer and GitHub jobs, not for Vercel |
 | `NEXT_PUBLIC_SUPABASE_URL` | No | Supabase > Project Settings > API > **Project URL** (`https://xxxx.supabase.co`) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | No (public by design) | Supabase > Project Settings > API Keys > **Publishable key** |
 | `SUPABASE_SECRET_KEY` | **Yes** | Supabase > Project Settings > API Keys > **Secret key** (Reveal) |
@@ -215,6 +216,7 @@ While `ADMIN_REQUIRE_2FA=false`, anyone who knows the admin email and password c
 
 | What you see | What to try |
 |---|---|
+| Vercel build or `pnpm db:check` says `password authentication failed for user "postgres"` | The password in the address is not the current database password. In Supabase reset it (Project Settings > Database > Reset database password, letters and numbers only), wait 2 minutes, then update `.env.local`, the Vercel `DATABASE_URL`, and the GitHub secret `DIRECT_DATABASE_URL`. Run `pnpm db:check` until both say CONNECTED, then redeploy |
 | Vercel build fails with `ENETUNREACH` and an address like `db.xxxx.supabase.co:5432` | `DATABASE_URL` in Vercel is the **direct** address, which Vercel cannot reach. Use the **Transaction pooler** address: host has `pooler.supabase.com`, port `6543`, user `postgres.<project id>`. Edit it in Vercel > Settings > Environment Variables, then **Redeploy** |
 | Vercel build fails with "DATABASE_URL" | The variable is missing or has the wrong password. Fix it in Vercel > Settings > Environment Variables, then **Redeploy** |
 | The page says the spam check failed | The Turnstile hostname list does not include your address (step 3), or the two Turnstile keys are swapped |

@@ -106,6 +106,12 @@ All earlier open questions are answered. What was done for each:
 18. **Receipts:** no official receipt. When the owner verifies a payment the client gets a simple acknowledgment email (amount, method, reference, date) that says it is not an official receipt and tells them to send a message through the Contact page. The tracking page shows the same note (it must not show payment details, CLAUDE.md rule 9). The earlier ask for sample real receipts is still useful for OCR accuracy, but it does not block anything.
 19. **Live checks:** still need the owner's real accounts. The full list of variables and the beginner steps are in `docs/SETUP_GUIDE.md`.
 
+### Go-live notes (2026-11-07)
+
+- Vercel build fixes so far: pooler address instead of the direct one, jsonb text values, `max_pipeline: 1` for the Supabase pooler, and a clear error for the direct address.
+- Added `pnpm db:check` (scripts/db-check.ts). It tests both database addresses with `select 1` and never prints a password.
+- Vercel build then failed with `password authentication failed`: the password in the address does not match the Supabase database password. Fix is to reset it and update `.env.local`, Vercel and GitHub (see SETUP_GUIDE troubleshooting).
+
 ### Still open
 
 - Owner reads and approves the Terms and privacy notice.

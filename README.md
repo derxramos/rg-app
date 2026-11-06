@@ -18,6 +18,7 @@ You need Node.js 22 or newer and [pnpm](https://pnpm.io).
 ```bash
 cp .env.example .env.local     # then fill in the values (see the comments in the file)
 pnpm install
+pnpm db:check                  # proves the database addresses in .env.local work (never prints the password)
 pnpm db:migrate                # apply the database migrations to your Supabase project
 pnpm storage:setup             # create the two storage buckets
 pnpm db:seed                   # default settings and the first owner account
