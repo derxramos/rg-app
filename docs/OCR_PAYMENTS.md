@@ -204,3 +204,25 @@ Shows: method snapshot, reference, amount, date, entry method, and (if edited) w
 | Amount typed with comma as decimal ("1.250,00") | `parseAmount` handles both styles; client checks. |
 | Receipt for a different date than today | Allowed within 60 days. |
 | New payment app added by admin without a parser | Manual only. |
+
+
+---
+
+## 11. Measured in Phase 4 (2026-11-06)
+
+Measured by the Playwright test `tests/e2e/payment.spec.ts` ("reading a receipt in the browser"), in Google Chrome on the developer's Windows computer with a fast home connection and a fresh browser profile (nothing cached).
+
+| What | Result |
+|---|---|
+| Download the first time (Tesseract.js 7 core, worker and English "fast" data, from the jsDelivr CDN) | **about 4.2 MB** (4,402,582 bytes in 5 files) |
+| Time to read one receipt, including the download | **about 3 seconds** on this computer |
+| Test picture | A **synthetic** receipt drawn by the test (clean black text on white, plain Arial). It is NOT a real GCash, Maya or BDO receipt. |
+| Result | Reference number, amount and date were all read correctly. |
+
+What this does **not** tell us:
+
+- Accuracy on real receipts. Real formats are unknown, so the parser label patterns are placeholders. The accuracy goals in section 9 still need real samples.
+- Speed on an old Android phone or a slow connection. Please test by hand (section 9, "Manual tests"). On slow data the 4.2 MB download will dominate.
+- The second time, the browser keeps the files, so only the reading time remains.
+
+The client screen says "about 4 MB" before the download. Change the text if the measurement changes.

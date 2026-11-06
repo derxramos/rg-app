@@ -39,3 +39,22 @@ export function formatManilaDateTime(input: TimeInput): string {
   // Some systems write "am"/"pm" in lower case. We always show upper case.
   return dateTimeFormatter.format(toDate(input)).replace(/\b(am|pm)\b/i, (m) => m.toUpperCase());
 }
+
+const manilaDayFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: MANILA,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+// Today's date in Asia/Manila as "YYYY-MM-DD" (en-CA writes dates in this order).
+export function todayInManila(now: Date = new Date()): string {
+  return manilaDayFormatter.format(now);
+}
+
+// "2026-11-06" minus 60 days -> "2026-09-07". Works on the date only, so time zones cannot move it.
+export function addDaysToIsoDate(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days));
+  return date.toISOString().slice(0, 10);
+}

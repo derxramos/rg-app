@@ -13,6 +13,7 @@ import { rateLimit } from "@/server/security/rate-limit";
 import { signValue } from "@/server/security/tokens";
 import { verifyTurnstile } from "@/server/security/turnstile";
 import { removeFile } from "@/server/services/files";
+import { listPaymentsForRequest } from "@/server/services/payments";
 import { changeStatus, createDraft, RequestError } from "@/server/services/requests";
 import { readSetting } from "@/server/services/settings";
 import { CLIENT_FILES_BUCKET, getStorage } from "@/server/storage/storage";
@@ -123,7 +124,14 @@ export async function submitRequestAction(requestId: string): Promise<void> {
     throw error;
   }
 
-  await changeStatus(getDb(), { requestId, to: "submitted", actor: "client" });
+  // With a payment, the request goes to "payment submitted". Without one, to "submitted" (docs/FEATURES.md P11).
+  const db = getDb();
+  const hasPayment = (await listPaymentsForRequest(db, requestId)).length > 0;
+  await changeStatus(db, {
+    requestId,
+    to: hasPayment ? "payment_submitted" : "submitted",
+    actor: "client",
+  });
 
   // The draft cookie stops working after submit, so a short signed cookie lets the "done" page
   // show the code once more.

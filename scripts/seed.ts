@@ -11,7 +11,8 @@ import postgres from "postgres";
 
 import { SETTING_KEYS, DEFAULT_SETTINGS, parseSetting } from "../src/lib/validation/settings";
 import { slugify } from "../src/lib/slug";
-import { adminProfiles, services, siteSettings } from "../src/server/db/schema";
+import { adminProfiles, paymentMethods, services, siteSettings } from "../src/server/db/schema";
+import { SAMPLE_ACCOUNT, SAMPLE_PAYMENT_METHODS } from "./seed-data/payment-methods";
 import { SEED_SERVICES } from "./seed-data/services";
 import { loadEnv, readSeedOwner, requireEnv } from "./lib/env";
 
@@ -43,7 +44,28 @@ async function main() {
     }
     console.log(`Services: ${SEED_SERVICES.length} in the seed list (checklists are empty).`);
 
-    // 3. First owner account.
+    // 3. Sample payment methods (fake, marked SAMPLE, OFF unless asked). Added only when none exist.
+    const existing = await db.select({ id: paymentMethods.id }).from(paymentMethods).limit(1);
+    if (existing.length === 0) {
+      const activate = process.env.SEED_ACTIVATE_SAMPLE_PAYMENTS === "1";
+      let sort = 0;
+      for (const m of SAMPLE_PAYMENT_METHODS) {
+        await db.insert(paymentMethods).values({
+          ...SAMPLE_ACCOUNT,
+          name: m.name,
+          parserKey: m.parserKey,
+          isActive: activate,
+          sortOrder: sort++,
+        });
+      }
+      console.log(
+        `Payment methods: added ${SAMPLE_PAYMENT_METHODS.length} SAMPLE methods (${activate ? "ON" : "OFF"}).`,
+      );
+    } else {
+      console.log("Payment methods: already exist, left as they are.");
+    }
+
+    // 4. First owner account.
     await seedOwner(db);
   } finally {
     await client.end();

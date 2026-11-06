@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { guardRequestPage } from "@/server/auth/request-page-guard";
 import { getDb } from "@/server/db/client";
 import { listFiles } from "@/server/services/files";
+import { listPaymentsForRequest } from "@/server/services/payments";
+import { formatPesos } from "@/lib/money";
 import { getRequestWithService } from "@/server/services/requests";
 import { notFound } from "next/navigation";
 
@@ -38,7 +40,11 @@ async function Review({ params }: { params: PageProps<"/request/[id]/review">["p
   const { id } = await params;
   await guardRequestPage(id, "submit");
   const db = getDb();
-  const [request, files] = await Promise.all([getRequestWithService(db, id), listFiles(db, id)]);
+  const [request, files, paid] = await Promise.all([
+    getRequestWithService(db, id),
+    listFiles(db, id),
+    listPaymentsForRequest(db, id),
+  ]);
   if (!request) notFound();
 
   return (
@@ -67,7 +73,27 @@ async function Review({ params }: { params: PageProps<"/request/[id]/review">["p
                   : `${files.length} file${files.length === 1 ? "" : "s"}`
               }
             />
-            <Row label="Payment" value={<PaymentStateBadge state="not_paid" />} />
+            <Row
+              label="Payment"
+              value={
+                paid.length === 0 ? (
+                  <PaymentStateBadge state="not_paid" />
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {paid.map((p) => (
+                      <li key={p.id} className="flex flex-col gap-1">
+                        <span>
+                          {formatPesos(p.amountCentavos)} by{" "}
+                          {(p.methodSnapshot as { name?: string }).name ?? "payment"}, reference{" "}
+                          {p.referenceNumber}
+                        </span>
+                        <PaymentStateBadge state="pending" />
+                      </li>
+                    ))}
+                  </ul>
+                )
+              }
+            />
           </dl>
         </CardContent>
       </Card>

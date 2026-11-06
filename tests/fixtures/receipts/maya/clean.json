@@ -1,0 +1,16 @@
+{
+  "note": "FAKE SAMPLE. Made-up text, not a real receipt.",
+  "lines": [
+    "maya",
+    "Payment sent",
+    "Amount PHP 2,500.50",
+    "Reference ID AB12CD34EF56",
+    "11/06/2026"
+  ],
+  "expected": {
+    "matches": 1,
+    "reference": "AB12CD34EF56",
+    "amount": "2500.50",
+    "date": "2026-11-06"
+  }
+}

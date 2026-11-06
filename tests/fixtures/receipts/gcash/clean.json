@@ -1,0 +1,16 @@
+{
+  "note": "FAKE SAMPLE. Made-up text, not a real receipt.",
+  "lines": [
+    "GCash",
+    "Express Send",
+    "Amount Sent ₱1,250.00",
+    "Ref No. 1234 5678 9012",
+    "Nov 6, 2026 9:37 AM"
+  ],
+  "expected": {
+    "matches": 1,
+    "reference": "123456789012",
+    "amount": "1250.00",
+    "date": "2026-11-06"
+  }
+}

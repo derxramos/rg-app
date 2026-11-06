@@ -4,7 +4,9 @@ import { defineConfig, devices } from "@playwright/test";
 // Needs Google Chrome installed, and the site running with a database (see the README: pnpm dev:db).
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: true,
+  // One test at a time: they share one database, and the local test database allows one connection.
+  fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
   use: {

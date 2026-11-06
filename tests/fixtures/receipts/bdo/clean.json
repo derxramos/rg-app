@@ -1,0 +1,10 @@
+{
+  "note": "FAKE SAMPLE. Made-up text, not a real receipt.",
+  "lines": [
+    "BDO Unibank",
+    "Transaction Reference Number 0012345678",
+    "Total Amount PHP 3,000.00",
+    "2026-11-06"
+  ],
+  "expected": { "matches": 1, "reference": "0012345678", "amount": "3000.00", "date": "2026-11-06" }
+}

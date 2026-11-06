@@ -2,10 +2,10 @@
 
 Update this file at the end of every work session.
 
-**Current status:** Phase 3 (request flow and file upload) is finished and committed. The owner asked for phases 3 to 8 in one run, so work continues with Phase 4.
+**Current status:** Phase 4 (payment QR page and receipt OCR) is finished and committed. Work continues with Phase 5 (admin area).
 **Last updated:** 2026-11-06
 
-**Next step:** Phase 4: payment QR page and receipt OCR.
+**Next step:** Phase 5: admin area.
 
 ---
 
@@ -17,7 +17,7 @@ Details for each phase are in `docs/PHASES.md`.
 - [~] Phase 1 — Foundation and database (code done; hand steps and approval pending)
 - [~] Phase 2 — Public pages with seed content (code done; approval pending)
 - [x] Phase 3 — Request flow and file upload(code done, checked on this computer)
-- [ ] Phase 4 — Payment QR page and receipt OCR
+- [x] Phase 4 — Payment QR page and receipt OCR(code done, checked on this computer)
 - [ ] Phase 5 — Admin area
 - [ ] Phase 6 — Emails and tracking page
 - [ ] Phase 7 — Security hardening, tests, deploy
@@ -58,6 +58,10 @@ Details for each phase are in `docs/PHASES.md`.
 | 2026-11-06 | Phase 3: after submit the draft cookie stops working; a 10 minute signed cookie shows the code on the "sent" page | DATABASE.md says the token is cleared on submit |
 | 2026-11-06 | Phase 3: Turnstile is skipped in development when no secret key is set, and always required in production | Lets forms be tried locally. Production refuses without the key |
 | 2026-11-06 | Phase 3: the file storage wrapper uses a local folder in development when Supabase keys are missing | Lets the upload flow be tried without an account. Never used in production |
+| 2026-11-06 | Phase 4: a Draft with a payment stays a Draft until the client sends the request; a request that was already sent moves to payment submitted when the payment is saved | Matches FEATURES.md P11 and OCR_PAYMENTS.md section 7 together |
+| 2026-11-06 | Phase 4: sample payment methods start OFF and are marked "SAMPLE - not real" | They must never show to real clients by accident |
+| 2026-11-06 | Phase 4: the client may add more than one payment to a request | A client can pay in two parts. The admin sees all of them |
+| 2026-11-06 | Phase 4: the receipt form sends the entry method (ocr, ocr_edited, manual) and the first OCR values as text | The server cannot see the picture. These values are for the admin to compare. They are not trusted for anything else |
 
 ---
 
@@ -201,6 +205,33 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ---
 
+## Phase 4 report
+
+### What is done
+- **Payment step** `/request/[id]/payment`: every active payment method as a card with the QR picture, **Save QR image**, the account name large (24 px bold), a "Check the name before you pay" warning, the account number with **Copy**, and instructions. "Skip for now" goes to the review. With no active method it says "Please contact us to pay" with the Messenger and Viber block.
+- **Receipt step** `/request/[id]/receipt` (900 px wide, picture on top on a phone): picture preview with zoom, payment method, **Read my receipt**, editable reference, amount (with a peso prefix) and date, "Read from image. Please check." and "Not sure. Please check." labels with a yellow border, a confirm tick, and the manual form is always there. The picture is shown with an object URL and is freed when it changes. The file input has no name and is outside the form, so the picture cannot be sent.
+- **OCR** (`src/ocr`): Tesseract.js 7, loaded only when the client taps the button. Image preparation (rotation, size about 1400 px, grey, contrast, dark-mode turn around), pass 1 (all text with positions), pass 2 (digits only, next to the labels), merge, 30 second time limit, worker always closed. Hidden when WebAssembly is missing.
+- **Parsers** for GCash, Maya and BDO from one small factory, with **placeholder** label patterns (real formats are unknown). Shared helpers: amount (both decimal styles), date (many formats), look-alike fixes, label and region finding. 6 fake-sample fixtures and 62 parser and helper tests.
+- **`savePayment`:** access check, 5 per hour per request, Zod rules (amount 1 to 10,000,000 centavos, date not in the future and not older than 60 days in Manila time, reference 6 to 30 letters or digits, confirm tick, active method), duplicate reference per method gives "This reference number was already used. Please check it.", the account the client saw is saved as a snapshot, and a sent request moves to payment submitted. A Draft stays a Draft until the client sends the request. Then it becomes payment submitted.
+- **Review page** shows the payment values. Submit chooses Submitted or Payment submitted.
+- **Seed:** SAMPLE payment methods (GCash, Maya, BDO) with a fake QR picture that says "SAMPLE QR - NOT REAL". They start OFF.
+- **Bug found by a test:** a minus sign was ignored, so "-5" was read as 5. It is refused now.
+
+### Measured (see docs/OCR_PAYMENTS.md section 11)
+- Reading tool download: about **4.2 MB** (5 files, CDN). Reading time: about **3 seconds**, on this fast computer, with a **synthetic** clean receipt. All three values were read right.
+- The Playwright test proves that **no request contains the receipt picture bytes**.
+
+### Not verified here
+- OCR on **real** GCash, Maya and BDO receipts (none collected). Accuracy numbers are unknown. Parser patterns are placeholders.
+- OCR on one Android and one iPhone, and on slow data. Please test by hand.
+- Real Supabase Storage for the QR image (the sample QR is a local file).
+
+### Notes
+- To see payment methods locally: run the seed with `SEED_ACTIVATE_SAMPLE_PAYMENTS=1`, or turn a method on in the admin area (Phase 5).
+- `pnpm typecheck` now runs `next typegen` first, because `PageProps` types are generated by Next.js. (Before this, CI could not have typechecked the pages.)
+
+---
+
 ## Risks to watch
 
 - **Netlify free plan is a hard limit (300 credits/month).** When credits run out, the site is paused until next month. A production deploy costs about 15 credits. Keep production deploys few. Check usage weekly.
@@ -232,3 +263,6 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ### Phase 3 session
 - Built Phase 3 and committed it. See "Phase 3 report" above.
+
+### Phase 4 session
+- Built Phase 4 and committed it. See "Phase 4 report" above.

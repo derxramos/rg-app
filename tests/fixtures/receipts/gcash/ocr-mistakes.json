@@ -1,0 +1,10 @@
+{
+  "note": "FAKE SAMPLE. Made-up text with common OCR mistakes (O for 0, S for 5, comma as decimal).",
+  "lines": ["G Cash", "Amount Sent ₱ 1.250,00", "Ref No. 12O4 567S 9O12", "06 Nov 2026"],
+  "expected": {
+    "matches": 1,
+    "reference": "120456759012",
+    "amount": "1250.00",
+    "date": "2026-11-06"
+  }
+}

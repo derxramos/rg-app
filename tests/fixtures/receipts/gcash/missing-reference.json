@@ -1,0 +1,5 @@
+{
+  "note": "FAKE SAMPLE. The reference number is cut off. The parser must return null, not crash.",
+  "lines": ["GCash", "Amount Sent PHP 500", "11/06/2026"],
+  "expected": { "matches": 1, "reference": null, "amount": "500.00", "date": "2026-11-06" }
+}

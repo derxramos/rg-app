@@ -16,7 +16,7 @@ test("home page has one main heading, the main links and the two start buttons",
 test("how it works explains that payment is made in the client's own app", async ({ page }) => {
   await page.goto("/how-it-works");
   await expect(page.getByText("You pay in your own app")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(6); // 5 steps and the notice
+  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(5); // the 5 steps
 });
 
 test("contact form shows errors for empty fields and keeps the focus on the first one", async ({

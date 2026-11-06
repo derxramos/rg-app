@@ -1,0 +1,10 @@
+{
+  "note": "FAKE SAMPLE. The reference number is on the next line, in lower case with a dash.",
+  "lines": ["Maya", "Amount", "₱2,500", "Reference ID", "ab12-cd34 ef56", "November 6, 2026"],
+  "expected": {
+    "matches": 1,
+    "reference": "AB12CD34EF56",
+    "amount": "2500.00",
+    "date": "2026-11-06"
+  }
+}

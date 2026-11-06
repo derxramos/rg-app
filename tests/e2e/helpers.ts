@@ -4,6 +4,8 @@ import postgres from "postgres";
 
 config({ path: ".env.local", quiet: true });
 
+export const E2E_METHOD_ID = "99999999-9999-4999-8999-999999999999";
+
 export function testSql() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set. Run `pnpm dev:db` and fill .env.local.");
@@ -25,6 +27,10 @@ export async function ensureTestService() {
               select ${id}, 'Requirement 1', 'Sample help text.', true, 1
               where not exists (select 1 from service_requirements where service_id = ${id})`;
     await sql`update services set is_active = true where id = ${id}`;
+    // A payment method for the tests (clearly marked as a test).
+    await sql`insert into payment_methods (id, name, parser_key, account_name, account_number, instructions, qr_image_path, is_active, sort_order)
+              values (${E2E_METHOD_ID}, 'Test GCash (e2e)', 'gcash', 'SAMPLE - not real', '0000 000 0000', 'Only for automatic tests.', 'samples/sample-qr.svg', true, 1)
+              on conflict (id) do update set is_active = true`;
     return id as string;
   } finally {
     await sql.end();
@@ -65,3 +71,13 @@ export const TINY_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
 );
+
+// Used only by scripts/e2e-seed.ts, before the site starts.
+export async function removeTestMethod() {
+  const sql = testSql();
+  try {
+    await sql`delete from payment_methods where id = ${E2E_METHOD_ID}`;
+  } finally {
+    await sql.end();
+  }
+}

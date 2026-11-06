@@ -60,6 +60,9 @@ test("a client can start a request, upload files, and send it", async ({
   await expect(page.getByText(/different type/)).toBeVisible();
 
   await page.getByRole("link", { name: "Continue" }).click();
+  // Phase 4: the payment step comes next. Skip it for now.
+  await expect(page.getByRole("heading", { name: "Pay with a QR code" })).toBeVisible();
+  await page.getByRole("link", { name: /Skip for now/ }).click();
   await expect(page.getByRole("heading", { name: "Check and send" })).toBeVisible();
   await expect(page.getByText("1 file", { exact: true })).toBeVisible();
   await expect(page.getByText("Not paid yet")).toBeVisible();
