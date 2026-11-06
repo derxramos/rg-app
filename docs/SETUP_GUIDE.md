@@ -129,7 +129,7 @@ Put these in `.env.local` (your computer) and, except the `SEED_` ones, in Verce
 
 | Name | Secret? | Value / where to get it |
 |---|---|---|
-| `DATABASE_URL` | **Yes** | Supabase > Connect > **Transaction pooler** string (port 6543), password filled in |
+| `DATABASE_URL` | **Yes** | Supabase > Connect > **Transaction pooler** string. Check: host has `pooler.supabase.com`, port `6543`, user `postgres.<project id>`. Never the direct `db.xxxx.supabase.co` address on Vercel |
 | `DIRECT_DATABASE_URL` | **Yes** | Supabase > Connect > **Direct** string (port 5432), password filled in. Needed only for your computer and GitHub jobs, not for Vercel |
 | `NEXT_PUBLIC_SUPABASE_URL` | No | Supabase > Project Settings > API > **Project URL** (`https://xxxx.supabase.co`) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | No (public by design) | Supabase > Project Settings > API Keys > **Publishable key** |
@@ -215,6 +215,7 @@ While `ADMIN_REQUIRE_2FA=false`, anyone who knows the admin email and password c
 
 | What you see | What to try |
 |---|---|
+| Vercel build fails with `ENETUNREACH` and an address like `db.xxxx.supabase.co:5432` | `DATABASE_URL` in Vercel is the **direct** address, which Vercel cannot reach. Use the **Transaction pooler** address: host has `pooler.supabase.com`, port `6543`, user `postgres.<project id>`. Edit it in Vercel > Settings > Environment Variables, then **Redeploy** |
 | Vercel build fails with "DATABASE_URL" | The variable is missing or has the wrong password. Fix it in Vercel > Settings > Environment Variables, then **Redeploy** |
 | The page says the spam check failed | The Turnstile hostname list does not include your address (step 3), or the two Turnstile keys are swapped |
 | No emails arrive | Check Brevo > **Transactional** > **Logs**. Check Spam. Check the sender is verified |
