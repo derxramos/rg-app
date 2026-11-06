@@ -20,7 +20,7 @@ function createDb(): Db {
   }
   // Supabase's direct address (db.<id>.supabase.co) only works over IPv6, which Vercel cannot use.
   // Say so clearly, instead of showing a confusing ENETUNREACH error.
-  if (/@db.[a-z0-9]+.supabase.co/i.test(url)) {
+  if (process.env.NODE_ENV === "production" && /@db\.[a-z0-9]+\.supabase\.co/i.test(url)) {
     throw new Error(
       "DATABASE_URL is the Supabase DIRECT address. Use the Transaction pooler address instead (host has pooler.supabase.com, port 6543). See docs/SETUP_GUIDE.md.",
     );
