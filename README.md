@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RG's Bookkeeping App
 
-## Getting Started
+A website and request system for **RG'S BOOKKEEPING AND ACCOUNTING SERVICES** (Philippines).
+Clients pick a service, send their details and documents, pay by QR code in their own app, and track
+their request with a code. The owner and staff manage requests in an admin area.
 
-First, run the development server:
+Read `CLAUDE.md` first (rules and stack), then `PROGRESS.md` (what is done and what is next).
+All planning docs are in `docs/`.
+
+## Run it on your computer
+
+You need Node.js 22 or newer and [pnpm](https://pnpm.io).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local     # then fill in the values (see the comments in the file)
+pnpm install
+pnpm db:migrate                # apply the database migrations to your Supabase project
+pnpm storage:setup             # create the two storage buckets
+pnpm db:seed                   # default settings and the first owner account
+pnpm dev                       # open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Checks
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test                      # unit tests (they need no Supabase account)
+pnpm test:integration          # proves the public Supabase key cannot read any table (needs .env.local)
+pnpm test:e2e                  # Playwright (first run: pnpm exec playwright install chromium)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Design check page
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+While developing, open `http://localhost:3000/dev/ui` to see every shared UI part next to the design
+rules in `docs/DESIGN_SYSTEM.md`. This page is blocked in production.

@@ -42,3 +42,10 @@ next-env.d.ts
 
 # Claude Code personal settings
 .claude/settings.local.json
+
+# Keep the example env file in git (the rule above ignores every .env* file)
+!.env.example
+
+# Playwright
+/test-results/
+/playwright-report/

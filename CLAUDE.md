@@ -87,3 +87,4 @@ npm run lint && npm run typecheck
 - `docs/OCR_PAYMENTS.md` — receipt OCR and parser design, tests, edge cases
 - `docs/PHASES.md` — build order and "done when" checks
 - `docs/DESIGN_HANDOFF.md` — screens, components, states, design tokens
+- `docs/DESIGN_SYSTEM.md` — design rules: tokens, fonts, component map, status badges, screen map (single source of truth for how the app looks)

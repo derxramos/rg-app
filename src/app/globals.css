@@ -1,26 +1,240 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/*
+  Design tokens. Source: docs/DESIGN_SYSTEM.md sections 2 and 3.
+  Do not add new colors, sizes or radius values here without changing that file first.
+*/
+
+/* ---------- Section 2: color variables (Teal Ledger is the default) ---------- */
+:root,
+[data-theme="light"] {
+  --surface: #ffffff;
+  --surface-subtle: #f6f7f5;
+  --surface-sunken: #eceeea;
+  --border: #e2e5e1;
+  --input-border: #7f8b88;
+  --text: #121c1b;
+  --text-muted: #4c5957;
+  --primary: #0b6158;
+  --primary-hover: #084d46;
+  --primary-soft: #e3f2ef;
+  --primary-ink: #08463f;
+  --on-primary: #ffffff;
+  --brand-accent: #ff7b47;
+  --brand-accent-soft: #ffe8dc;
+  --brand-accent-ink: #8f3410;
+  --on-brand-accent: #2b1305;
+  --highlight: #ffd23f;
+  --on-highlight: #2a2100;
+  --success: #167a47;
+  --success-soft: #dff3e7;
+  --success-ink: #0f5a33;
+  --on-success: #ffffff;
+  --warning: #f5a524;
+  --warning-soft: #fff1d6;
+  --warning-ink: #7a4a00;
+  --on-warning: #2b1a00;
+  --danger: #c62f2f;
+  --danger-soft: #fce4e4;
+  --danger-ink: #8f1d1d;
+  --on-danger: #ffffff;
+  --info: #1f62b4;
+  --info-soft: #e1eefb;
+  --info-ink: #174c8c;
+  --on-info: #ffffff;
+  --ring: #0b6158;
+  --overlay: #0f1b1a99;
+  --status-draft-bg: #eceeea;
+  --status-draft-fg: #3f4b49;
+  --status-submitted-bg: #e1eefb;
+  --status-submitted-fg: #174c8c;
+  --status-payment-submitted-bg: #ede6fb;
+  --status-payment-submitted-fg: #4a2c99;
+  --status-under-review-bg: #fff1d6;
+  --status-under-review-fg: #7a4a00;
+  --status-waiting-for-client-bg: #ffe8dc;
+  --status-waiting-for-client-fg: #8f3410;
+  --status-in-progress-bg: #daf1ee;
+  --status-in-progress-fg: #08463f;
+  --status-completed-bg: #dff3e7;
+  --status-completed-fg: #0f5a33;
+  --status-cancelled-bg: #fce4e4;
+  --status-cancelled-fg: #8f1d1d;
+}
+
+/* Alternative palette "Harbor Navy". Only the values that differ. */
+[data-theme="alt"] {
+  --surface: #ffffff;
+  --surface-subtle: #f5f7fb;
+  --surface-sunken: #e8ecf3;
+  --border: #e0e5ee;
+  --input-border: #7b879b;
+  --text: #0f1a2e;
+  --text-muted: #4a5670;
+  --primary: #17386b;
+  --primary-hover: #112b52;
+  --primary-soft: #e6ecf6;
+  --primary-ink: #0f2a52;
+  --on-primary: #ffffff;
+  --brand-accent: #00b386;
+  --brand-accent-soft: #d9f5ec;
+  --brand-accent-ink: #006b50;
+  --on-brand-accent: #032b20;
+  --highlight: #ffb400;
+  --on-highlight: #2a1c00;
+  --ring: #17386b;
+  --overlay: #0f1a2e99;
+}
+
+/* ---------- Section 3: shadcn/ui names point to our roles ---------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--surface);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--primary-soft);
+  --secondary-foreground: var(--primary-ink);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary-ink);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--on-danger);
+  --input: var(--input-border);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--surface);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary: var(--primary-soft);
+  --color-secondary-foreground: var(--primary-ink);
+  --color-muted: var(--surface-sunken);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--primary-soft);
+  --color-accent-foreground: var(--primary-ink);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--on-danger);
+  --color-border: var(--border);
+  --color-input: var(--input-border);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-ink: var(--primary-ink);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-soft: var(--brand-accent-soft);
+  --color-brand-accent-ink: var(--brand-accent-ink);
+  --color-on-brand-accent: var(--on-brand-accent);
+  --color-highlight: var(--highlight);
+  --color-on-highlight: var(--on-highlight);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-ink: var(--success-ink);
+  --color-on-success: var(--on-success);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-ink: var(--warning-ink);
+  --color-on-warning: var(--on-warning);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --color-on-danger: var(--on-danger);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-ink: var(--info-ink);
+  --color-on-info: var(--on-info);
+  --color-overlay: var(--overlay);
+  --color-status-draft-bg: var(--status-draft-bg);
+  --color-status-draft-fg: var(--status-draft-fg);
+  --color-status-submitted-bg: var(--status-submitted-bg);
+  --color-status-submitted-fg: var(--status-submitted-fg);
+  --color-status-payment-submitted-bg: var(--status-payment-submitted-bg);
+  --color-status-payment-submitted-fg: var(--status-payment-submitted-fg);
+  --color-status-under-review-bg: var(--status-under-review-bg);
+  --color-status-under-review-fg: var(--status-under-review-fg);
+  --color-status-waiting-for-client-bg: var(--status-waiting-for-client-bg);
+  --color-status-waiting-for-client-fg: var(--status-waiting-for-client-fg);
+  --color-status-in-progress-bg: var(--status-in-progress-bg);
+  --color-status-in-progress-fg: var(--status-in-progress-fg);
+  --color-status-completed-bg: var(--status-completed-bg);
+  --color-status-completed-fg: var(--status-completed-fg);
+  --color-status-cancelled-bg: var(--status-cancelled-bg);
+  --color-status-cancelled-fg: var(--status-cancelled-fg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  /* Font: next/font sets --font-plus-jakarta on <html> (see src/app/fonts.ts) */
+  --font-sans: var(--font-plus-jakarta), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale: size / line height. Weights: 400 and 700 only. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.875rem;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 2.375rem;
+  --text-3xl: 2.5rem;
+  --text-3xl--line-height: 2.875rem;
+  --text-4xl: 3.5rem; /* home hero only */
+  --text-4xl--line-height: 3.75rem;
+
+  /* Spacing: 4 px base */
+  --spacing: 0.25rem;
+
+  /* Radius */
+  --radius-sm: 6px; /* checkbox, chips */
+  --radius-md: 10px; /* buttons, inputs, toasts */
+  --radius-lg: 16px; /* cards, dialogs on phone */
+  --radius-xl: 24px; /* big bento cards, modal */
+
+  /* Shadows (light, neutral) */
+  --shadow-sm: 0 1px 2px #0f1b1a14, 0 1px 1px #0f1b1a0a;
+  --shadow-md: 0 8px 24px #0f1b1a14, 0 2px 6px #0f1b1a0d;
+  --shadow-lg: 0 24px 64px #0f1b1a29, 0 4px 12px #0f1b1a14;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Breakpoints */
+  --breakpoint-sm: 40rem; /* 640 */
+  --breakpoint-md: 48rem; /* 768 */
+  --breakpoint-lg: 64rem; /* 1024 */
+  --breakpoint-xl: 80rem; /* 1280 */
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  * {
+    border-color: var(--border);
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-weight: 400;
+  }
 }

@@ -1,0 +1,8 @@
+node_modules
+.next
+pnpm-lock.yaml
+drizzle
+# Planning docs are written by hand. Do not reformat them.
+*.md
+.claude
+public
