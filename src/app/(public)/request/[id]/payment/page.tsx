@@ -13,7 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { qrImageUrl } from "@/lib/qr-url";
 import { cn } from "@/lib/utils";
-import { guardRequestPage } from "@/server/auth/request-page-guard";
+import { guardRequestAccess } from "@/server/auth/request-page-guard";
 import { getDb } from "@/server/db/client";
 import { listActivePaymentMethods } from "@/server/services/payments";
 import { getPublicSettings } from "@/server/services/site-content";
@@ -30,7 +30,8 @@ export default function PaymentPage({ params }: PageProps<"/request/[id]/payment
 
 async function Payment({ params }: { params: PageProps<"/request/[id]/payment">["params"] }) {
   const { id } = await params;
-  await guardRequestPage(id, "pay");
+  const { via } = await guardRequestAccess(id, "pay");
+  const fromTracking = via === "tracking";
   const [methods, settings] = await Promise.all([
     listActivePaymentMethods(getDb()),
     getPublicSettings(),
@@ -38,7 +39,7 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
 
   return (
     <FlowFrame
-      step={3}
+      step={fromTracking ? undefined : 3}
       title="Pay with a QR code"
       intro="Scan a QR code in your own GCash, Maya or bank app. You pay in your app, not on this website. You can also pay later."
     >
@@ -121,10 +122,10 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
       )}
       <div className="flex flex-col items-start gap-2 border-t pt-6">
         <Link
-          href={`/request/${id}/review`}
+          href={fromTracking ? "/track/result" : `/request/${id}/review`}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
-          Skip for now. I will pay later
+          {fromTracking ? "Back to my request" : "Skip for now. I will pay later"}
         </Link>
         <p className="text-sm text-muted-foreground">
           You can pay later from the tracking page, with your tracking code.

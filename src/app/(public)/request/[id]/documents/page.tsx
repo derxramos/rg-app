@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { DocumentsUploader } from "@/components/request/documents-uploader";
 import { FlowFrame, FlowSkeleton } from "@/components/request/flow-frame";
 import { buttonVariants } from "@/components/ui/button";
-import { guardRequestPage } from "@/server/auth/request-page-guard";
+import { guardRequestAccess } from "@/server/auth/request-page-guard";
 import { getDb } from "@/server/db/client";
 import { getUploadLimits, listFiles, listRequirementsForRequest } from "@/server/services/files";
 import { nextStepAfterDocuments } from "@/lib/request-flow";
@@ -23,17 +23,19 @@ export default function DocumentsPage({ params }: PageProps<"/request/[id]/docum
 
 async function Documents({ params }: { params: PageProps<"/request/[id]/documents">["params"] }) {
   const { id } = await params;
-  const request = await guardRequestPage(id, "upload");
+  const { request, via } = await guardRequestAccess(id, "upload");
+  const fromTracking = via === "tracking";
   const db = getDb();
   const [requirements, files, limits] = await Promise.all([
     listRequirementsForRequest(db, request.serviceId),
-    listFiles(db, id),
+    // A client who came from the tracking page never sees earlier files (privacy).
+    fromTracking ? Promise.resolve([]) : listFiles(db, id),
     getUploadLimits(db),
   ]);
 
   return (
     <FlowFrame
-      step={2}
+      step={fromTracking ? undefined : 2}
       title="Upload your documents"
       intro="Add a photo or a PDF of each document. You can continue even if you do not have everything yet. We will ask you for what is missing."
     >
@@ -41,12 +43,13 @@ async function Documents({ params }: { params: PageProps<"/request/[id]/document
         requestId={id}
         requirements={requirements}
         initialFiles={files}
+        canRemove={!fromTracking}
         maxFiles={limits.maxFiles}
         maxBytes={limits.maxBytes}
       />
       <div>
-        <Link href={nextStepAfterDocuments(id)} className={buttonVariants({ size: "lg" })}>
-          Continue
+        <Link href={fromTracking ? "/track/result" : nextStepAfterDocuments(id)} className={buttonVariants({ size: "lg" })}>
+          {fromTracking ? "Done. Back to my request" : "Continue"}
           <ArrowRight aria-hidden="true" />
         </Link>
       </div>

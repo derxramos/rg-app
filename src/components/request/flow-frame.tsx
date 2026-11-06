@@ -11,7 +11,8 @@ export function FlowFrame({
   wide = false,
   children,
 }: {
-  step: number;
+  // Leave out for a visitor who came from the tracking page (no steps to show).
+  step?: number;
   title: string;
   intro?: string;
   wide?: boolean;
@@ -24,7 +25,7 @@ export function FlowFrame({
         wide ? "max-w-[900px]" : "max-w-[640px]",
       )}
     >
-      <Stepper current={step} />
+      {step ? <Stepper current={step} /> : null}
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-primary-ink md:text-3xl">{title}</h1>
         {intro ? <p className="text-lg text-muted-foreground">{intro}</p> : null}

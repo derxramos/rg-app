@@ -50,6 +50,7 @@ export async function cleanTestData() {
       await sql`delete from requests where id in ${sql(list)}`;
     }
     await sql`delete from rate_limits`;
+    await sql`delete from email_log where to_email like 'zolb-test+%' or to_email = '(not set)'`;
   } finally {
     await sql.end();
   }
@@ -149,6 +150,41 @@ export async function removeTestServices() {
     await sql`delete from services where slug like 'test-service-two%'`;
     await sql`update site_settings set value = ${sql.json({ phone: "", email: "", address: "" })} where key = 'contact'`;
     await sql`update payment_methods set account_number = '0000 000 0000' where id = ${E2E_METHOD_ID}`;
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function clearRateLimits() {
+  const sql = testSql();
+  try {
+    await sql`delete from rate_limits`;
+  } finally {
+    await sql.end();
+  }
+}
+
+// A sent request with a known code and phone ending 4567, in the status you ask for.
+export async function createSentRequest(status: string, name = "Track Test Client") {
+  const sql = testSql();
+  try {
+    const [service] = await sql`select id from services where slug = 'test-service-e2e'`;
+    const code = "RG-" + Array.from({ length: 8 }, () => "23456789ABCDEFGHJKMNPQRSTUVWXYZ"[Math.floor(Math.random() * 31)]).join("");
+    const [request] = await sql`insert into requests (tracking_code, service_id, status, client_full_name, client_email, client_phone, client_phone_last4, consent_version, consent_at, submitted_at, public_message)
+      values (${code}, ${service.id}, ${status}, ${name}, 'zolb-test+private@example.com', '+639171234567', '4567', 'v1', now(), now(), ${status === "waiting_for_client" ? "Please send your valid ID." : null}) returning id`;
+    await sql`insert into request_status_events (request_id, from_status, to_status) values (${request.id}, null, 'draft'), (${request.id}, 'draft', 'submitted')`;
+    await sql`insert into request_files (request_id, storage_path, original_name, mime_type, size_bytes) values (${request.id}, ${"requests/" + request.id + "/old-secret.pdf"}, 'my-private-passport.pdf', 'application/pdf', 10)`;
+    return { requestId: request.id as string, code };
+  } finally {
+    await sql.end();
+  }
+}
+
+export async function emailTemplatesFor(requestId: string): Promise<string[]> {
+  const sql = testSql();
+  try {
+    const rows = await sql`select template, status from email_log where request_id = ${requestId} order by created_at`;
+    return rows.map((r) => `${r.template}:${r.status}`);
   } finally {
     await sql.end();
   }

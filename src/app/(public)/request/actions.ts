@@ -13,6 +13,7 @@ import { rateLimit } from "@/server/security/rate-limit";
 import { signValue } from "@/server/security/tokens";
 import { verifyTurnstile } from "@/server/security/turnstile";
 import { removeFile } from "@/server/services/files";
+import { notifyRequestSubmitted } from "@/server/email/notify";
 import { listPaymentsForRequest } from "@/server/services/payments";
 import { changeStatus, createDraft, RequestError } from "@/server/services/requests";
 import { readSetting } from "@/server/services/settings";
@@ -132,6 +133,9 @@ export async function submitRequestAction(requestId: string): Promise<void> {
     to: hasPayment ? "payment_submitted" : "submitted",
     actor: "client",
   });
+
+  // Emails: the admin gets "new request", the client gets the tracking code. A failed email never stops this.
+  await notifyRequestSubmitted(requestId, hasPayment);
 
   // The draft cookie stops working after submit, so a short signed cookie lets the "done" page
   // show the code once more.

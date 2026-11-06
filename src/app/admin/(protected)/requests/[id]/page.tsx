@@ -20,17 +20,20 @@ import { formatManilaDate, formatManilaDateTime } from "@/lib/time";
 import { guardAdminPage } from "@/server/auth/admin";
 import { PAYMENT_VERIFY_ROLES, hasRole } from "@/server/auth/admin-core";
 import { getDb } from "@/server/db/client";
+import { listEmailsForRequest } from "@/server/email/send";
 import { getRequestDetail } from "@/server/services/admin-requests";
 
 import {
   addNoteAction,
   changeStatusAction,
   rejectPaymentAction,
+  retryEmailAction,
   verifyPaymentAction,
 } from "../actions";
 
 export const metadata: Metadata = { title: "Request" };
 
+const RETRYABLE_TEMPLATES: string[] = ["request_submitted_admin", "request_submitted_client", "payment_submitted_admin", "status_changed_client", "client_message_client"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -50,6 +53,7 @@ export default async function AdminRequestDetailPage({
   if (!UUID.test(id)) notFound();
   const detail = await getRequestDetail(getDb(), id);
   if (!detail) notFound();
+  const emails = await listEmailsForRequest(getDb(), id);
   const { request, files, payments, events, notes } = detail;
   const nextStatuses = nextStatusesFor("admin", request.status);
   const canVerify = hasRole(admin, PAYMENT_VERIFY_ROLES);
@@ -284,6 +288,31 @@ export default async function AdminRequestDetailPage({
           </Card>
         </div>
       </div>
+
+      <section aria-labelledby="emails-title" className="flex flex-col gap-3">
+        <h2 id="emails-title" className="text-xl font-bold">Emails</h2>
+        {emails.length === 0 ? <p className="text-base text-muted-foreground">No emails yet.</p> : (
+          <ul className="flex flex-col gap-2">
+            {emails.map((e) => (
+              <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3">
+                <span className="min-w-0">
+                  <span className="block font-mono text-sm font-bold break-all">{e.template}</span>
+                  <span className="block text-sm text-muted-foreground break-all">{e.toEmail} · {formatManilaDateTime(e.createdAt)}</span>
+                  {e.status === "failed" && e.error ? <span className="block text-sm text-danger-ink">{e.error}</span> : null}
+                </span>
+                {e.status === "sent" ? <span className="text-sm font-bold text-success-ink">Sent</span> : (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-danger-ink">Email not sent</span>
+                    {RETRYABLE_TEMPLATES.includes(e.template) ? (
+                      <ActionForm action={retryEmailAction} hidden={{ logId: e.id, requestId: request.id }} submitLabel="Retry" variant="outline" size="sm"><span /></ActionForm>
+                    ) : null}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section aria-labelledby="notes-title" className="flex flex-col gap-4">
         <h2 id="notes-title" className="text-xl font-bold">

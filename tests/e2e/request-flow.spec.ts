@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { cleanTestData, TINY_PNG } from "./helpers";
+import { cleanTestData, emailTemplatesFor, TINY_PNG } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -83,6 +83,10 @@ test("a client can start a request, upload files, and send it", async ({
   await page.getByRole("button", { name: "Send my request" }).click();
   await expect(page.getByRole("heading", { name: "Your request was sent" })).toBeVisible();
   await expect(page.locator("p.font-mono")).toHaveText(code);
+
+  // Sending the request wrote the emails to the log (they failed here, because no Brevo key is set).
+  const emails = await emailTemplatesFor(requestId);
+  expect(emails).toEqual(expect.arrayContaining(["request_submitted_admin:failed", "request_submitted_client:failed"]));
 
   // After sending, the draft cookie no longer works.
   await page.goto(`/request/${requestId}/documents`);

@@ -56,7 +56,7 @@ export function makeTrackingSession(secret: string, requestId: string, expiresAt
   return `${payload}.${hmacHex(secret, payload)}`;
 }
 
-function readTrackingSession(
+export function readTrackingSession(
   secret: string,
   value: string,
 ): { requestId: string; expiresAtMs: number } | null {

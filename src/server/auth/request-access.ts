@@ -11,6 +11,7 @@ import {
   checkRequestAccess,
   makeDraftCookieValue,
   makeTrackingSession,
+  readTrackingSession,
   type RequestAction,
 } from "./request-access-core";
 
@@ -60,4 +61,13 @@ export async function setTrackingCookie(requestId: string) {
     ...cookieBase(),
     expires: new Date(expiresAtMs),
   });
+}
+
+// Which request does the tracking session cookie belong to? Null when there is none, it is forged, or it ran out.
+export async function getTrackingRequestId(): Promise<string | null> {
+  await connection();
+  const value = (await cookies()).get(TRACKING_COOKIE)?.value;
+  if (!value) return null;
+  const session = readTrackingSession(getTokenSecret(), value);
+  return session && session.expiresAtMs > Date.now() ? session.requestId : null;
 }

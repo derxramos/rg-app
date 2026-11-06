@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { REQUEST_STATUSES, type RequestStatus } from "@/lib/status";
 import { withAdmin, type ActionResult } from "@/server/auth/admin";
 import { getDb } from "@/server/db/client";
+import { emailContext, notifyClientUpdate } from "@/server/email/notify";
+import { EMAIL_STATUSES, retryEmail } from "@/server/email/send";
 import {
   addNote,
   adminChangeStatus,
@@ -29,6 +31,9 @@ export async function changeStatusAction(
       message: text(formData, "message"),
       ipHash,
     });
+    // Email the client for the important statuses, and always when a message was written.
+    const message = text(formData, "message").trim();
+    if (EMAIL_STATUSES.includes(to) || message) await notifyClientUpdate(requestId, "status", message || null);
     revalidatePath(`/admin/requests/${requestId}`);
     return { ok: true, message: "Status changed." };
   });
@@ -42,6 +47,7 @@ export async function addNoteAction(
     const visibility = text(formData, "visibility") === "client" ? "client" : "internal";
     const requestId = text(formData, "requestId");
     await addNote(getDb(), admin, { requestId, visibility, body: text(formData, "body") });
+    if (visibility === "client") await notifyClientUpdate(requestId, "message", text(formData, "body").trim());
     revalidatePath(`/admin/requests/${requestId}`);
     return {
       ok: true,
@@ -103,5 +109,19 @@ export async function rejectPaymentAction(
         return { ok: false, code: "invalid", message: "This payment was already checked." };
       throw error;
     }
+  });
+}
+
+// The "Retry" button next to an email that was not sent (docs/FEATURES.md A12).
+export async function retryEmailAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withAdmin({ formData }, async () => {
+    const result = await retryEmail(getDb(), emailContext(), text(formData, "logId"));
+    revalidatePath(`/admin/requests/${text(formData, "requestId")}`);
+    return result.ok
+      ? { ok: true, message: "The email was sent." }
+      : { ok: false, code: "invalid", message: "The email could not be sent again. Check the email settings, then try once more." };
   });
 }

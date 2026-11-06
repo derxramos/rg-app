@@ -8,6 +8,7 @@ import { requireRequestAccess } from "@/server/auth/request-access";
 import { getDb } from "@/server/db/client";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
 import { rateLimit } from "@/server/security/rate-limit";
+import { notifyPaymentSubmitted } from "@/server/email/notify";
 import { savePayment } from "@/server/services/payments";
 
 export type ReceiptFormState = {
@@ -37,8 +38,9 @@ export async function savePaymentAction(
   });
 
   // 1. access (the draft cookie, or the tracking session when the status allows paying)
+  let via: "draft" | "tracking";
   try {
-    await requireRequestAccess(requestId, "pay");
+    ({ via } = await requireRequestAccess(requestId, "pay"));
   } catch (error) {
     if (error instanceof AccessError) redirect("/request/expired");
     throw error;
@@ -74,5 +76,10 @@ export async function savePaymentAction(
     return fail(form ?? "Please check the fields marked below.", fieldErrors);
   }
 
+  // A client who came from the tracking page already sent the request. Tell the admin, and go back there.
+  if (via === "tracking") {
+    await notifyPaymentSubmitted(requestId);
+    redirect("/track/result");
+  }
   redirect(`/request/${requestId}/review`);
 }

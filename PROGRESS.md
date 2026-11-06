@@ -2,10 +2,10 @@
 
 Update this file at the end of every work session.
 
-**Current status:** Phase 5 (admin area) is finished and committed. Work continues with Phase 6 (emails and tracking).
+**Current status:** Phase 6 (emails and tracking) is finished and committed. Work continues with Phase 7 (security hardening, tests, deploy).
 **Last updated:** 2026-11-06
 
-**Next step:** Phase 6: emails and tracking.
+**Next step:** Phase 7: security hardening, tests, deploy.
 
 ---
 
@@ -19,7 +19,7 @@ Details for each phase are in `docs/PHASES.md`.
 - [x] Phase 3 — Request flow and file upload(code done, checked on this computer)
 - [x] Phase 4 — Payment QR page and receipt OCR(code done, checked on this computer)
 - [x] Phase 5 — Admin area(code done, checked on this computer)
-- [ ] Phase 6 — Emails and tracking page
+- [x] Phase 6 — Emails and tracking page(code done, checked on this computer)
 - [ ] Phase 7 — Security hardening, tests, deploy
 - [ ] Phase 8 — Portfolio case study page
 
@@ -68,6 +68,10 @@ Details for each phase are in `docs/PHASES.md`.
 | 2026-11-06 | Phase 5: development bypass for the admin area (`DEV_ADMIN_BYPASS_EMAIL`), only when NODE_ENV is development | Lets the admin area be built and tested with no Supabase. Tested to be refused in production |
 | 2026-11-06 | Phase 5: owner and staff can both verify payments for now | Open question 2 is still open. One line to change |
 | 2026-11-06 | Phase 5: the `payment_verified` status has a PROVISIONAL badge | The admin must show it. The owner decides the final look |
+| 2026-11-06 | Phase 6: the tracking lock uses `rate_limits` rows (one row per wrong try), not the columns on `requests` | It must work the same for codes that do not exist, so nobody learns which codes exist. The sliding 15 minutes is exact |
+| 2026-11-06 | Phase 6: only request emails have a Retry button (they are rebuilt from the database) | The contact form and owner alert emails have no saved body. A failed contact form already shows the client the backup links |
+| 2026-11-06 | Phase 6: status emails go out for Waiting for client, Payment verified, In progress, Completed and Cancelled, or whenever a message is written | Quiet statuses would send noise. One list to change |
+| 2026-11-06 | Phase 6: a visitor from the tracking page sees no earlier files and cannot remove files | CLAUDE.md rule 9. They may only add more |
 
 ---
 
@@ -267,6 +271,30 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ---
 
+## Phase 6 report
+
+### What is done
+- **Email sender** (`src/server/email`): Brevo v3 REST API with plain `fetch` and no SDK. It never throws, and it never puts the API key in an error or in the body. Templates are plain functions. **Everything a client typed is HTML-escaped**, and new lines are removed from subject lines.
+- **Emails:** new request (to the admin inbox: service and client name only, no documents, no phone), request received (to the client, with the tracking code), status changed and client message (to the client), payment submitted (to the admin), payment method changed (to every active owner), contact form (to the admin, reply-to is the client).
+- **`email_log`:** every send is saved with status, Brevo message id and a short error. Today's count is checked against the 300 per day limit (the 301st is not sent). A failed email **never breaks** the main action. The admin request page has an **Emails** section with "Email not sent" and a **Retry** button (request emails only, rebuilt from the database).
+- **Contact form** now sends: honeypot, Turnstile, 5 per hour per visitor, Zod on both sides. If sending fails, the client sees the Messenger and Viber links.
+- **Tracking** `/track`: code and last 4 digits, Turnstile, 10 tries per 15 minutes per visitor, the **same message** for a wrong code and wrong digits, and a lock after 5 wrong tries for 15 minutes (the 6th try is refused even with the right digits). The lock is exact (each wrong try is one row, so the 15 minutes slide) and works the same for codes that do not exist, so nobody can learn which codes exist.
+- **Tracking result** `/track/result` shows only: service name, status, timeline, our message to the client, and a payment summary. A test checks the object has exactly those 8 fields and contains none of: file names, email, phone, reference, amount, internal notes. The session lasts 1 hour and belongs to one request.
+- **Pay now** (statuses Submitted, Under review, Waiting for client) and **Upload more documents** (Waiting for client only) reuse the Phase 3 and 4 pages. A visitor from the tracking page sees no step bar, no earlier files, no Remove button, and goes back to the tracking page after paying. Paying tells the admin by email.
+- **Tests:** 293 unit tests (all pass), including: Brevo request shape, escaping, log rows, the daily limit, failure does not throw, retry, the lockout (5 wrong tries, 6th refused, exactly 15 minutes, nonexistent codes, sliding window, right answer clears) and the minimal view. 61 Playwright tests pass on phone and desktop (the whole project so far).
+
+### NOT verified here (needs your accounts)
+- **Real emails.** I could only test with a fake Brevo. Not checked: a real send, the **verified sender or domain** (SPF, DKIM, DMARC), and the goal "emails arrive in Gmail inbox, not spam, for all templates". Please test all 7 templates with a real Brevo key and a Gmail address.
+- The real **Cloudflare Turnstile** widget (the server check is unit tested with a fake Cloudflare).
+- "After 5 wrong tries, locked 15 minutes" on a real phone.
+
+### Notes
+- The database columns \`requests.tracking_failed_attempts\` and \`tracking_locked_until\` (DATABASE.md) are **not used**. The lock uses \`rate_limits\` rows instead, so it also works for codes that do not exist. They can be removed in a later migration if you agree.
+- Email needs \`BREVO_API_KEY\`, \`EMAIL_FROM_ADDRESS\`, \`EMAIL_FROM_NAME\` and \`ADMIN_NOTIFY_EMAIL\` (all in \`.env.example\`). Without a key, emails are logged as failed with a clear note, and the app keeps working.
+- The status emails go out for: Waiting for client, Payment verified, In progress, Completed, Cancelled. Submitted and Under review are quiet unless a message is written. (Assumption. One list in \`send.ts\`.)
+
+---
+
 ## Risks to watch
 
 - **Netlify free plan is a hard limit (300 credits/month).** When credits run out, the site is paused until next month. A production deploy costs about 15 credits. Keep production deploys few. Check usage weekly.
@@ -304,3 +332,6 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ### Phase 5 session
 - Built Phase 5 and committed it. See "Phase 5 report" above.
+
+### Phase 6 session
+- Built Phase 6 and committed it. See "Phase 6 report" above.

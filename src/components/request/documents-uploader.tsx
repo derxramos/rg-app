@@ -49,6 +49,8 @@ type Props = {
   }[];
   maxFiles: number;
   maxBytes: number;
+  // False when the client came from the tracking page: they may add files but not remove any.
+  canRemove?: boolean;
 };
 
 // Sends ONE file with progress. XMLHttpRequest is used because fetch cannot report upload progress.
@@ -87,6 +89,7 @@ export function DocumentsUploader({
   initialFiles,
   maxFiles,
   maxBytes,
+  canRemove = true,
 }: Props) {
   const [items, setItems] = useState<Item[]>(
     initialFiles.map((f) => ({
@@ -290,7 +293,7 @@ export function DocumentsUploader({
                             <RotateCcw aria-hidden="true" /> Try again
                           </Button>
                         ) : null}
-                        {item.status !== "uploading" && item.status !== "removing" ? (
+                        {canRemove && item.status !== "uploading" && item.status !== "removing" ? (
                           <Button
                             variant="ghost"
                             size="icon"

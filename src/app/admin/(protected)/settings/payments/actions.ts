@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { OWNER_ONLY } from "@/server/auth/admin-core";
 import { withAdmin, type ActionResult } from "@/server/auth/admin";
+import { notifyPaymentMethodChanged } from "@/server/email/notify";
 import { getDb } from "@/server/db/client";
 import { detectFileType } from "@/server/security/file-type";
 import {
@@ -71,7 +72,8 @@ export async function savePaymentMethodAction(
         },
         { fresh2fa, ipHash },
       );
-      // Phase 6 sends the "payment method changed" alert email to the owner when saved.risky is true.
+      // The owner gets an alert email when something risky changed (threat T1, the QR swap).
+    if (saved.risky) await notifyPaymentMethodChanged({ who: admin.fullName, what: `${text(formData, "name")}: QR, account name or account number changed` });
       if (!id || id === "new") newId = saved.id;
       revalidatePath("/admin/settings/payments");
       return {
