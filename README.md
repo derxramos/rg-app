@@ -34,3 +34,21 @@ pnpm test:e2e                  # Playwright (first run: pnpm exec playwright ins
 
 While developing, open `http://localhost:3000/dev/ui` to see every shared UI part next to the design
 rules in `docs/DESIGN_SYSTEM.md`. This page is blocked in production.
+
+## Local test database (no account needed)
+
+To look at the pages before you have a Supabase project, run a small Postgres inside Node:
+
+```bash
+pnpm dev:db        # keep it running in its own terminal. Saves data in the .pglite folder (not in git)
+```
+
+Put these two lines in `.env.local`:
+
+```
+DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres
+DIRECT_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres
+```
+
+Then run `pnpm dev`. This database is only for development. It allows one connection at a time, so
+if `pnpm build` fails with "ECONNRESET", run it again. The real checks must be done on Supabase.

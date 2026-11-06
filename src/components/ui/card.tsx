@@ -33,8 +33,13 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
-  return <h3 data-slot="card-title" className={cn("text-lg font-bold", className)} {...props} />;
+// "as" lets a page keep a correct heading order (h1, then h2, then h3).
+function CardTitle({
+  className,
+  as: Tag = "h3",
+  ...props
+}: React.ComponentProps<"h3"> & { as?: "h2" | "h3" | "h4" }) {
+  return <Tag data-slot="card-title" className={cn("text-lg font-bold", className)} {...props} />;
 }
 
 function CardDescription({ className, ...props }: React.ComponentProps<"p">) {

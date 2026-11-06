@@ -49,3 +49,6 @@ next-env.d.ts
 # Playwright
 /test-results/
 /playwright-report/
+
+# Local test database (pnpm dev:db)
+/.pglite/

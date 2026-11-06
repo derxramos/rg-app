@@ -2,10 +2,10 @@
 
 Update this file at the end of every work session.
 
-**Current status:** Phase 1 code is finished and checked on this computer. Waiting for owner approval. Some Phase 1 steps need your accounts (Supabase, Netlify): see "Phase 1: what you must do by hand".
+**Current status:** Phase 2 (public pages) is finished and checked on this computer. Waiting for owner approval. The Phase 1 hand steps that need your accounts (Supabase, Netlify) are still open: see "Phase 1: what you must do by hand".
 **Last updated:** 2026-11-06
 
-**Next step:** Owner tests Phase 1, runs the hand steps, and answers the open questions. After approval, start Phase 2 (public pages).
+**Next step:** Owner tests Phase 2 and answers the open questions. After approval, start Phase 3 (request flow and file upload).
 
 ---
 
@@ -15,7 +15,7 @@ Details for each phase are in `docs/PHASES.md`.
 
 - [x] Phase 0 — Planning docs
 - [~] Phase 1 — Foundation and database (code done; hand steps and approval pending)
-- [ ] Phase 2 — Public pages with seed content
+- [~] Phase 2 — Public pages with seed content (code done; approval pending)
 - [ ] Phase 3 — Request flow and file upload
 - [ ] Phase 4 — Payment QR page and receipt OCR
 - [ ] Phase 5 — Admin area
@@ -46,6 +46,13 @@ Details for each phase are in `docs/PHASES.md`.
 | 2026-11-06 | Phase 1: a database trigger writes every change of `payment_methods` to `activity_log` (action `payment_method.row_changed`) | Safety net for the QR swap threat, even if app code has a bug. The app can add a more specific row later |
 | 2026-11-06 | Phase 1: database rules are tested on a real Postgres inside the test run (PGlite), no Supabase account needed | The triggers, checks and RLS flags are proved on every `pnpm test` |
 | 2026-11-06 | Phase 1: Teal Ledger is the default palette. Harbor Navy works with `data-theme="alt"` | Owner choice for now. See open question 9 |
+| 2026-11-06 | Phase 2: public content is read with `use cache` and a custom 5-minute profile (`site-content` in next.config.ts), with cache tags | Pages are static and fast, and cost few Netlify credits. A change in the database shows within 5 minutes. In Phase 5 the admin calls `revalidateTag` to show it at once |
+| 2026-11-06 | Phase 2: `next build` now needs a database (the pages are built from it) | The build reads services and settings. Netlify has the variables, so this is fine there. A database error is never hidden or cached |
+| 2026-11-06 | Phase 2: the service detail page uses `generateStaticParams`, with a placeholder slug when there are no services | Next.js needs at least one value. It puts the title and description in the HTML head (good for search engines) |
+| 2026-11-06 | Phase 2: the contact form checks the values but does **not** send. A valid form shows "not switched on yet" with the Messenger and Viber links | Sending is Phase 6. This is the truthful state for now |
+| 2026-11-06 | Phase 2: the privacy notice is a **draft** written from the docs, with [square brackets] for facts the owner must give. A yellow "Draft text" box shows while the version contains "draft" | Not legal advice. The owner must review it |
+| 2026-11-06 | Phase 2: Markdown from the owner is shown with `react-markdown` (raw HTML is not shown, unsafe links are removed) | Matches SECURITY_AND_PRIVACY.md T8 |
+| 2026-11-06 | Phase 2: git line endings are forced to LF with `.gitattributes` | On Windows, git made CRLF files and Prettier failed |
 
 ---
 
@@ -63,6 +70,10 @@ Details for each phase are in `docs/PHASES.md`.
 10. **Tracking code font and font weights.** DESIGN_SYSTEM.md asks: is system monospace OK for the tracking code, and are weights 400 and 700 only OK? I built it that way.
 11. **Staff and payments** (same as question 2). Not decided. It matters in Phase 5.
 12. **Phone input and money input** have a prefix box (+63, peso sign) but no number rules yet. The rules come with the request form in Phase 3.
+13. **Privacy notice facts.** The draft needs: how long to keep the text records of requests, the data region (where Supabase stores data), the contact person and details, and a check by you or a lawyer. See `src/content/privacy-notice.ts`.
+14. **Dead links for now.** "Start a request" and "Track my request" point to `/request` and `/track`, which are built in Phases 3 and 6. Until then they show the 404 page. Is that OK, or do you want a small "coming soon" page?
+15. **Contact page details.** Phone, email, address, hours, Messenger and Viber all come from the database settings and are empty now. The owner fills them in the admin area (Phase 5). Until then only empty states show.
+16. **Turnstile.** The contact form has no spam-check area yet. It is added together with sending, in Phase 6.
 
 ---
 
@@ -117,6 +128,51 @@ Not installed yet (later phases): tesseract.js (Phase 4). Brevo and Turnstile us
 
 ---
 
+## Phase 2 report
+
+### What is done
+
+- **Layout:** the public header (desktop menu, mobile menu button, skip link), footer with the Messenger and Viber block, and one shell used by every public page (`src/components/shared/public-shell.tsx`).
+- **Pages:** Home `/`, Services `/services` (with loading skeleton and empty state), Service detail `/services/[slug]` (checklist, exact empty-checklist text, "rules and fees can change" note, Start button that pre-selects the service), How it works `/how-it-works`, Contact `/contact` (form screen only), Privacy notice `/privacy` (version and date badges).
+- **Error pages:** 404 page, error page with "Try again", and a last-resort page. They show the Messenger and Viber links when the owner has set them.
+- **SEO:** a title and description on every page, canonical links, `sitemap.xml` (public pages and active services), `robots.txt` (hides admin, request, track, api, dev), and an Open Graph image drawn in code.
+- **Content from the database:** headline, intro, contact details, hours, social links, privacy version, retention days and the services list. Server code: `src/server/services/site-content.ts`.
+- **New helpers with tests:** Philippine mobile number rules (`src/lib/phone.ts`), contact form rules (`src/lib/validation/contact.ts`), site address (`src/lib/site-url.ts`), privacy text builder.
+- **Local test database:** `pnpm dev:db` runs a real Postgres inside Node (PGlite). It needs no account. See the README. It is for looking at pages, not a replacement for Supabase.
+- **Home page:** hero with CSS shapes (no photos), services, five steps, contact block. No government logos. No invented requirements or fees.
+
+### Checks run on this computer (2026-11-06)
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm format:check`: no problems.
+- `pnpm test`: 100 tests pass in 12 files.
+- `pnpm build` (against the local test database, with 0 services and with 2 services): works. Public pages are static.
+- **360 px wide:** all 9 page types (home, services, two service details, unknown service, how it works, contact, privacy, 404) have no sideways scrolling, exactly one main heading, the right font, and controls at least 44 px tall (a link inside running text is the only exception).
+- **Lighthouse (mobile, production build, run on every public page):** Performance 95 to 100, Accessibility 100 on every page in the last run, SEO 100, Best Practices 96 to 100. The goals were 90 and 95. The only failing check is the 404 console error from the `/request` and `/track` prefetch (see Known limits).
+- **Content change test:** changing the headline, intro, social link, phone and email in the database showed on the pages after the cache refresh (a server restart clears it at once).
+- **Safe text test:** a service description with a script tag and a `javascript:` link showed neither.
+- **Not visible to visitors:** an inactive service is hidden from the list, the sitemap and its own address.
+- **Error page** checked in the browser: header, footer, Messenger and Viber stay visible.
+
+### Known limits
+
+- `/request` and `/track` do not exist yet (Phases 3 and 6). Links to them show the 404 page and the browser console shows 404 errors for their prefetch. This is the only thing that lowers the Best Practices score.
+- A service address that does not exist (for example `/services/nope`) shows the not found page and a "noindex" tag, but the HTTP status is 200, not 404. This is how Next.js streams a not-found inside a prerendered page. The `robots` tag keeps it out of search results.
+- The placeholder address `/services/no-services-yet` exists only to let the build work with no services. It shows the not found page.
+- The local test database (PGlite) allows one connection at a time. `pnpm build` against it can fail with "ECONNRESET" or "bind message". Run it again. Supabase does not have this limit.
+- Error page when the database is down: the Messenger and Viber links come from the database. They are kept in the page cache, so they usually still show. If the very first load fails, the error page has no links.
+
+### New: you must do by hand
+
+1. Phase 1 hand steps are still open (Supabase, Netlify). Public pages need a working `DATABASE_URL` to **build**.
+2. Look at the pages on your own phone (real device, real network): `pnpm dev` and open the address of your computer on the same Wi-Fi, or use the Netlify preview.
+3. Answer questions 13 to 16 above and the older open questions.
+
+### Packages added in Phase 2
+
+react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything else is unchanged from Phase 1.
+
+---
+
 ## Risks to watch
 
 - **Netlify free plan is a hard limit (300 credits/month).** When credits run out, the site is paused until next month. A production deploy costs about 15 credits. Keep production deploys few. Check usage weekly.
@@ -138,4 +194,10 @@ Not installed yet (later phases): tesseract.js (Phase 4). Brevo and Turnstile us
 - Read all docs first. Built Phase 1 only. Did not start Phase 2.
 - Found two problems while working: the shadcn CLI tried to install a package named `cn` (removed), and the already-running dev server served an old layout until it was restarted.
 - A test caught a real bug in my first version of the `payment_methods` log trigger (it never skipped empty updates). Fixed and tested.
+- Waiting for approval.
+
+### 2026-11-06 — Phase 2 (public pages)
+- Built Phase 2 only. Did not start Phase 3.
+- Lighthouse found a heading order problem, a logo link label that did not match its visible text, and missing head tags on the service page. All fixed.
+- Found that a hook in the header blocked prerendering on dynamic pages. Fixed with Suspense and a fallback header.
 - Waiting for approval.

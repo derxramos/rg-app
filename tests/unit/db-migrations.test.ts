@@ -1,26 +1,15 @@
 // Runs the real SQL migrations on an in-memory Postgres (PGlite) and checks the database rules.
 // It needs no Supabase account. It proves the triggers and checks work as written.
 
-import { readFileSync, readdirSync } from "node:fs";
-import path from "node:path";
-
 import { PGlite } from "@electric-sql/pglite";
+import { getTableName } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ALL_TABLES } from "@/server/db/schema";
-import { getTableName } from "drizzle-orm";
 
-const MIGRATIONS_DIR = path.resolve(__dirname, "../../drizzle");
+import { applyMigrations } from "../../scripts/lib/migrations";
 
 let db: PGlite;
-
-// A migration file is a list of statements split by this marker.
-function statementsOf(file: string): string[] {
-  return readFileSync(path.join(MIGRATIONS_DIR, file), "utf8")
-    .split("--> statement-breakpoint")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 async function fails(sql: string, params: unknown[] = []): Promise<string> {
   try {
@@ -59,14 +48,7 @@ async function addPaymentMethod() {
 
 beforeAll(async () => {
   db = new PGlite();
-  const files = readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
-  for (const file of files) {
-    for (const statement of statementsOf(file)) {
-      await db.exec(statement);
-    }
-  }
+  await applyMigrations(db);
 }, 60_000);
 
 afterAll(async () => {

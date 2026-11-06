@@ -1,63 +1,108 @@
-import { DatabaseZap } from "lucide-react";
-import { connection } from "next/server";
-import { Suspense } from "react";
+import { ArrowRight, ClipboardList } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
 
+import { HeroArt } from "@/components/public/hero-art";
+import { ServicesGrid } from "@/components/public/services-grid";
+import { StepsList } from "@/components/public/steps-list";
+import { BackupContactBlock } from "@/components/shared/backup-contact-block";
 import { PageContainer } from "@/components/shared/page-container";
-import { WarningBox } from "@/components/shared/warning-box";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getPublicSetting } from "@/server/services/settings";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { getPublicSettings, listActiveServices } from "@/server/services/site-content";
 
-// Phase 1 test page. It proves the host works and the database can be read.
-// Phase 2 replaces it with the real home page.
-export default function HomePage() {
-  return (
-    <PageContainer className="flex flex-col gap-6 py-10">
-      <h1 className="text-2xl font-bold md:text-3xl">Hello</h1>
-      <p className="text-base text-muted-foreground">
-        This is the Phase 1 test page. The card below reads one setting from the database.
-      </p>
-      <Suspense fallback={<Skeleton className="h-32 w-full max-w-xl rounded-lg" />}>
-        <SettingCheck />
-      </Suspense>
-    </PageContainer>
-  );
-}
+export const metadata: Metadata = {
+  // The home page uses the default title from the root layout.
+  alternates: { canonical: "/" },
+};
 
-// Reads the "home_texts" setting. It runs at request time, because the database is not
-// available while the site is being built.
-async function SettingCheck() {
-  await connection();
+// Used only when the owner has not written an intro in the admin area yet.
+const DEFAULT_INTRO =
+  "Send your request and documents online, pay in your own GCash, Maya or bank app, and follow your request with a tracking code.";
 
-  // Read the data first. The page (JSX) is built after the try/catch, so errors are caught here.
-  let headline: string | null = null;
-  try {
-    headline = (await getPublicSetting("home_texts")).headline;
-  } catch (error) {
-    // The details go to the server log only. The visitor sees a short message.
-    console.error("Could not read the home_texts setting:", error);
-  }
-
-  if (headline === null) {
-    return (
-      <WarningBox variant="danger" title="The database is not connected" className="max-w-xl">
-        Check DATABASE_URL in .env.local and run the migration. See the README.
-      </WarningBox>
-    );
-  }
+export default async function HomePage() {
+  const [settings, services] = await Promise.all([getPublicSettings(), listActiveServices()]);
+  const { headline, intro } = settings.home_texts;
 
   return (
-    <Card className="max-w-xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <DatabaseZap aria-hidden="true" className="size-5" />
-          Database connected
-        </CardTitle>
-        <CardDescription>Setting: home_texts.headline</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-lg font-bold">{headline || "(empty)"}</p>
-      </CardContent>
-    </Card>
+    <>
+      <section className="overflow-hidden border-b bg-surface-subtle">
+        <PageContainer className="grid gap-10 py-12 md:py-16 lg:grid-cols-2 lg:items-center">
+          <div className="flex flex-col items-start gap-5">
+            <h1 className="text-3xl font-bold text-primary-ink lg:text-4xl">
+              {headline || "RG'S Bookkeeping and Accounting Services"}
+            </h1>
+            <p className="max-w-prose text-lg text-muted-foreground">{intro || DEFAULT_INTRO}</p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/request" className={buttonVariants({ variant: "accent", size: "lg" })}>
+                Start a request
+                <ArrowRight aria-hidden="true" />
+              </Link>
+              <Link href="/track" className={buttonVariants({ variant: "outline", size: "lg" })}>
+                <ClipboardList aria-hidden="true" />
+                Track my request
+              </Link>
+            </div>
+          </div>
+          <HeroArt />
+        </PageContainer>
+      </section>
+
+      <section aria-labelledby="home-services">
+        <PageContainer className="flex flex-col gap-6 py-10 md:py-14">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="home-services" className="text-2xl font-bold">
+              Our services
+            </h2>
+            {services.length > 0 ? (
+              <Link
+                href="/services"
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-primary")}
+              >
+                See all services
+              </Link>
+            ) : null}
+          </div>
+          <ServicesGrid services={services.slice(0, 6)} />
+        </PageContainer>
+      </section>
+
+      <section aria-labelledby="home-how" className="border-y bg-surface-subtle">
+        <PageContainer className="flex flex-col gap-6 py-10 md:py-14">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="home-how" className="text-2xl font-bold">
+              How it works
+            </h2>
+            <Link
+              href="/how-it-works"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-primary")}
+            >
+              Read the steps
+            </Link>
+          </div>
+          <StepsList compact />
+        </PageContainer>
+      </section>
+
+      <section aria-labelledby="home-contact">
+        <PageContainer className="flex flex-col gap-4 py-10 md:py-14">
+          <h2 id="home-contact" className="text-2xl font-bold">
+            Questions?
+          </h2>
+          <p className="max-w-prose text-base text-muted-foreground">
+            Send us a message and we will reply. You can also write to us on Messenger or Viber.
+          </p>
+          <div className="flex flex-wrap items-start gap-6">
+            <Link href="/contact" className={buttonVariants({ variant: "outline" })}>
+              Contact us
+            </Link>
+            <BackupContactBlock
+              messengerUrl={settings.social_links.messenger}
+              viberUrl={settings.social_links.viber}
+            />
+          </div>
+        </PageContainer>
+      </section>
+    </>
   );
 }

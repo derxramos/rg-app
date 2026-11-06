@@ -1,0 +1,4 @@
+# Always use LF line endings, on every computer, so Prettier and CI agree.
+* text=auto eol=lf
+*.png binary
+*.woff2 binary

@@ -52,7 +52,7 @@ export function SiteHeader() {
       <PageContainer className="flex h-16 items-center justify-between gap-4">
         <Link
           href="/"
-          aria-label="RG'S Bookkeeping and Accounting, home"
+          aria-label="RG'S Bookkeeping & Accounting, home"
           className={cn("rounded-md", focusRing)}
         >
           <Logo />

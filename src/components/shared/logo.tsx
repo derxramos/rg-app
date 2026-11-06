@@ -31,7 +31,7 @@ export function Logo({ inverse = false, showWordmark = true, className }: LogoPr
             )}
           >
             RG&apos;S
-          </span>
+          </span>{" "}
           <span
             className={cn(
               "text-xs font-bold tracking-wide uppercase",
