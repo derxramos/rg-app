@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // End-to-end tests. Run: pnpm test:e2e
-// First time only, install the test browser: pnpm exec playwright install chromium
+// Needs Google Chrome installed, and the site running with a database (see the README: pnpm dev:db).
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
@@ -9,6 +9,8 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://localhost:3000",
+    // Use the Chrome that is already installed. No browser download is needed.
+    channel: "chrome",
     trace: "on-first-retry",
   },
   projects: [

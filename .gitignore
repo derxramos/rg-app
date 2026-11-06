@@ -52,3 +52,6 @@ next-env.d.ts
 
 # Local test database (pnpm dev:db)
 /.pglite/
+
+# Local file storage for development
+/.local-storage/

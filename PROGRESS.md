@@ -2,10 +2,10 @@
 
 Update this file at the end of every work session.
 
-**Current status:** Phase 2 (public pages) is finished and checked on this computer. Waiting for owner approval. The Phase 1 hand steps that need your accounts (Supabase, Netlify) are still open: see "Phase 1: what you must do by hand".
+**Current status:** Phase 3 (request flow and file upload) is finished and committed. The owner asked for phases 3 to 8 in one run, so work continues with Phase 4.
 **Last updated:** 2026-11-06
 
-**Next step:** Owner tests Phase 2 and answers the open questions. After approval, start Phase 3 (request flow and file upload).
+**Next step:** Phase 4: payment QR page and receipt OCR.
 
 ---
 
@@ -16,7 +16,7 @@ Details for each phase are in `docs/PHASES.md`.
 - [x] Phase 0 — Planning docs
 - [~] Phase 1 — Foundation and database (code done; hand steps and approval pending)
 - [~] Phase 2 — Public pages with seed content (code done; approval pending)
-- [ ] Phase 3 — Request flow and file upload
+- [x] Phase 3 — Request flow and file upload(code done, checked on this computer)
 - [ ] Phase 4 — Payment QR page and receipt OCR
 - [ ] Phase 5 — Admin area
 - [ ] Phase 6 — Emails and tracking page
@@ -53,6 +53,11 @@ Details for each phase are in `docs/PHASES.md`.
 | 2026-11-06 | Phase 2: the privacy notice is a **draft** written from the docs, with [square brackets] for facts the owner must give. A yellow "Draft text" box shows while the version contains "draft" | Not legal advice. The owner must review it |
 | 2026-11-06 | Phase 2: Markdown from the owner is shown with `react-markdown` (raw HTML is not shown, unsafe links are removed) | Matches SECURITY_AND_PRIVACY.md T8 |
 | 2026-11-06 | Phase 2: git line endings are forced to LF with `.gitattributes` | On Windows, git made CRLF files and Prettier failed |
+| 2026-11-06 | Phase 3: owner approved "do phases 3 to 8 and commit each" in one go | The "stop after each phase" rule was lifted by the owner for this run. Each phase is its own commit |
+| 2026-11-06 | Phase 3: the draft cookie holds `<requestId>:<token>`; the database stores only an HMAC of the token | A stolen database cannot be used to open drafts |
+| 2026-11-06 | Phase 3: after submit the draft cookie stops working; a 10 minute signed cookie shows the code on the "sent" page | DATABASE.md says the token is cleared on submit |
+| 2026-11-06 | Phase 3: Turnstile is skipped in development when no secret key is set, and always required in production | Lets forms be tried locally. Production refuses without the key |
+| 2026-11-06 | Phase 3: the file storage wrapper uses a local folder in development when Supabase keys are missing | Lets the upload flow be tried without an account. Never used in production |
 
 ---
 
@@ -173,6 +178,29 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ---
 
+## Phase 3 report
+
+### What is done
+- **Step 1** `/request` (service pre-selected with `?service=`), tracking code page, documents page, review page, "request sent" page, and an "expired or no access" page. Consent is never pre-ticked. A hidden trap field catches robots.
+- **Security helpers:** Turnstile check on the server (always called, skipped only in development with no secret key), Postgres rate limiter (one atomic statement), HMAC token helpers, IP hashing, file-type check by first bytes.
+- **Tracking code:** `RG-` plus 8 characters from 31 safe characters, retries on a clash (tests).
+- **`requireRequestAccess()`:** draft cookie (7 days, only a hash is saved) and tracking session (1 hour). Tests cover: no cookie, wrong token, another request's cookie, expired, submitted request, forged or expired tracking session, and which actions each status allows.
+- **Upload:** `POST /api/upload` checks access, rate limits (per visitor and per request), size, the real file type, file count, the 95 percent storage stop, then saves with a random path and a database row. Photos are shrunk in the browser first (long side 2000 px, quality 0.8). Files can be removed while the request is a Draft.
+- **Submit:** moves the request to Submitted, clears the draft token, writes the timeline. A short signed cookie lets the "sent" page show the code once more.
+- **Storage:** one wrapper (`src/server/storage`). Supabase in production, a `.local-storage` folder in development only.
+- **Tests:** 146 unit tests (all pass) plus Playwright end-to-end tests (all pass on phone and desktop profiles): full flow, consent error keeps typed values, real PNG accepted, a program renamed to .jpg refused, another browser cannot open or upload to the request, after sending the draft cookie no longer works.
+
+### Not verified here
+- Real Supabase Storage and a real Turnstile widget (no accounts). The code paths are tested with fakes.
+- "Slow 4G on a real phone" and the "renamed .exe" check in a real browser against Supabase Storage: please do these by hand.
+- Rate limit and Turnstile blocking on repeated submits: the helpers are unit tested, and the form action uses them, but I did not repeat-submit in a browser.
+
+### Notes
+- `pnpm test:e2e` first runs `scripts/e2e-seed.ts`, because public pages cache the services list for 5 minutes. Stop any running dev server before running it.
+- Set `DB_POOL_MAX=1` when you use the local test database (`pnpm dev:db`).
+
+---
+
 ## Risks to watch
 
 - **Netlify free plan is a hard limit (300 credits/month).** When credits run out, the site is paused until next month. A production deploy costs about 15 credits. Keep production deploys few. Check usage weekly.
@@ -201,3 +229,6 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 - Lighthouse found a heading order problem, a logo link label that did not match its visible text, and missing head tags on the service page. All fixed.
 - Found that a hook in the header blocked prerendering on dynamic pages. Fixed with Suspense and a fallback header.
 - Waiting for approval.
+
+### Phase 3 session
+- Built Phase 3 and committed it. See "Phase 3 report" above.

@@ -21,7 +21,8 @@ function createDb(): Db {
   const client = postgres(url, {
     prepare: false,
     // A small pool: serverless functions each run their own copy, and the pooler has a limit.
-    max: 3,
+    // 3 by default. DB_POOL_MAX=1 is for the local test database, which allows one query at a time.
+    max: Number(process.env.DB_POOL_MAX) || 3,
     idle_timeout: 20,
     connect_timeout: 10,
   });

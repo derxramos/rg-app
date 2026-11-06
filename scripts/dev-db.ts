@@ -3,6 +3,7 @@
 // Then put this in .env.local:
 //   DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres
 //   DIRECT_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres
+//   DB_POOL_MAX=1
 // Data is saved in the .pglite folder (not in git). Delete that folder to start fresh.
 //
 // This is real Postgres running inside Node (PGlite), so it is good for looking at pages,
@@ -38,7 +39,7 @@ async function main() {
     console.log("Default settings added.");
   }
 
-  const server = new PGLiteSocketServer({ db, port: PORT, host: "127.0.0.1" });
+  const server = new PGLiteSocketServer({ db, port: PORT, host: "127.0.0.1", maxConnections: 3 });
   await server.start();
   console.log(`Local database is ready on postgres://postgres:postgres@127.0.0.1:${PORT}/postgres`);
   console.log("Press Ctrl+C to stop.");
