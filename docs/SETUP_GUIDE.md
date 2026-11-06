@@ -53,7 +53,7 @@ every time. Do these once:
 4. Lock the doors (very important for "nobody can read all the data"):
    - **Authentication** > **Sign In / Providers** (or **Providers**): turn **OFF** "Allow new users to sign up". Only invited admins should exist. Keep **Email** provider ON.
    - **Authentication** > **Multi-Factor** (or **Sign In / Providers**): make sure **TOTP** is enabled.
-   - **Project Settings** > **API** (or **Data API**): if you see **Enable Data API**, turn it **OFF**. (This app only talks to the database from the server.)
+   - **Project Settings** > **API** (or **Data API**): keep **Enable Data API** turned **OFF**. If Supabase shows "Database access requires the Data API / Client library database queries will not work", ignore it. This app does not use that feature: the server talks to the database directly, and login and files use their own Supabase services. Turning it ON would only add a door that nobody needs.
    - **Storage**: the buckets are made later by a command (step 5). They must be **private**.
 5. Copy the values you need (keep them in the password manager). See the table in step 7 for where each one goes:
    - **Project Settings** > **API Keys**: the **Project URL**, the **Publishable key**, and the **Secret key** (click **Reveal**).
