@@ -1,3 +1,5 @@
+import "server-only";
+
 // Email templates: plain functions that return subject, html and text (docs/ARCHITECTURE.md section 8).
 // Everything a client typed (name, message) is escaped before it goes into HTML, so nobody can send
 // us an email with hidden links or markup.

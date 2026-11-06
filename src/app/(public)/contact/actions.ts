@@ -37,10 +37,6 @@ export async function sendContactAction(
     return { status: "failed", message: "You sent several messages already. Please try again later." };
   }
 
-  if (!(await verifyTurnstile({ token: text(formData, "cf-turnstile-response"), ip }))) {
-    return { status: "failed", message: "The spam check did not pass. Please try again." };
-  }
-
   const parsed = contactFormSchema.safeParse({
     name: text(formData, "name"),
     email: text(formData, "email"),
@@ -48,6 +44,11 @@ export async function sendContactAction(
     message: text(formData, "message"),
   });
   if (!parsed.success) return { status: "invalid", errors: fieldErrorsFrom(parsed.error) as Record<string, string> };
+
+  // The spam check comes after the field checks, so a typo does not use up the single-use token.
+  if (!(await verifyTurnstile({ token: text(formData, "cf-turnstile-response"), ip }))) {
+    return { status: "failed", message: "The spam check did not pass. Please try again." };
+  }
 
   const sent = await notifyContactForm(parsed.data);
   return sent

@@ -4,11 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { REQUEST_STATUSES, type RequestStatus } from "@/lib/status";
 import { withAdmin, type ActionResult } from "@/server/auth/admin";
+import { OWNER_ONLY } from "@/server/auth/admin-core";
 import { getDb } from "@/server/db/client";
+import { CLIENT_FILES_BUCKET, getStorage } from "@/server/storage/storage";
 import { emailContext, notifyClientUpdate } from "@/server/email/notify";
 import { EMAIL_STATUSES, retryEmail } from "@/server/email/send";
 import {
   addNote,
+  eraseClientData,
   adminChangeStatus,
   rejectPayment,
   verifyPayment,
@@ -123,5 +126,26 @@ export async function retryEmailAction(
     return result.ok
       ? { ok: true, message: "The email was sent." }
       : { ok: false, code: "invalid", message: "The email could not be sent again. Check the email settings, then try once more." };
+  });
+}
+
+// "Delete client data" (a privacy request). OWNER ONLY, a fresh 2FA code, and the word DELETE typed in.
+export async function eraseClientDataAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
+    if (text(formData, "confirm").trim() !== "DELETE") {
+      return { ok: false, code: "invalid", message: "Please type the word DELETE (in capital letters) to confirm." };
+    }
+    const requestId = text(formData, "requestId");
+    const { filesDeleted } = await eraseClientData(getDb(), getStorage(), admin, {
+      requestId,
+      bucket: CLIENT_FILES_BUCKET(),
+      fresh2fa,
+      ipHash,
+    });
+    revalidatePath(`/admin/requests/${requestId}`);
+    return { ok: true, message: `The client's data was deleted (${filesDeleted} files).` };
   });
 }

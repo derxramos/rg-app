@@ -1,3 +1,5 @@
+import "server-only";
+
 // The tracking page logic (docs/FEATURES.md P12, docs/SECURITY_AND_PRIVACY.md T3).
 import { and, asc, count, eq, gt, ne } from "drizzle-orm";
 
@@ -6,6 +8,9 @@ import { TRACKING_CODE_PATTERN, normalizeTrackingCode } from "@/lib/tracking-cod
 import { payments, rateLimits, requestStatusEvents, requests, services } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 import { safeEqual } from "@/server/security/tokens";
+
+// Same value as ERASED_NAME in admin-requests.ts. A request whose data was deleted cannot be tracked any more.
+const ERASED_NAME = "Deleted client";
 
 // The SAME message for a wrong code and wrong digits, so an attacker learns nothing.
 export const TRACK_NOT_FOUND = "We could not find a request with those details. Please check the code and the 4 digits.";
@@ -49,7 +54,7 @@ export async function attemptTracking(
     const [row] = await db
       .select({ id: requests.id, last4: requests.clientPhoneLast4 })
       .from(requests)
-      .where(and(eq(requests.trackingCode, code), ne(requests.status, "draft")))
+      .where(and(eq(requests.trackingCode, code), ne(requests.status, "draft"), ne(requests.clientFullName, ERASED_NAME)))
       .limit(1);
     if (row && safeEqual(row.last4, input.last4)) requestId = row.id;
   }

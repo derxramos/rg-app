@@ -1,3 +1,5 @@
+import "server-only";
+
 // Sending with a log. Every email is saved in email_log (status, Brevo id, a short error), which also lets us
 // count today's emails against the Brevo free limit (300 per day). A failed email NEVER throws: the main
 // action still works, and the admin sees "Email not sent" with a Retry button (docs/FEATURES.md A12).

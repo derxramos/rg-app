@@ -34,3 +34,20 @@ jobs:
         run: pnpm typecheck
       - name: Unit tests
         run: pnpm test
+
+  # Reports packages with known security problems. It does not stop the build, because a new advisory can appear
+  # at any time. Dependabot opens the fix.
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Audit (production packages)
+        run: pnpm audit --prod --audit-level=high
+        continue-on-error: true

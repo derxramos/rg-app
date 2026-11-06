@@ -1,3 +1,5 @@
+import "server-only";
+
 // The core of requireRequestAccess. It has no cookie or Next.js code, so it is easy to test.
 // A client has no login. They reach ONE request in two ways (docs/ARCHITECTURE.md section 5):
 //   1. the draft cookie (7 days): upload files, pay, and submit while the request is a Draft

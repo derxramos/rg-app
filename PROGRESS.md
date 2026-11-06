@@ -2,10 +2,10 @@
 
 Update this file at the end of every work session.
 
-**Current status:** Phase 6 (emails and tracking) is finished and committed. Work continues with Phase 7 (security hardening, tests, deploy).
+**Current status:** Phase 7 (security hardening, tests, deploy prep) is finished and committed. The live deploy and real-account checks are NOT done (see the Phase 7 report). Work continues with Phase 8.
 **Last updated:** 2026-11-06
 
-**Next step:** Phase 7: security hardening, tests, deploy.
+**Next step:** Phase 8: portfolio case study page.
 
 ---
 
@@ -20,7 +20,7 @@ Details for each phase are in `docs/PHASES.md`.
 - [x] Phase 4 — Payment QR page and receipt OCR(code done, checked on this computer)
 - [x] Phase 5 — Admin area(code done, checked on this computer)
 - [x] Phase 6 — Emails and tracking page(code done, checked on this computer)
-- [ ] Phase 7 — Security hardening, tests, deploy
+- [x] Phase 7 — Security hardening, tests, deploy(code done, checked on this computer)
 - [ ] Phase 8 — Portfolio case study page
 
 ---
@@ -72,6 +72,12 @@ Details for each phase are in `docs/PHASES.md`.
 | 2026-11-06 | Phase 6: only request emails have a Retry button (they are rebuilt from the database) | The contact form and owner alert emails have no saved body. A failed contact form already shows the client the backup links |
 | 2026-11-06 | Phase 6: status emails go out for Waiting for client, Payment verified, In progress, Completed and Cancelled, or whenever a message is written | Quiet statuses would send noise. One list to change |
 | 2026-11-06 | Phase 6: a visitor from the tracking page sees no earlier files and cannot remove files | CLAUDE.md rule 9. They may only add more |
+| 2026-11-06 | Phase 7: the CSP allows `'unsafe-inline'` for scripts, and is strict everywhere else | Next.js writes small inline scripts. A per-request nonce would make every page dynamic (no static pages, more Netlify credits). React escapes text and no raw HTML is rendered. Can be tightened later |
+| 2026-11-06 | Phase 7: validate the form first, then check Turnstile | A Turnstile token works once. A typo must not use it up |
+| 2026-11-06 | Phase 7: cleanup deletes storage first, then the database | A failure leaves the request in the list, so tomorrow's run finishes the job. No file is left without a record |
+| 2026-11-06 | Phase 7: old QR pictures are kept (not deleted after 30 days) | They are tiny, and we can compare after a QR swap. No file listing in the storage wrapper |
+| 2026-11-06 | Phase 7: "Delete client data" added (owner only, fresh 2FA, typed DELETE) | It was promised in SECURITY_AND_PRIVACY.md but was not built |
+| 2026-11-06 | Phase 7: every file in `src/server` must start with `import "server-only"` (tested), with a short allow-list for files the Node scripts import | Enforces CLAUDE.md. The scripts cannot import files with that line |
 
 ---
 
@@ -295,6 +301,34 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ---
 
+## Phase 7 report
+
+### What is done
+- **Security headers** (`src/lib/security-headers.ts`, used by `next.config.ts`): Content-Security-Policy (only jsDelivr for the receipt reader, Cloudflare for Turnstile, and your Supabase for QR pictures), `frame-ancestors 'none'` and `X-Frame-Options`, `nosniff`, referrer policy, permissions policy, HSTS (production only). Checked three ways: unit tests, a browser test that visits 13 pages and records **zero CSP violations**, and a **production build** whose headers I read with curl.
+- **Found by that check:** the server checked the Turnstile spam test **before** the form, so a typo wasted the single-use token. The field checks now come first (request and contact forms). Also, a client who chose the receipt picture before the page finished loading was left with a disabled button: the form now picks up an already-chosen file.
+- **Production-mode run** with Cloudflare's published test keys: the real Turnstile widget loads under the CSP, the server check passes, and the payment flow, manual entry and OCR all work (zero CSP violations).
+- **Cleanup job** (`src/server/jobs/cleanup-core.ts`, run by `pnpm job:cleanup`): deletes files of Completed or Cancelled requests after N days, unsent drafts after 7 days with their files and payments, old rate limit rows, and activity log rows older than 1 year. **Storage first, database second**: if storage fails nothing else changes, and the next run finishes the job. 10 tests prove it deletes the right files and only those (including the 29 and 31 day edge, other statuses untouched, a retention setting change, a storage failure then recovery, and running twice).
+- **Keep-alive job** (`pnpm job:keep-alive`, run on the test database).
+- **GitHub Actions:** \`scheduled-jobs.yml\` (cleanup daily, keep-alive every 3 days, run by hand too), \`backup.yml\` (optional weekly dump, OFF until you turn it on, private repo only), \`e2e.yml\` (browser tests by hand), a \`pnpm audit\` job in CI, and \`dependabot.yml\`.
+- **Project rules as tests** (\`project-rules.test.ts\`): every file in \`src/server\` starts with \`import "server-only"\` (a short allow-list for files the Node scripts need), no client component imports server code, only 3 \`NEXT_PUBLIC_\` variables exist and none is a secret, \`.env.example\` lists every variable the code reads, no host-only APIs.
+- **Delete client data** (the privacy right in SECURITY_AND_PRIVACY.md that was still missing): owner only, fresh 2FA, typed DELETE, logged. Deletes files, clears name, email, phone, messages and notes, keeps a minimal record. The request can no longer be tracked. 4 tests.
+- **Docs:** \`docs/SECURITY_CHECKLIST.md\` (every item with a status and its proof), \`docs/OWNER_GUIDE.md\` (plain-English guide for the owner), README updates.
+- **Tests now:** 321 unit tests and 68 Playwright tests (67 pass, 1 is phone-only on desktop).
+
+### NOT done here (honest list)
+- **Production deploy, custom domain, Brevo domain (SPF, DKIM, DMARC), Netlify credit use for a test week.** These need your accounts. Nothing was deployed.
+- **The owner completing a real test request on her phone.** Needs the live site.
+- **Owner review of the privacy notice text.** It is still a draft.
+- **GitHub workflows have not run on GitHub.** I checked the YAML by eye only (and the scripts run on the test database).
+- **Screenshots in the owner guide.** The guide says to add them (fake data only).
+- **The ticks in the security checklist marked 🟡 or ⬜** (see the file). Notably: the real Supabase login and 2FA, the private bucket, no public sign-up, GitHub secret scanning, real emails not going to spam.
+
+### Decisions
+- Scripts use \`'unsafe-inline'\` in the CSP (Next.js inline scripts). A nonce would make every page dynamic and cost Netlify credits. Everything else in the CSP is strict. See the decision table.
+- Old QR files are kept forever (a few KB each), not deleted after 30 days.
+
+---
+
 ## Risks to watch
 
 - **Netlify free plan is a hard limit (300 credits/month).** When credits run out, the site is paused until next month. A production deploy costs about 15 credits. Keep production deploys few. Check usage weekly.
@@ -335,3 +369,6 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ### Phase 6 session
 - Built Phase 6 and committed it. See "Phase 6 report" above.
+
+### Phase 7 session
+- Built Phase 7 and committed it. See "Phase 7 report" above.

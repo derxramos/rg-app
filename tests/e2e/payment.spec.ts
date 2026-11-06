@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { cleanTestData, testSql } from "./helpers";
+import { cleanTestData, getCspViolations, testSql, waitForTurnstile, watchCsp } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 test.afterAll(async () => {
@@ -19,6 +19,7 @@ async function startRequest(page: Page, email: string) {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Mobile number").fill("917 123 4567");
   await page.getByRole("checkbox").check();
+  await waitForTurnstile(page);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Your request is started" })).toBeVisible();
   return page.url().split("/request/")[1].split("/")[0];
@@ -135,6 +136,7 @@ test("reading a receipt in the browser (OCR) fills the fields and measures the d
   page,
 }, testInfo) => {
   test.setTimeout(150_000);
+  await watchCsp(page);
   const id = await startRequest(page, "zolb-test+pay4@example.com");
   await page.goto(`/request/${id}/receipt`);
 
@@ -209,6 +211,8 @@ test("reading a receipt in the browser (OCR) fills the fields and measures the d
   writeFileSync(testInfo.outputPath("ocr-result.json"), JSON.stringify(result, null, 2));
   console.log("OCR RESULT", JSON.stringify({ ...result, assets: assets.length }));
   expect(result.failed, "OCR failed: " + JSON.stringify(result)).toBe(false);
+  // The receipt reader (worker, wasm, CDN files) works under the Content-Security-Policy.
+  expect(await getCspViolations(page)).toEqual([]);
   expect(result.reference).toBe("123456789012");
   expect(result.amount).toBe("1250.00");
   await expect(page.getByText(/Read from image/).first()).toBeVisible();

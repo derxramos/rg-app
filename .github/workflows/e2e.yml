@@ -1,0 +1,44 @@
+# End-to-end tests in a real Chrome (Playwright). Run by hand: Actions > End-to-end tests > Run workflow.
+# It uses the local test database (PGlite), so it needs no secrets. It is NOT part of the normal CI because it is slow.
+# (This workflow was written but NOT run yet. If it fails, read the log and fix the step that failed.)
+name: End-to-end tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Settings for the test site (no real secrets)
+        run: |
+          printf '%s\n' \
+            'DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres' \
+            'DIRECT_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres' \
+            'DB_POOL_MAX=1' \
+            'APP_BASE_URL=http://localhost:3000' \
+            'DEV_ADMIN_BYPASS_EMAIL=zolb-test+owner@example.com' \
+            'ADMIN_NOTIFY_EMAIL=zolb-test+admin@example.com' > .env.local
+      - name: Start the test database
+        run: |
+          pnpm dev:db > dev-db.log 2>&1 &
+          for i in $(seq 1 60); do grep -q "ready" dev-db.log && break; sleep 2; done
+          cat dev-db.log
+      - name: Run the tests (Google Chrome is already on the runner)
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: test-results/

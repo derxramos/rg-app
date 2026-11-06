@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { cleanTestData, emailTemplatesFor, TINY_PNG } from "./helpers";
+import { cleanTestData, emailTemplatesFor, TINY_PNG, waitForTurnstile } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -29,6 +29,7 @@ test("a client can start a request, upload files, and send it", async ({
   await expect(page.getByLabel("Full name")).toHaveValue("Test Client");
 
   await page.getByRole("checkbox").check();
+  await waitForTurnstile(page);
   await page.getByRole("button", { name: "Continue" }).click();
 
   // The tracking code is shown big, with a copy button.

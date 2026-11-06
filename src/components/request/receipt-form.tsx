@@ -79,6 +79,7 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
   // The object URL is made when a picture is chosen and freed when it changes or the page closes.
   // Nothing is stored. The picture only lives in this browser tab.
   const urlRef = useRef<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   useEffect(
     () => () => {
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -94,6 +95,13 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
     setOcr({ state: "idle" });
     setOriginal(null);
   }
+
+  // On a slow phone the person may choose the picture BEFORE the page is ready. The browser already holds the
+  // file, so we pick it up as soon as the page is ready.
+  useEffect(() => {
+    const early = fileInput.current?.files?.[0];
+    if (early) choosePicture(early);
+  }, []);
 
   function setField(field: Field, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -157,6 +165,7 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
         {/* No name, and outside the form: the picture is never sent anywhere. */}
         <input
           id="receipt-file"
+          ref={fileInput}
           type="file"
           accept="image/*"
           className="min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base file:mr-3 file:border-0 file:bg-transparent file:font-bold"

@@ -26,6 +26,7 @@ import { getRequestDetail } from "@/server/services/admin-requests";
 import {
   addNoteAction,
   changeStatusAction,
+  eraseClientDataAction,
   rejectPaymentAction,
   retryEmailAction,
   verifyPaymentAction,
@@ -288,6 +289,18 @@ export default async function AdminRequestDetailPage({
           </Card>
         </div>
       </div>
+
+      {admin.role === "owner" && request.clientFullName !== "Deleted client" ? (
+        <Card>
+          <CardHeader><CardTitle>Delete client data (privacy request)</CardTitle></CardHeader>
+          <CardContent>
+            <p className="text-base text-muted-foreground">Use this when the client asks us to delete their information. The files are deleted and the name, email, phone and messages are cleared. A small record stays for your accounts (code, service, dates, payment values). This cannot be undone.</p>
+            <ActionForm action={eraseClientDataAction} fresh hidden={{ requestId: request.id }} submitLabel="Delete this client's data" variant="destructive">
+              <div className="flex flex-col gap-2"><Label htmlFor="erase-confirm">Type DELETE to confirm</Label><Input id="erase-confirm" name="confirm" autoComplete="off" className="max-w-48" /></div>
+            </ActionForm>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <section aria-labelledby="emails-title" className="flex flex-col gap-3">
         <h2 id="emails-title" className="text-xl font-bold">Emails</h2>

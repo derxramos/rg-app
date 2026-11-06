@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { securityHeaders } from "./src/lib/security-headers";
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
@@ -12,6 +14,18 @@ const nextConfig: NextConfig = {
       revalidate: 300,
       expire: 86400,
     },
+  },
+  // Security headers for every page (CSP, HSTS, frame-ancestors, referrer policy). See src/lib/security-headers.ts.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: securityHeaders({
+          development: process.env.NODE_ENV !== "production",
+          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        }),
+      },
+    ];
   },
   turbopack: {
     rules: {

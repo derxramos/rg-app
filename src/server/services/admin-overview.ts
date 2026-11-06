@@ -1,3 +1,5 @@
+import "server-only";
+
 // Dashboard numbers, the activity log list, and the CSV export queries.
 import { and, count, desc, eq, gte, inArray, isNull, like, lt } from "drizzle-orm";
 

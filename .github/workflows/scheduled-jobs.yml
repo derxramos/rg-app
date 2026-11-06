@@ -1,0 +1,62 @@
+# Two small jobs that keep the free plans healthy. They talk to Supabase directly, so they cost no Netlify credits.
+#   keep-alive: every 3 days. A tiny query so Supabase does not pause the project after 7 quiet days.
+#   cleanup:    every day. Deletes old client files and unsent drafts (see src/server/jobs/cleanup-core.ts).
+# You can also run them by hand: GitHub > Actions > Scheduled jobs > Run workflow.
+#
+# Secrets to add in GitHub (Settings > Secrets and variables > Actions):
+#   DIRECT_DATABASE_URL, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY
+# Note: GitHub turns off scheduled workflows in a PUBLIC repo after 60 days with no commits. The dashboard
+# warns when a job is older than 3 days.
+name: Scheduled jobs
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+    - cron: "41 3 */3 * *"
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Which job to run"
+        type: choice
+        options: [cleanup, keep-alive]
+        default: cleanup
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    if: github.event.schedule == '17 3 * * *' || inputs.job == 'cleanup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cleanup
+        run: pnpm job:cleanup
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+
+  keep-alive:
+    if: github.event.schedule == '41 3 */3 * *' || inputs.job == 'keep-alive'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Keep-alive
+        run: pnpm job:keep-alive
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}

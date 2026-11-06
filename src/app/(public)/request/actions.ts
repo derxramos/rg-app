@@ -68,16 +68,18 @@ export async function createDraftAction(
     );
   }
 
-  if (!(await verifyTurnstile({ token: text(formData, "cf-turnstile-response"), ip }))) {
-    return fail("The spam check did not pass. Please try again.");
-  }
-
   const parsed = requestDetailsSchema.safeParse({
     ...values,
     consent: formData.get("consent") === "on" ? true : false,
   });
   if (!parsed.success)
     return fail("Please check the fields marked below.", requestFieldErrors(parsed.error));
+
+  // The spam check comes AFTER the field checks. A Turnstile token works only once, so it must not be
+  // used up by a form that has a typo in it.
+  if (!(await verifyTurnstile({ token: text(formData, "cf-turnstile-response"), ip }))) {
+    return fail("The spam check did not pass. Please try again.");
+  }
 
   let created;
   try {
@@ -92,6 +94,7 @@ export async function createDraftAction(
     console.error("createDraft failed:", error);
     return fail("We could not save your request. Please try again, or contact us.");
   }
+
 
   await setDraftCookie(created.requestId, created.token, created.draftExpiresAt);
   redirect(`/request/${created.requestId}/code`);

@@ -1,3 +1,5 @@
+import "server-only";
+
 // CSV export with protection against "formula injection" (docs/FEATURES.md A11).
 // A cell that starts with = + - @ (or a tab or carriage return) can run as a formula in Excel or
 // Google Sheets. We put an apostrophe in front, so it is shown as plain text.

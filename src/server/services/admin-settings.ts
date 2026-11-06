@@ -1,3 +1,5 @@
+import "server-only";
+
 // Admin changes to services, checklists, site settings and payment methods.
 // Roles (CLAUDE.md rule 5, docs/FEATURES.md A6 to A8):
 //   - payment methods: OWNER only, and a fresh 2FA code for the risky fields (QR, account name, account number)

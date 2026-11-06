@@ -52,3 +52,12 @@ DIRECT_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres
 
 Then run `pnpm dev`. This database is only for development. It allows one connection at a time, so
 if `pnpm build` fails with "ECONNRESET", run it again. The real checks must be done on Supabase.
+
+## Security checks and scheduled jobs
+
+- `docs/SECURITY_CHECKLIST.md`: every security item, with its status and proof.
+- `docs/OWNER_GUIDE.md`: how to use the admin area (plain words).
+- Security headers (CSP, HSTS, frame-ancestors, referrer policy) are in `src/lib/security-headers.ts`.
+- Two GitHub Actions jobs keep the free plans healthy: **keep-alive** (every 3 days) and **cleanup** (daily). Add the secrets named at the top of `.github/workflows/scheduled-jobs.yml`. Run them by hand with `pnpm job:keep-alive` and `pnpm job:cleanup`.
+- `pnpm test:e2e` runs the browser tests (needs Google Chrome and the local test database). `pnpm e2e:clean` removes the test data again.
+- **Production needs** `TOKEN_HASH_SECRET`, the Turnstile keys and the Supabase keys. Without them the app refuses to start the parts that need them. This is on purpose.

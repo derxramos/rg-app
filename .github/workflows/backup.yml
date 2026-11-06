@@ -1,0 +1,33 @@
+# OPTIONAL weekly database backup. The free Supabase plan has no backups (docs/SECURITY_AND_PRIVACY.md T9).
+# It is OFF until you turn it on: GitHub > Settings > Secrets and variables > Actions > Variables > add
+# ENABLE_BACKUP = true. ONLY do this when the repository is PRIVATE: the backup file has clients' personal data.
+# The file is kept for 14 days as a workflow artifact. Also export a CSV from the admin area every week.
+# Note: pg_dump must not be older than your database. If it fails with a version message, change "postgresql-client".
+name: Weekly backup (optional)
+
+on:
+  schedule:
+    - cron: "23 4 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    if: vars.ENABLE_BACKUP == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Dump the database
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          pg_dump "$DIRECT_DATABASE_URL" --format=custom --no-owner --file=backup.dump
+        env:
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: database-backup
+          path: backup.dump
+          retention-days: 14

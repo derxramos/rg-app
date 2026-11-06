@@ -1,3 +1,5 @@
+import "server-only";
+
 // The core of admin access checks. No cookies and no Supabase here, so it is easy to test.
 // requireAdmin checks, in this order (docs/ARCHITECTURE.md section 5):
 //   1. a valid session   2. AAL2 (password + 2FA code)   3. an active admin_profiles row   4. the needed role

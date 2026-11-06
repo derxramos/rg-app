@@ -189,3 +189,30 @@ export async function emailTemplatesFor(requestId: string): Promise<string[]> {
     await sql.end();
   }
 }
+
+// Records every Content-Security-Policy violation on a page. Call BEFORE page.goto.
+// Use getCspViolations(page) at the end of the test: it must be an empty list.
+import type { Page } from "@playwright/test";
+
+export async function watchCsp(page: Page) {
+  await page.addInitScript(() => {
+    (window as unknown as { __csp: string[] }).__csp = [];
+    document.addEventListener("securitypolicyviolation", (event) => {
+      (window as unknown as { __csp: string[] }).__csp.push(`${event.violatedDirective} blocked ${event.blockedURI}`);
+    });
+  });
+}
+
+export async function getCspViolations(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __csp?: string[] }).__csp ?? []);
+}
+
+// When the site has a Turnstile site key (a production-like run), a form needs the token before it is sent.
+// Without a key (normal development) there is no widget, and this returns at once.
+export async function waitForTurnstile(page: Page) {
+  if ((await page.locator(".cf-turnstile").count()) === 0) return;
+  await page.waitForFunction(() => {
+    const input = document.querySelector<HTMLInputElement>("[name=\"cf-turnstile-response\"]");
+    return Boolean(input?.value);
+  }, undefined, { timeout: 20_000 });
+}

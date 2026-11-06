@@ -1,3 +1,5 @@
+import "server-only";
+
 // Sends one email with the Brevo transactional REST API (v3). Plain fetch, no SDK, so it works on any host.
 // Docs: docs/ARCHITECTURE.md section 8.
 

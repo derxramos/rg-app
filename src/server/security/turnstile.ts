@@ -1,3 +1,5 @@
+import "server-only";
+
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 type VerifyOptions = {

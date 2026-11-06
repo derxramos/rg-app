@@ -1,3 +1,5 @@
+import "server-only";
+
 // Admin users (owner only, fresh 2FA). docs/FEATURES.md A9.
 import { asc, eq } from "drizzle-orm";
 

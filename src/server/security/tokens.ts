@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 // Token helpers. These take the secret as an argument so they are easy to test.

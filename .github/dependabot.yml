@@ -1,0 +1,16 @@
+# Dependabot opens a pull request when a package or a GitHub Action has a new version or a security fix.
+# Next.js security patches must be installed quickly (docs/SECURITY_AND_PRIVACY.md T8).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"

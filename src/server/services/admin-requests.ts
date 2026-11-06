@@ -1,7 +1,9 @@
+import "server-only";
+
 // Admin reads and actions on requests. Every function takes the acting admin (actor) and checks the
 // role itself, so a page or action cannot forget to (docs/FEATURES.md A3 to A5, CLAUDE.md rule 5).
 
-import { and, asc, desc, eq, gte, ilike, lt, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 
 import type { RequestStatus } from "@/lib/status";
 import { addDaysToIsoDate } from "@/lib/time";
@@ -14,6 +16,7 @@ import {
 import {
   activityLog,
   adminProfiles,
+  emailLog,
   payments,
   requestFiles,
   requestNotes,
@@ -362,4 +365,64 @@ export async function getFileLink(
     ipHash: input.ipHash ?? null,
   });
   return storage.signedUrl(input.bucket, file.storagePath, 60);
+}
+
+// ---------- Delete client data (a privacy request) ----------
+// docs/SECURITY_AND_PRIVACY.md section 2, "Data subject rights". The client asks us to delete their information.
+// We delete the files and clear every personal field. We keep a minimal record (the code, the service, the dates
+// and the payment values) because the business may need it for its accounts. Owner only, fresh 2FA, logged.
+
+export const ERASED_NAME = "Deleted client";
+
+export async function eraseClientData(
+  db: AppDb,
+  storage: StorageDriver,
+  actor: AdminProfile,
+  input: { requestId: string; bucket: string; fresh2fa: boolean; ipHash?: string | null },
+) {
+  if (actor.role !== "owner") throw new AdminAuthError("wrong-role");
+  if (!input.fresh2fa) throw new AdminAuthError("needs-fresh-2fa");
+
+  const [request] = await db.select({ id: requests.id }).from(requests).where(eq(requests.id, input.requestId)).limit(1);
+  if (!request) throw new PaymentActionFailure("not-found");
+
+  // Files first. If storage fails, nothing else is changed.
+  const files = await db
+    .select({ id: requestFiles.id, path: requestFiles.storagePath })
+    .from(requestFiles)
+    .where(and(eq(requestFiles.requestId, input.requestId), isNull(requestFiles.deletedAt)));
+  if (files.length > 0) await storage.remove(input.bucket, files.map((f) => f.path));
+
+  await db.transaction(async (tx) => {
+    const now = new Date();
+    if (files.length > 0) {
+      await tx.update(requestFiles).set({ deletedAt: now, originalName: "deleted" }).where(inArray(requestFiles.id, files.map((f) => f.id)));
+    }
+    await tx
+      .update(requests)
+      .set({
+        clientFullName: ERASED_NAME,
+        clientEmail: "deleted@example.invalid",
+        clientPhone: "+630000000000",
+        clientPhoneLast4: "0000",
+        businessName: null,
+        clientMessage: null,
+        publicMessage: null,
+        filesDeletedAt: now,
+      })
+      .where(eq(requests.id, input.requestId));
+    // Notes can hold personal details too.
+    await tx.update(requestNotes).set({ body: "[deleted]" }).where(eq(requestNotes.requestId, input.requestId));
+    await tx.update(emailLog).set({ toEmail: "deleted@example.invalid" }).where(eq(emailLog.requestId, input.requestId));
+    await tx.insert(activityLog).values({
+      actorType: "admin",
+      actorId: actor.id,
+      action: "request.data_erased",
+      entityType: "request",
+      entityId: input.requestId,
+      details: { filesDeleted: files.length },
+      ipHash: input.ipHash ?? null,
+    });
+  });
+  return { filesDeleted: files.length };
 }

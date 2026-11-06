@@ -1,3 +1,5 @@
+import "server-only";
+
 // Finds the REAL type of a file from its first bytes ("magic bytes"). The name and the type the
 // browser reports can be fake: an .exe renamed to .jpg must be refused. Docs: ARCHITECTURE.md section 6.
 
