@@ -28,6 +28,9 @@ async function main() {
     // 1. Default settings. onConflictDoNothing keeps any value the owner already edited.
     for (const key of SETTING_KEYS) {
       const value = parseSetting(key, DEFAULT_SETTINGS[key]);
+      // The value column cannot hold a database NULL. Settings with no value yet (like "last cleanup") are
+      // written by the scheduled jobs later, and the admin pages read a missing row as "never".
+      if (value === null) continue;
       await db.insert(siteSettings).values({ key, value }).onConflictDoNothing();
     }
     console.log(`Settings: checked ${SETTING_KEYS.length} keys.`);

@@ -207,4 +207,5 @@ These keep Supabase awake and delete old client files.
 | The page says the spam check failed | The Turnstile hostname list does not include your address (step 3), or the two Turnstile keys are swapped |
 | No emails arrive | Check Brevo > **Transactional** > **Logs**. Check Spam. Check the sender is verified |
 | Cannot sign in to admin | Check the seed ran (step 5) and the email is the same. Check that the clock on your phone is automatic (2FA codes depend on it) |
+| PowerShell says "running scripts is disabled on this system" | Use **Git Bash** instead (it does not have this block). Or in PowerShell run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and answer Y. Or type `pnpm.cmd` instead of `pnpm` |
 | Uploads fail | Run `pnpm storage:setup` again, and check that `SUPABASE_SECRET_KEY` is the **Secret** key, not the Publishable key |
