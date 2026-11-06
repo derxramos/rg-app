@@ -37,6 +37,9 @@ function createDb(): Db {
   }
   const client = postgres(url, {
     prepare: false,
+    // One query at a time per connection. Without this, the Supabase pooler stops answering after the
+    // first query on each connection (tested with postgres 4.0.0), and the build or the page hangs.
+    max_pipeline: 1,
     types: { json: jsonAsText(114), jsonb: jsonAsText(3802) },
     // A small pool: serverless functions each run their own copy, and the pooler has a limit.
     // 3 by default. DB_POOL_MAX=1 is for the local test database, which allows one query at a time.
