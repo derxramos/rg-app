@@ -158,6 +158,7 @@ A day and night toggle (moon or sun button in the public and admin headers). Cod
 - **QR pictures and the 2FA QR stay on a white tile**, so they scan.
 - **Rule:** every text pair is at least 4.5 to 1, input borders and the focus ring 3 to 1. Checked by `tests/unit/dark-palette.test.ts`.
 - The Cloudflare spam box follows the device setting only.
+- **Hero picture colors** are their own tokens (`--hero-*`), see `docs/DESIGN_HANDOFF.md` ("Home page hero colors").
 
 ## 3. Tailwind theme (Tailwind v4, CSS-first)
 

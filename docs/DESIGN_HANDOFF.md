@@ -72,18 +72,42 @@ Clients now have accounts. Reuse the existing components and tokens (page headin
 
 ### Header states (public pages, `SiteHeader`)
 
-Orange stays **only** for "Start a request". Sign in and sign out use the outline style. The header is 64 px tall; from 1024 px the buttons are in the bar, below that they are inside the Menu (phone, 390 px).
+Orange stays **only** for "Start a request" (one shared button style, token `cta`: white on #C2410C, hover #9A3412, teal focus ring). The header is 64 px tall. No header text ever wraps (`whitespace-nowrap`); the logo and buttons do not shrink. Header buttons are **40 px** tall (44 px on phones). Gaps between buttons are 8 px; at least 16 px is free between the logo, the links and the buttons.
 
-| State | Desktop bar (from 1024 px) | Phone menu (390 px) |
+**Breakpoints (found by testing 80 cases: 10 widths x 4 states x 2 modes, no overlap, no wrap):**
+- **From 1280 px:** the full bar. Worst case (a very long name) still keeps 16 px free.
+- **Below 1280 px:** logo, Start a request (from 640 px), theme toggle, Menu button.
+- **Below 400 px:** the theme toggle moves into the phone menu (the logo and two buttons do not fit).
+- **Below 350 px:** the logo subtitle "BOOKKEEPING & ACCOUNTING" is hidden. The tile and "RG'S" stay.
+
+| State | Desktop bar (from 1280 px) | Phone menu |
 |---|---|---|
-| Visitor (not signed in) | Home, Services, How it works, Contact, Track my request · **Sign in** (outline) · **Start a request** (orange) | menu links, then Start a request (orange), then a divider and **Sign in** (outline, full width) |
-| User | same links · **My requests** (ghost link to /account) · **Sign out** (outline, with icon) · Start a request (orange) | menu links, Start a request, divider, **My requests**, **Sign out** (full width) |
-| Admin | same links · **Admin** (ghost link to /admin) · **Sign out** · Start a request (orange) | menu links, Start a request, divider, **Admin**, **Sign out** (full width) |
+| Visitor (not signed in) | Home, Services, How it works, Contact, Track my request · theme toggle · **Sign in** (outline) · **Start a request** (orange) | menu links, Start a request (orange), then a divider, Day/Night mode (under 400 px only) and **Sign in** (outline, full width) |
+| User | same links · theme toggle · **ONE account menu button** (initial circle + first name, or "Account") · Start a request. Menu items: **My requests** (/account), **Sign out** | menu links, Start a request, divider, Day/Night mode (under 400 px only), **My requests** and **Sign out** as normal list items (44 px) |
+| Admin | same, but the first menu item is **Admin** (/admin) | same, with **Admin** instead of My requests |
 | Loading (first paint) | an empty space of the same size where the buttons go. It never shows a wrong button. | same |
 
-- The sign out button is a form button, never a link. After sign out the home page shows a toast: "You have been signed out."
-- Admin pages (`AdminShell`) show **Sign out** in the top bar at every screen width.
+- **Account menu** (`AccountMenu`): the button is at most 176 px wide. A long name is cut with "..." (the full name is in the tooltip). It has `aria-haspopup="menu"`, `aria-expanded`, and the menu has `role="menu"` with `role="menuitem"` items. Keyboard: Enter, Space or Arrow Down open it and focus the first item. Arrow Up/Down, Home and End move. Escape closes it and returns the focus to the button. Tab closes it. A click outside closes it.
+- Sign out is a form POST button, never a link. After sign out the home page shows a toast: "You have been signed out."
+- Admin pages (`AdminShell`) show the theme toggle and **Sign out** in the top bar at every screen width.
 - Admin pages show a red banner at the very top while 2-step login is off: "2-step login is OFF. Turn it on before real clients use this site." It must stay visible and cannot be closed.
+
+### Home page hero colors (`HeroArt`, tokens `--hero-*` in `globals.css`)
+
+Static colors only (no blur, filter or blend modes). The animation uses only `translate`, `scale` and `rotate`. **Text and cards never use opacity below 1** (a test checks this). Reduced motion turns every animation off.
+
+| Token | Day | Night |
+|---|---|---|
+| `hero-card` / `hero-card-border` | #FFFFFF / #E3E8E5 | #243B37 / rgba(255,255,255,.14) |
+| `hero-badge-bg` / `hero-badge-fg` ("In progress") | #DAF1EE / #0B5C52 | rgba(94,234,212,.16) / #7EE8D8 |
+| `hero-verified-fg` ("Verified") | #14532D | #86E3B1 |
+| `hero-check-bg` / `hero-check-fg` | #DCFCE7 / #15803D | rgba(52,211,153,.18) / #6EE7B7 |
+| `hero-line-1` / `hero-line-2` (placeholder lines) | #E6EAE7 / #EEF1EF | rgba(255,255,255,.16) / rgba(255,255,255,.10) |
+| `hero-peach` (big circle) | #FFE8DC | coral gradient: radial, rgba(255,170,142,.78) to rgba(255,124,102,.56) |
+| `hero-teal` (small circle) | #E3F2EF | rgba(94,234,212,.22) |
+| `hero-dot` | #FFD23F | #FFD23F |
+
+Night rules (tested in `tests/unit/hero-palette.test.ts`): every shape is at least 1.5 to 1 against the page, labels are at least 4.5 to 1, the peach circle is coral and not brown (lightness at least 40%).
 
 ---
 
