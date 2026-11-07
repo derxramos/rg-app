@@ -23,7 +23,7 @@ Plan: user accounts (role `user`) and admin accounts (role `admin`). Phases:
 - [x] Phase 1 — 2FA flag hardening (red banner, startup warning, `checkAdmin` flag option, tests)
 - [x] Phase 2 — Database: profiles, user_id, RLS, storage rules (migrations 0002 and 0003, NOT yet applied to the live database)
 - [x] Phase 3 — Session layer and guards (the live redirect to /login is checked by hand after Phase 4)
-- [ ] Phase 4 — Login, register, verify, forgot and reset, sign out
+- [x] Phase 4 — Login, register, verify, forgot and reset, sign out (live email flow to be checked by hand, see docs/AUTH_AND_ROLES.md section 2)
 - [ ] Phase 5 — Header and layouts
 - [ ] Phase 6 — Requests belong to users
 - [ ] Phase 7 — Account area

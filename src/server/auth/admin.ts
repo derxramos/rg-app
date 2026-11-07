@@ -85,7 +85,7 @@ export async function guardAdminPage(
   if (failure === "wrong-role") redirect("/admin?denied=1");
   // Logged in, but not an (active) admin: show the "Not allowed" page, not the login page.
   if (failure === "not-admin" || failure === "inactive") redirect("/admin/not-allowed");
-  redirect("/admin/login");
+  redirect("/login?next=%2Fadmin&reason=expired");
 }
 
 // ---------- Fresh 2FA ----------

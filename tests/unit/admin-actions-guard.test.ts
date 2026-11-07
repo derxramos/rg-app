@@ -68,9 +68,8 @@ describe("admin actions and routes check access first", () => {
       (f) => /\.(ts|tsx)$/.test(f) && readFileSync(f, "utf8").includes("DEV_ADMIN_BYPASS_EMAIL"),
     );
     const rels = offenders.map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
-    // Allowed: the session code, a comment in the core, and the login page that shows a notice when it is on.
+    // Allowed: the session code and a comment in the core.
     expect(rels.sort()).toEqual([
-      "app/admin/(auth)/login/page.tsx",
       "server/auth/admin-core.ts",
       "server/auth/admin.ts",
       "server/auth/session.ts",
@@ -119,8 +118,9 @@ describe("user actions check the login first", () => {
         (f) => /\.(ts|tsx)$/.test(f) && readFileSync(f, "utf8").includes("DEV_USER_BYPASS_EMAILS"),
       )
       .map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
-    // Allowed: the session code, a comment in the core, and the development route.
+    // Allowed: the session code, a comment in the core, the development route, and the login page that lists the test users.
     expect(offenders.sort()).toEqual([
+      "app/(public)/login/page.tsx",
       "app/api/dev-login/route.ts",
       "server/auth/session-core.ts",
       "server/auth/session.ts",

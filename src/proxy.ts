@@ -11,6 +11,7 @@ import { loginUrlFor } from "@/lib/safe-next";
 // It is NOT the real security check. Every page, route and Server Action checks access again
 // (requireUser / requireAdmin / requireRequestAccess), because a Server Action can be called directly.
 
+// /admin/login only redirects to /login, so it must stay open.
 const PUBLIC_ADMIN_PAGES = new Set(["/admin/login"]);
 
 // True when the browser sent a Supabase login cookie (sb-...-auth-token). If it did but the session is
@@ -48,13 +49,10 @@ export async function proxy(request: NextRequest) {
   // getClaims checks the token signature and refreshes it when needed. getSession() is never used here.
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims && !isPublicPage) {
-    const target = path.startsWith("/admin") ? "/admin/login" : null;
-    const destination = target
-      ? new URL(target, request.url)
-      : new URL(
-          loginUrlFor(path + request.nextUrl.search, { expired: hasAuthCookie(request) }),
-          request.url,
-        );
+    const destination = new URL(
+      loginUrlFor(path + request.nextUrl.search, { expired: hasAuthCookie(request) }),
+      request.url,
+    );
     return withNoStore(NextResponse.redirect(destination));
   }
   return withNoStore(response);
