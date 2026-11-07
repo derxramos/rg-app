@@ -240,7 +240,7 @@
   /* "Verified" text fades in first, then the check pops in. Both fade out at the end, then repeat. */
   --animate-hero-verified: hero-verified 8s ease-in-out infinite;
   --animate-hero-check: hero-check 8s ease-in-out infinite;
-  --animate-hero-dot: hero-drift 4s ease-in-out -2s infinite alternate;
+  --animate-hero-dot: hero-roam-c 12s ease-in-out -2s infinite;
   /* Icon pops in after the text (same timing as the check), then keeps spinning. */
   --animate-hero-icon: hero-check 8s ease-in-out infinite, hero-spin 1.6s linear infinite;
   --animate-hero-spin: hero-spin 1.6s linear infinite;
@@ -270,6 +270,21 @@
     66% {
       translate: calc(var(--k, 1) * -6px) calc(var(--k, 1) * 18px);
       scale: 1.02;
+    }
+  }
+
+  /* The small yellow dot glides to the right along the top and comes back. It stays in the free space
+     above the first card and before the big orange circle, so it never covers text or other shapes. */
+  @keyframes hero-roam-c {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    33% {
+      translate: calc(var(--k, 1) * 60px) calc(var(--k, 1) * -8px);
+    }
+    66% {
+      translate: calc(var(--k, 1) * 110px) calc(var(--k, 1) * -4px);
     }
   }
 

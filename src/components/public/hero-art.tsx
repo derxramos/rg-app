@@ -14,7 +14,7 @@ export function HeroArt() {
     >
       <span className="absolute top-2 right-6 size-40 rounded-full bg-brand-accent-soft motion-safe:animate-hero-peach md:size-48" />
       <span className="absolute bottom-0 left-2 size-24 rounded-full bg-primary-soft motion-safe:animate-hero-teal" />
-      <span className="absolute top-0 left-12 size-6 rounded-full bg-highlight [--dy:6px] motion-safe:animate-hero-dot" />
+      <span className="absolute top-0 left-12 size-6 rounded-full bg-highlight motion-safe:animate-hero-dot" />
       <span className="absolute right-0 bottom-10 h-3 w-24 rounded-full bg-brand-accent" />
 
       <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border bg-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a md:w-64">

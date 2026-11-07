@@ -531,3 +531,7 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Checks: lint, type check and 498 tests pass. The production build could not finish this time because of the known one-connection limit of the local test database (the build before this change passed); I checked the new pages and routes with the dev server instead.
 - Needs the owner: do the guide with `rgservices.ph@gmail.com`, then set `GOOGLE_SIGNIN_ENABLED=true`. I could not test the real Google round trip: it needs the Google client and Supabase settings from the guide.
 - The Privacy notice may need one line about Google sign in (name, email, picture). Please check it.
+
+### 2026-11-07 — Hero yellow dot (branch `feat/hero-dot-animation`)
+- The small yellow dot now glides to the right along the top (about 110 px, 60% on phones) and comes back, 12 s, slow. Before it only bobbed up and down. It moves right and not to the middle, because the first card is in the middle and the orange circle comes in from the right. The path stays in the free space, so it does not cover the card, the circle or the heading.
+- Still only `translate` (CSS, `motion-safe:` only). Not checked by eye at 390, 768 and 1440 px.
