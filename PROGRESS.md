@@ -565,3 +565,10 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Code bug found on the way: Supabase uses `error=access_denied` for this refusal too, so our page still said "cancelled". Now "cancelled" is only when there is no `error_code`. The Sign in page shows the reason code and a hint for `signup_disabled`.
 - Guide: new step B1b (turn the switch ON) and a new row in "Problems and fixes". 519 tests pass.
 - The sign-in attempt did not create an account (Supabase refused it).
+
+### 2026-11-07 — Day and night mode (branch `feat/dark-mode`)
+- New toggle (moon / sun button) in the public header and the admin header. The choice is saved in the browser. First visit follows the device setting. A tiny early script sets the theme before the first paint (no flash). Pure browser side: no cookie, no server work, pages stay static.
+- New night palette "Teal Ledger Night" in `src/app/globals.css` (`:root[data-theme="dark"]`): all color roles, all 9 status badges, stronger shadows. Cards now use their own `--card` and `--popover` variables. Documented in `docs/DESIGN_SYSTEM.md` section 2b.
+- Home page animations blend in: the orange and teal circles become deep tints, the cards keep a border and a stronger shadow, the yellow dot and orange button keep their colors. QR pictures stay on white.
+- Checks: new `tests/unit/dark-palette.test.ts` (WCAG contrast: text 4.5 to 1, borders and focus ring 3 to 1) and `src/lib/theme.test.ts`. Lint, type check and 530 tests pass. Looked at the home page, Sign in and How it works in night mode in Chrome (desktop width): they look right and the choice stays when changing pages.
+- Not checked by eye: phone widths, the admin panel and the request/payment pages in night mode. The Cloudflare spam box follows the device setting only (not the toggle).

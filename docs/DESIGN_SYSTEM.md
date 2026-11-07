@@ -146,6 +146,19 @@ Status colors always come in a pair: `status-<name>-bg` and `status-<name>-fg`. 
 
 ---
 
+### 2b. Night mode "Teal Ledger Night"
+
+A day and night toggle (moon or sun button in the public and admin headers). Code: `:root[data-theme="dark"]` in `src/app/globals.css`, `src/lib/theme.ts`, `src/components/shared/theme-toggle.tsx`.
+
+- **How it is chosen:** the saved choice (browser localStorage key `rg-theme`), otherwise the phone or computer setting. A tiny script in `<head>` sets `data-theme` before the first paint, so there is no flash. No cookie and no server work, so pages stay static.
+- **Same roles, new values.** The page is the darkest layer. Cards are a little lighter than the page, with a lighter border and darker, stronger shadows. Text is soft white, never pure white.
+- **Brand colors get lighter on dark:** teal `#3db8a7` (links, buttons), ink `#8ee0d3` (headings), orange `#ff8a5c`. The orange call-to-action button and the yellow dot keep their day colors.
+- **Soft boxes become deep tints** (for example the home page circles: orange `#3a2318`, teal `#14332f`) so the animations stay calm.
+- **Status badges** have their own night pairs (all 9).
+- **QR pictures and the 2FA QR stay on a white tile**, so they scan.
+- **Rule:** every text pair is at least 4.5 to 1, input borders and the focus ring 3 to 1. Checked by `tests/unit/dark-palette.test.ts`.
+- The Cloudflare spam box follows the device setting only.
+
 ## 3. Tailwind theme (Tailwind v4, CSS-first)
 
 ```css

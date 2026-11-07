@@ -94,6 +94,82 @@
   --overlay: #0f1a2e99;
 }
 
+/*
+  Night mode "Teal Ledger Night". Same roles as the light palette, new values. Docs: docs/DESIGN_SYSTEM.md section 2b.
+  Rules used: the page is the darkest layer, cards are a little lighter, text is soft white (not pure white),
+  the brand teal and orange get lighter so they stay readable on dark, and every text pair is at least 4.5 to 1
+  (checked by tests/unit/dark-palette.test.ts). The yellow dot, the orange button and QR pictures keep their colors.
+*/
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #0f1a19;
+  --surface-subtle: #0b1413;
+  --surface-sunken: #1a2a28;
+  --card: #1a2c2a;
+  --popover: #1a2c2a;
+  --border: #2c403d;
+  --input-border: #6f8480;
+  --text: #e6efed;
+  --text-muted: #a2b4b0;
+  --primary: #3db8a7;
+  --primary-hover: #5acbbb;
+  --primary-soft: #14332f;
+  --primary-ink: #8ee0d3;
+  --on-primary: #04201c;
+  --brand-accent: #ff8a5c;
+  --brand-accent-soft: #3a2318;
+  --brand-accent-ink: #ffb594;
+  --on-brand-accent: #2b1305;
+  --cta: #ff7b47;
+  --cta-hover: #ff935f;
+  --on-cta: #fff7ed;
+  --highlight: #ffd23f;
+  --on-highlight: #2a2100;
+  --success: #34c47a;
+  --success-soft: #12342a;
+  --success-ink: #86e3b1;
+  --on-success: #04210f;
+  --warning: #f5b13d;
+  --warning-soft: #38290e;
+  --warning-ink: #ffd68f;
+  --on-warning: #2b1a00;
+  --danger: #f26d6d;
+  --danger-soft: #3a1919;
+  --danger-ink: #ffb4b4;
+  --on-danger: #2a0606;
+  --info: #5aa3f2;
+  --info-soft: #13283f;
+  --info-ink: #aacff9;
+  --on-info: #04152b;
+  --ring: #5acbbb;
+  --overlay: #000000b3;
+  --status-draft-bg: #243230;
+  --status-draft-fg: #c5d2cf;
+  --status-submitted-bg: #13283f;
+  --status-submitted-fg: #aacff9;
+  --status-payment-submitted-bg: #2a2146;
+  --status-payment-submitted-fg: #cdbdf5;
+  --status-under-review-bg: #38290e;
+  --status-under-review-fg: #ffd68f;
+  --status-waiting-for-client-bg: #3a2318;
+  --status-waiting-for-client-fg: #ffb594;
+  --status-in-progress-bg: #12332f;
+  --status-in-progress-fg: #8ee0d3;
+  --status-completed-bg: #12342a;
+  --status-completed-fg: #86e3b1;
+  --status-cancelled-bg: #3a1919;
+  --status-cancelled-fg: #ffb4b4;
+  --status-payment-verified-bg: #28340f;
+  --status-payment-verified-fg: #cfe58f;
+  /* Shadows are almost invisible on dark, so they are darker and a little stronger. */
+  --shadow-sm: 0 1px 2px #00000066, 0 1px 1px #00000040;
+  --shadow-md: 0 8px 24px #00000073, 0 2px 6px #00000059;
+  --shadow-lg: 0 24px 64px #0000008c, 0 4px 12px #00000066;
+}
+
+/* "dark:" in class names follows the data-theme attribute (set by the toggle), not only the phone or computer setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ---------- Section 3: shadcn/ui names point to our roles ---------- */
 :root {
   --background: var(--surface);
@@ -117,9 +193,9 @@
 @theme inline {
   --color-background: var(--surface);
   --color-foreground: var(--text);
-  --color-card: var(--surface);
+  --color-card: var(--card);
   --color-card-foreground: var(--text);
-  --color-popover: var(--surface);
+  --color-popover: var(--popover);
   --color-popover-foreground: var(--text);
   --color-primary-foreground: var(--on-primary);
   --color-secondary: var(--primary-soft);
@@ -357,7 +433,8 @@
 @media (prefers-contrast: more) {
   :root,
   [data-theme="light"],
-  [data-theme="alt"] {
+  [data-theme="alt"],
+  :root[data-theme="dark"] {
     --text-muted: var(--text);
     --border: var(--input-border);
   }

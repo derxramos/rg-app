@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/shared/logo";
 import { PageContainer } from "@/components/shared/page-container";
 import { MAIN_NAV } from "@/components/shared/site-nav";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn, focusRing } from "@/lib/utils";
 
@@ -80,6 +81,7 @@ export function SiteHeader({
         </nav>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <div className="hidden lg:block">{authBar}</div>
           <Link
             href="/request"

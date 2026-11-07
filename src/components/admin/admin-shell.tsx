@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Logo } from "@/components/shared/logo";
 import { ReloadOnRestore } from "@/components/shared/reload-on-restore";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import type { AdminProfile } from "@/server/auth/admin-core";
 
@@ -32,6 +33,7 @@ export function AdminShell({
             <span className="block truncate font-bold">{admin.fullName}</span>
             <span className="block text-muted-foreground">{isOwner ? "Owner" : "Staff"}</span>
           </span>
+          <ThemeToggle className="md:min-h-11 md:min-w-11" />
           {/* Same plain form POST as the public header: ends the session on the server, then loads the home page. */}
           <form method="post" action="/auth/sign-out">
             <Button type="submit" variant="outline" size="sm" className="md:min-h-11">

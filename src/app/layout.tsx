@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME } from "@/lib/seo";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getBaseUrl } from "@/lib/site-url";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -9,7 +10,11 @@ import "./globals.css";
 
 // Browser bar color on phones. Same as the brand primary color.
 export const viewport: Viewport = {
-  themeColor: "#0b6158",
+  // The browser bar color on phones follows the device setting (day: brand teal, night: the dark page color).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0b6158" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1a19" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -55,7 +60,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${plusJakarta.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Sets day or night before the first paint, so the page never flashes. Same text on every page. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col font-sans">
         {children}
         <Toaster />
