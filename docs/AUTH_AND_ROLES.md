@@ -191,3 +191,17 @@ The email settings (Brevo SMTP host, login and key) go **into the Supabase dashb
 ## 8. Turning on admin 2-step login (Phase 9)
 
 When you are ready: set `ADMIN_REQUIRE_2FA=true` in Vercel (or remove the line), redeploy, and sign in as an admin. You are sent to `/admin/mfa/setup` to scan a QR code with an authenticator app, then asked for a code at every sign in. Fresh codes are asked again for risky actions. TOTP is free on Supabase. The red banner disappears. If you lose the phone, another owner can use "Turn off" / "Remove admin" and you can be invited again, or an owner can remove the factor in the Supabase dashboard (Authentication > Users).
+
+## 9. Sign in with Google (optional)
+
+Clients can sign in or sign up with a Google account (Supabase Auth, Google provider). Setup steps for the owner:
+`docs/GOOGLE_SIGN_IN_SETUP.md`. The button shows only when `GOOGLE_SIGNIN_ENABLED=true`.
+
+- Flow: link `/auth/google` (rate limited, asks Supabase for the Google address, PKCE cookie) -> Google -> `/auth/callback`
+  (`exchangeCodeForSession`, `ensureProfile`, log row `auth.login.success` with `provider: google`).
+- The role still comes only from `profiles`. A new Google person gets role `user` from the sign-up trigger.
+- **Admins cannot use Google.** If the profile role is `admin`, the callback logs a failed login, signs the person out and
+  sends them to `/login?reason=google-admin`. Reason: the admin login has the spam check, rate limits and the 2-step code,
+  and Google would skip them.
+- Same email as an existing account: Supabase joins the Google login to that account (Google verifies the email).
+- Rules in code: `src/lib/google-signin.ts` (tested in `src/lib/google-signin.test.ts`).

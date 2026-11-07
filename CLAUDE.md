@@ -25,7 +25,7 @@ Target cost: **$0 per month.**
 | Validation | Zod (same schemas on client and server) |
 | Database | PostgreSQL on Supabase (free plan), pooled connection |
 | ORM | Drizzle ORM with the `postgres` driver (`prepare: false`) |
-| Login | Supabase Auth: email + password, verified email. Roles `user` and `admin` in the `profiles` table. Admin TOTP 2FA is behind the server-only variable `ADMIN_REQUIRE_2FA` (only the word `false` turns it off) |
+| Login | Supabase Auth: email + password, verified email. Optional Google sign in for users (not admins). Roles `user` and `admin` in the `profiles` table. Admin TOTP 2FA is behind the server-only variable `ADMIN_REQUIRE_2FA` (only the word `false` turns it off) |
 | Files | Private Supabase Storage bucket, signed links for admin |
 | OCR | Tesseract.js 7 in the browser only |
 | Email | Brevo transactional REST API |
@@ -96,6 +96,7 @@ pnpm lint && pnpm typecheck
 - `docs/FEATURES.md` — user stories with acceptance checks
 - `docs/SECURITY_AND_PRIVACY.md` — threats and fixes, Data Privacy Act basics
 - `docs/AUTH_AND_ROLES.md` — accounts, roles, guards, Supabase sign-in setup, first admin, manual test list
+- `docs/GOOGLE_SIGN_IN_SETUP.md` — beginner guide: turn on "Continue with Google" (Google Cloud + Supabase)
 - `docs/OCR_PAYMENTS.md` — receipt OCR and parser design, tests, edge cases
 - `docs/PHASES.md` — build order and "done when" checks
 - `docs/DESIGN_HANDOFF.md` — screens, components, states, design tokens

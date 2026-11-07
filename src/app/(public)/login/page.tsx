@@ -5,14 +5,40 @@ import { Suspense } from "react";
 
 import { loginAction } from "@/app/auth/actions";
 import { AuthForm } from "@/components/auth/auth-form";
+import { GoogleButton, OrDivider } from "@/components/auth/google-button";
 import { FlowSkeleton } from "@/components/request/flow-frame";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeading } from "@/components/shared/page-heading";
 import { WarningBox } from "@/components/shared/warning-box";
+import { isGoogleSignInEnabled } from "@/lib/google-signin";
 import { landingPathFor, safeNextPath } from "@/lib/safe-next";
 import { getViewer } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
+
+// What to tell the person when Google sign in did not finish. No technical words.
+const GOOGLE_MESSAGES: Record<string, { title: string; text: string }> = {
+  "google-admin": {
+    title: "Admins sign in with email and password",
+    text: "Please use the email and password form below. Admin accounts cannot use Google.",
+  },
+  "google-cancelled": {
+    title: "Google sign in was cancelled",
+    text: "No problem. You can try again, or use your email and password.",
+  },
+  "google-failed": {
+    title: "We could not sign you in with Google",
+    text: "Please try again, or use your email and password.",
+  },
+  "google-busy": {
+    title: "Too many tries",
+    text: "Please wait a few minutes and try again.",
+  },
+  "google-off": {
+    title: "Google sign in is not available",
+    text: "Please use your email and password.",
+  },
+};
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
@@ -51,6 +77,19 @@ async function LoginBody({ searchParams }: { searchParams: PageProps<"/login">["
 
   return (
     <>
+      {reason && GOOGLE_MESSAGES[reason] ? (
+        <WarningBox variant="warning" title={GOOGLE_MESSAGES[reason].title}>
+          {GOOGLE_MESSAGES[reason].text}
+        </WarningBox>
+      ) : null}
+
+      {isGoogleSignInEnabled(process.env.GOOGLE_SIGNIN_ENABLED) ? (
+        <>
+          <GoogleButton next={next || undefined} />
+          <OrDivider />
+        </>
+      ) : null}
+
       {reason === "expired" ? (
         <WarningBox variant="warning" title="Your session ended">
           Please sign in again. We will take you back to where you were.

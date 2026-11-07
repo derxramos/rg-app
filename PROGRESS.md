@@ -520,3 +520,14 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Checks: lint, type check, 494 tests and the production build pass. The build and page checks ran against the local test database (migration 0004 applied there), not Supabase.
 - Not checked by eye: the new admin form, the payment page and the QR size on a real phone. The sign-in redirect by role already exists (`afterLoginDestination`: admins go to /admin, users to their account). I did not change it.
 - To do for SEO (needs the owner): set `APP_BASE_URL` to the real website address, add the site to Google Search Console and Bing Webmaster Tools, and paste the verification codes into `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION`.
+
+### 2026-11-07 — Google sign in (branch `feat/google-signin`)
+- Added "Continue with Google" on the Sign in page and "Sign up with Google" on the Create account page. Routes: `/auth/google` (start) and `/auth/callback` (finish). It uses Supabase Auth with the Google provider and PKCE.
+- The button shows only when `GOOGLE_SIGNIN_ENABLED=true`, so nothing is broken before the owner finishes the setup.
+- Users only. **Admins cannot sign in with Google** (they are signed out and told to use email, password and the 2-step code), so the admin 2-step login cannot be skipped. The role comes from `profiles`, never from Google.
+- Same email as an old account: Supabase joins them, so the client keeps their requests.
+- Friendly messages on the Sign in page for cancelled, failed, busy, off and admin cases. Sign in events go to the activity log with `provider: google`.
+- Beginner guide for the owner: `docs/GOOGLE_SIGN_IN_SETUP.md` (Google Cloud Console + Supabase + Vercel + tests + fixes).
+- Checks: lint, type check and 498 tests pass. The production build could not finish this time because of the known one-connection limit of the local test database (the build before this change passed); I checked the new pages and routes with the dev server instead.
+- Needs the owner: do the guide with `rgservices.ph@gmail.com`, then set `GOOGLE_SIGNIN_ENABLED=true`. I could not test the real Google round trip: it needs the Google client and Supabase settings from the guide.
+- The Privacy notice may need one line about Google sign in (name, email, picture). Please check it.
