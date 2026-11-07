@@ -235,8 +235,11 @@
   */
   --animate-hero-card-a: hero-drift 6s ease-in-out -1s infinite alternate;
   --animate-hero-card-b: hero-drift 7s ease-in-out -4s infinite alternate;
-  --animate-hero-peach: hero-drift 11s ease-in-out -5s infinite alternate;
-  --animate-hero-teal: hero-drift 9s ease-in-out -3s infinite alternate;
+  --animate-hero-peach: hero-roam-a 14s ease-in-out -5s infinite;
+  --animate-hero-teal: hero-roam-b 12s ease-in-out -3s infinite;
+  /* "Verified" text fades in first, then the check pops in. Both fade out at the end, then repeat. */
+  --animate-hero-verified: hero-verified 8s ease-in-out infinite;
+  --animate-hero-check: hero-check 8s ease-in-out infinite;
   --animate-hero-dot: hero-drift 4s ease-in-out -2s infinite alternate;
   --animate-hero-spin: hero-spin 1.6s linear infinite;
 
@@ -248,6 +251,74 @@
     to {
       translate: calc(var(--k, 1) * var(--dx, 0px)) calc(var(--k, 1) * var(--dy, 0px));
       scale: var(--ds, 1);
+    }
+  }
+
+  /* The two circles follow a path with three stops, so their position clearly changes. */
+  @keyframes hero-roam-a {
+    0%,
+    100% {
+      translate: 0 0;
+      scale: 1;
+    }
+    33% {
+      translate: calc(var(--k, 1) * -16px) calc(var(--k, 1) * 10px);
+      scale: 1.04;
+    }
+    66% {
+      translate: calc(var(--k, 1) * -6px) calc(var(--k, 1) * 18px);
+      scale: 1.02;
+    }
+  }
+
+  @keyframes hero-roam-b {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    33% {
+      translate: calc(var(--k, 1) * 14px) calc(var(--k, 1) * -12px);
+    }
+    66% {
+      translate: calc(var(--k, 1) * 20px) calc(var(--k, 1) * 2px);
+    }
+  }
+
+  @keyframes hero-verified {
+    0%,
+    8% {
+      opacity: 0;
+      translate: 0 4px;
+    }
+    22%,
+    88% {
+      opacity: 1;
+      translate: 0 0;
+    }
+    100% {
+      opacity: 0;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes hero-check {
+    0%,
+    24% {
+      opacity: 0;
+      scale: 0.4;
+    }
+    36% {
+      opacity: 1;
+      scale: 1.2;
+    }
+    44%,
+    88% {
+      opacity: 1;
+      scale: 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 1;
     }
   }
 

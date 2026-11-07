@@ -498,3 +498,10 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Lint, type check and production build pass.
 - Lighthouse (production build, headless, local, mobile): before 100 / LCP 0.9 s / CLS 0 / TBT 40 ms (1 good run). After 100 / LCP 1.0 s / CLS 0 / TBT 90 ms (1 good run). Many runs failed with a Lighthouse error, so only one good run each. The difference is probably noise. Please re-run in Chrome DevTools to confirm.
 - Not tested by eye: the page at 390, 768 and 1440 px, and the real reduced-motion setting.
+
+### 2026-11-07 — Hero animation, part 2 (branch `feat/hero-animation-2`)
+- The check card now has the word "Verified". The text fades in first, then the check pops in. After a short rest both fade out and the cycle repeats (8 s). The text and the check keep their space, so nothing moves on the page (CLS stays 0).
+- The big light orange circle and the small light green circle now follow a path with three stops (about 20 px), so their position clearly changes. Still only `translate` and `scale`.
+- Still pure CSS, `motion-safe:` only (reduced motion shows "Verified" and the check fully, with no animation). Lint, type check and build pass.
+- Lighthouse (local production build, 1 good run): 100 / LCP 1.0 s / CLS 0 / TBT 40 ms. Same as before part 2.
+- Not checked by eye at 390, 768 and 1440 px.
