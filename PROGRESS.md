@@ -550,3 +550,7 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 
 ### 2026-11-07 — Google guide fix 2 (branch `fix/google-guide-scopes`)
 - The Data Access page in Google Cloud starts empty. The guide said the three basic scopes were included by default. It now tells the owner to click "Add or remove scopes" and tick `userinfo.email`, `userinfo.profile` and `openid`. Docs only.
+
+### 2026-11-07 — Google guide fix 3: publishing (branch `fix/google-guide-publish`)
+- The owner could not press "Publish app": "To publish your app, you must complete your configuration on the Branding page". The guide wrongly said to leave Authorized domains empty and skip the links. Checked Google's help ("Manage OAuth App Branding", "Manage App Audience") and one user's report. Google says the app home page, privacy policy and terms links are required for external production apps, and the domains of those links must be in Authorized domains. The guide now has the full Branding step, the exact link addresses (`/`, `/privacy`, `/terms`), a domain table, and more rows in "Problems and fixes".
+- Not confirmed by any Google page: whether Google accepts a full `*.vercel.app` address as an authorized domain, and the complete list of what the Publish button needs. The guide says so and gives the fallback (own domain). The Privacy notice page may need one sentence about Google sign in.

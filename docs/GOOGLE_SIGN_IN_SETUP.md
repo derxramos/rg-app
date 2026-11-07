@@ -6,6 +6,8 @@ You do not need to write code. The code is already in the app.
 **Use the Google account `rgservices.ph@gmail.com`** for every Google step below. It becomes the owner of the
 Google "project". Use the same account for the whole life of the website, so you never lose access.
 
+> **Last checked:** 2026-11-07, against Google's help pages "Manage OAuth App Branding" and "Manage App Audience" and Supabase's Google guide. Two things we could not confirm in those pages are marked in the text (whether Google accepts a Vercel address, and the exact list of what the Publish button needs). If you find a difference on your screen, tell the developer so the guide can be fixed.
+>
 > The names of buttons in the Google Cloud Console change from time to time. If a name here is a little
 > different on your screen, look for the closest name. The steps and ideas stay the same.
 
@@ -77,14 +79,29 @@ This is the Google screen that says "RG'S Bookkeeping wants to access your Googl
 3. **Audience**: choose **External**. (External means any person with a Google account.)
 4. **Contact information**: enter `rgservices.ph@gmail.com`.
 5. Accept the policy and click **Create** (or **Save and continue**).
-6. **Branding** (if you see it): you may add a logo. It is optional. Skip it for now.
-   - **Authorized domains**: **leave this empty.** Sign in works without it. The box is only for
-     links to a home page or a privacy page on the consent screen, and we do not add those.
-     - If you see the error **"Invalid domain: must be a top private domain"**, it means you typed a shared
-       domain such as `supabase.co` or `vercel.app`. Google wants a domain that belongs to one owner.
-       Just clear the box and continue.
-     - If you later add links to the consent screen, use your own domain (for example `rgservices.ph`) or the
-       full address with your name in front (for example `abcdefghijklmno.supabase.co`).
+6. **Branding**: you need this page filled in **before you can publish** (A3). The app name, the support
+   email and the developer contact email are not enough. Fill in:
+   - **App logo**: optional. Skip it. (A logo goes through a Google check, and we do not need it.)
+   - **App domain** section (Google says these three links are required for every external app that is in production):
+     - **Application home page**: `https://your-site.vercel.app` (your real website address, the home page).
+     - **Application privacy policy link**: `https://your-site.vercel.app/privacy` (our Privacy notice page).
+     - **Application terms of service link**: `https://your-site.vercel.app/terms` (our Terms page).
+     - Rules from Google: the home page must be public and must describe what the app does (not only a login
+       page; ours is fine), and the privacy policy must be on the same website as the home page.
+   - **Authorized domains**: Google wants the domain of every link above to be listed here. See the box below.
+   - **Developer contact information**: `rgservices.ph@gmail.com`.
+   Click **Save**.
+
+   > **Authorized domains: what to type.** Type only the domain part, with no `https://` and no `/`.
+   > - **If you have your own domain** (for example `rgservices.ph`): type it, for example `rgservices.ph`.
+   >   This is the safest choice for a real business, and it is the one Google's own help describes.
+   > - **If your site is only on a Vercel address** (`your-site.vercel.app`): type the whole address,
+   >   `your-site.vercel.app`. Do **not** type only `vercel.app` and do not type `supabase.co`. Those are shared by
+   >   many people, so Google refuses them with **"Invalid domain: must be a top private domain"**.
+   >   We could not confirm in Google's help pages whether Google accepts a full Vercel address. If Google
+   >   refuses it, or the **Publish app** button stays grey, you need your own domain (see Problems and fixes).
+   > - Google may also ask you to prove you own the domain in **Google Search Console**
+   >   (<https://search.google.com/search-console>). Follow the steps there if it asks.
 7. **Data access / Scopes**: the page starts empty. Add the three basic scopes yourself:
    1. Click **Add or remove scopes**.
    2. Tick these three (use the filter box if the list is long):
@@ -101,12 +118,22 @@ This is the Google screen that says "RG'S Bookkeeping wants to access your Googl
 A new Google app starts in **Testing** mode. In Testing mode, **only people you list as "test users" can sign in**.
 Real clients would see an error. So:
 
-1. Go to **Audience** (or the **OAuth consent screen** page).
-2. Under **Publishing status**, click **Publish app** → **Confirm**.
-3. The status must say **In production**.
+1. Finish **A2 step 6 (Branding)** first. If **Publish app** is grey, or you see
+   **"To publish your app, you must complete your configuration on the Branding page"**, the Branding page is
+   not complete yet. Check that all of these are saved: app home page, privacy policy link, terms of service
+   link, authorized domain, and the developer contact email.
+2. Go to **Audience** (or the **OAuth consent screen** page).
+3. Under **Publishing status**, click **Publish app** → **Confirm**.
+4. The status must say **In production**.
 
-Because we only ask for the three basic scopes (name, email, picture), Google does not need to review the app.
-Google may show a small notice that the app is not verified if you add a logo or sensitive scopes. We do not.
+What to expect after publishing (from Google's help pages, checked on 2026-11-07):
+
+- We only ask for the three basic scopes (name, email, picture). Google's help says the "unverified app"
+  warning and the user limit are about **sensitive or restricted** scopes. These three are not sensitive, so we
+  expect **no warning and no limit**. Google does not say this in one sentence, so please confirm it in the test
+  in Part D.
+- If Google shows a **Verify branding** button, you may press it. It is only for showing your app name and logo on
+  the Google screen. Without it, Google shows your website domain instead of the name. Sign in still works.
 
 ### A4. Make the Client ID and Client Secret
 
@@ -213,7 +240,9 @@ Test with a Google account that is **not** an admin account on the website.
 | What you see | Likely cause | Fix |
 |---|---|---|
 | Google says **Error 400: redirect_uri_mismatch** | The redirect URI in Google is not exactly the Supabase callback URL | Part A4 step 6: copy the callback URL from Supabase and paste it in Google. Check for a typo, `http` vs `https`, and a slash at the end. |
-| "Invalid domain: must be a top private domain" in Authorized domains | You typed `supabase.co` or `vercel.app` (shared domains) | Leave Authorized domains empty (Part A2 step 6). It is not needed for sign in. |
+| "Invalid domain: must be a top private domain" in Authorized domains | You typed a shared domain such as `supabase.co` or `vercel.app` | Type your own domain, or the full address with your name in front (`your-site.vercel.app`). Do not leave it empty if you add the home page and privacy links: Google needs their domain listed (Part A2 step 6). |
+| **"To publish your app, you must complete your configuration on the Branding page"**, or **Publish app** is grey | The Branding page is not complete | Part A2 step 6: fill in the home page, privacy policy and terms links, the authorized domain and the developer contact, then **Save**. Then try **Publish app** again. |
+| Google refuses `your-site.vercel.app` as an authorized domain, or Publish stays grey after you filled everything | A Vercel address may not be accepted for the consent screen links | Get your own domain (for example `rgservices.ph` from a domain seller), add it to the Vercel project (Vercel > Settings > Domains), set `APP_BASE_URL` to it, then use it in A2 step 6 and A4. Verify it in Google Search Console if Google asks. |
 | Google says **Access blocked: app has not completed verification** or "only test users" | The app is still in **Testing** | Part A3: publish the app so it says **In production**. |
 | The button does not show | `GOOGLE_SIGNIN_ENABLED` is not `true`, or you did not redeploy | Part C2. |
 | After Google, you come back to the Sign in page with "We could not sign you in with Google" | Client ID or Secret pasted wrong in Supabase, or the provider is off | Part B1: paste them again and Save. |
@@ -229,7 +258,7 @@ Test with a Google account that is **not** an admin account on the website.
   takes this Google account, they could change the sign in settings.
 - Do not share the Client Secret. If it leaks: Google Cloud Console → **Credentials** → your client →
   **Add secret** (make a new one), paste it in Supabase, then disable the old one.
-- Our app asks only for name, email and picture. Our Privacy notice already covers the account data we keep.
+- Our app asks only for name, email and picture. Google reads the Privacy notice page linked in Branding, so check that it says the website receives your name, email and picture when someone uses Google sign in (open Settings > Site texts or the privacy page text and add one sentence if it does not).
   If you add other Google features later, check the notice again.
 - When you move to your own domain, repeat Part A4 (add the new domain to **Authorized JavaScript origins**),
   Part B2 (Site URL and Redirect URLs) and Part C1 (`APP_BASE_URL`).
