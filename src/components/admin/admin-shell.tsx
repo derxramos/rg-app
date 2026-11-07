@@ -33,7 +33,7 @@ export function AdminShell({
             <span className="block truncate font-bold">{admin.fullName}</span>
             <span className="block text-muted-foreground">{isOwner ? "Owner" : "Staff"}</span>
           </span>
-          <ThemeToggle className="md:min-h-11 md:min-w-11" />
+          <ThemeToggle />
           {/* Same plain form POST as the public header: ends the session on the server, then loads the home page. */}
           <form method="post" action="/auth/sign-out">
             <Button type="submit" variant="outline" size="sm" className="md:min-h-11">

@@ -13,7 +13,7 @@ type LogoProps = {
 // The tile is an SVG file. The words are live text, so they stay sharp and can wrap.
 export function Logo({ inverse = false, showWordmark = true, className }: LogoProps) {
   return (
-    <span className={cn("inline-flex items-center gap-3", className)}>
+    <span className={cn("inline-flex shrink-0 items-center gap-3 whitespace-nowrap", className)}>
       <Image
         src={inverse ? "/brand/rg-monogram-inverse.svg" : "/brand/rg-monogram.svg"}
         alt=""
@@ -34,7 +34,7 @@ export function Logo({ inverse = false, showWordmark = true, className }: LogoPr
           </span>{" "}
           <span
             className={cn(
-              "text-xs font-bold tracking-wide uppercase",
+              "text-xs font-bold tracking-wide uppercase max-[349px]:hidden",
               inverse ? "text-primary-foreground" : "text-muted-foreground",
             )}
           >

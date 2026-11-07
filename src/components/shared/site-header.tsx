@@ -14,13 +14,13 @@ import { cn, focusRing } from "@/lib/utils";
 
 function navLinkClass(active: boolean) {
   return cn(
-    "flex min-h-11 items-center rounded-md px-3 text-base",
+    "flex min-h-11 shrink-0 items-center rounded-md px-3 text-base whitespace-nowrap",
     active ? "bg-primary-soft font-bold text-primary-ink" : "text-foreground hover:bg-accent",
     focusRing,
   );
 }
 
-// Public header: 64 px tall. Full menu from 1024 px. A Menu button below that.
+// Public header: 64 px tall. The full menu shows from 1280 px (xl). A Menu button below that.
 // authBar and authMenu are the sign in / sign out buttons. They come from the server (HeaderAuth), so the
 // first page already shows the right state. authBar is the desktop row, authMenu is inside the phone menu.
 export function SiteHeader({
@@ -62,12 +62,12 @@ export function SiteHeader({
         <Link
           href="/"
           aria-label="RG'S Bookkeeping & Accounting, home"
-          className={cn("rounded-md", focusRing)}
+          className={cn("shrink-0 rounded-md", focusRing)}
         >
           <Logo />
         </Link>
 
-        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
           {MAIN_NAV.map((item) => (
             <Link
               key={item.href}
@@ -80,14 +80,15 @@ export function SiteHeader({
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <div className="hidden lg:block">{authBar}</div>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* On very narrow phones (under 400 px) the logo and two buttons do not fit, so the toggle is in the menu. */}
+          <ThemeToggle className="max-[399px]:hidden" />
+          <div className="hidden xl:block">{authBar}</div>
           <Link
             href="/request"
             className={cn(
               buttonVariants({ variant: "accent", size: "sm" }),
-              "hidden sm:inline-flex",
+              "hidden whitespace-nowrap sm:inline-flex",
             )}
           >
             Start a request
@@ -96,7 +97,7 @@ export function SiteHeader({
             ref={menuButton}
             variant="outline"
             size="icon"
-            className="lg:hidden"
+            className="md:size-10 xl:hidden"
             aria-expanded={open}
             aria-controls="mobile-menu"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -108,7 +109,7 @@ export function SiteHeader({
       </PageContainer>
 
       {open ? (
-        <nav id="mobile-menu" aria-label="Main" className="border-t bg-background lg:hidden">
+        <nav id="mobile-menu" aria-label="Main" className="border-t bg-background xl:hidden">
           <PageContainer className="flex flex-col gap-1 py-3">
             {MAIN_NAV.map((item) => (
               <Link
@@ -128,7 +129,10 @@ export function SiteHeader({
             >
               Start a request
             </Link>
-            <div className="mt-2 border-t pt-3">{authMenu}</div>
+            <div className="mt-2 flex flex-col gap-1 border-t pt-3">
+              <ThemeToggle labelled className="min-[400px]:hidden" />
+              {authMenu}
+            </div>
           </PageContainer>
         </nav>
       ) : null}
