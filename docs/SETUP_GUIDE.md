@@ -188,7 +188,7 @@ These keep Supabase awake and delete old client files.
 
 1. Open `https://<your address>/admin`.
 2. Sign in with the owner email and the seed password.
-3. With `ADMIN_REQUIRE_2FA=false` there is no 2FA step. You go straight to the dashboard. A yellow box reminds you that 2FA is off.
+3. With `ADMIN_REQUIRE_2FA=false` there is no 2FA step. You go straight to the dashboard. A red banner at the top of every admin page reminds you that 2-step login is off.
 4. **Settings**: change the password if you want, check the contact details, and add your payment methods (GCash, Maya, BDO) with the real QR and the exact account name. (While 2FA is off, these changes do not ask for a code.)
 5. **Services**: the six service names are there. Add the requirement checklists yourself (the app does not invent requirements or fees).
 6. Open the public site on your phone. Send one test request with an email like `zolb-test+1@example.com`, add a test payment, then check the request in `/admin` and verify the payment. Check that:

@@ -42,10 +42,14 @@ export function hasRole(profile: AdminProfile, roles: readonly AdminRole[]): boo
 export async function checkAdmin(
   db: AppDb,
   session: AdminSession | null,
-  options: { roles?: readonly AdminRole[] } = {},
+  options: { roles?: readonly AdminRole[]; twoFactorRequired?: boolean } = {},
 ): Promise<AdminProfile> {
   if (!session) throw new AdminAuthError("no-session");
-  if (session.aal !== "aal2") throw new AdminAuthError("needs-2fa");
+  // The flag skips ONLY this one check. Every check below always runs. If the caller says nothing,
+  // 2FA is required (the safe default).
+  if ((options.twoFactorRequired ?? true) && session.aal !== "aal2") {
+    throw new AdminAuthError("needs-2fa");
+  }
 
   const [profile] = await db
     .select()
@@ -69,11 +73,8 @@ export function devBypassSession(env: { nodeEnv?: string; email?: string }): Adm
 }
 
 // ---------- Is 2FA required? ----------
-// 2FA is required unless ADMIN_REQUIRE_2FA is set to the word false. This lets the owner use only the
-// password at first and turn 2FA on later (see docs/SETUP_GUIDE.md). Any other value means required.
-export function isTwoFactorRequired(value: string | undefined): boolean {
-  return value?.trim().toLowerCase() !== "false";
-}
+// The rule lives in src/lib/two-factor-flag.ts (so the startup hook can use it). Re-exported here.
+export { isTwoFactorRequired } from "@/lib/two-factor-flag";
 
 // ---------- Fresh 2FA ----------
 // Risky actions (changing a QR, account details, admin users) need a 6-digit code typed in the last

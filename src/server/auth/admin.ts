@@ -49,14 +49,11 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) return null;
   const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  // The real level. Whether a password-only login is enough is decided in checkAdmin, not here.
   return {
     userId: data.user.id,
     email: data.user.email ?? "",
-    // With 2FA switched off (ADMIN_REQUIRE_2FA=false) a password login is enough.
-    aal:
-      level?.currentLevel === "aal2" || !isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA)
-        ? "aal2"
-        : "aal1",
+    aal: level?.currentLevel === "aal2" ? "aal2" : "aal1",
   };
 }
 
@@ -64,7 +61,11 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 export async function requireAdmin(
   options: { roles?: readonly AdminRole[] } = {},
 ): Promise<AdminProfile> {
-  return checkAdmin(getDb(), await getAdminSession(), options);
+  return checkAdmin(getDb(), await getAdminSession(), {
+    ...options,
+    // With ADMIN_REQUIRE_2FA=false only the 2FA code step is skipped. All other checks still run.
+    twoFactorRequired: isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA),
+  });
 }
 
 // For pages: sends the person where they can fix it instead of showing an error.

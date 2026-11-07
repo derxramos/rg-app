@@ -65,6 +65,35 @@ describe("checkAdmin", () => {
   });
 });
 
+describe("checkAdmin with the 2FA flag OFF (twoFactorRequired: false)", () => {
+  const off = { twoFactorRequired: false };
+  it("lets an admin in with a password-only session", async () => {
+    expect((await checkAdmin(t.db, session(OWNER, "aal1"), off)).role).toBe("owner");
+  });
+  it("still refuses a logged-out visitor", async () => {
+    expect(await code(checkAdmin(t.db, null, off))).toBe("no-session");
+  });
+  it("still refuses a login that is not an admin", async () => {
+    const stranger = session("dddddddd-dddd-4ddd-8ddd-dddddddddddd", "aal1");
+    expect(await code(checkAdmin(t.db, stranger, off))).toBe("not-admin");
+  });
+  it("still refuses a turned-off admin", async () => {
+    expect(await code(checkAdmin(t.db, session(OFF, "aal1"), off))).toBe("inactive");
+  });
+  it("still keeps staff out of owner-only actions", async () => {
+    const result = await code(
+      checkAdmin(t.db, session(STAFF, "aal1"), { ...off, roles: OWNER_ONLY }),
+    );
+    expect(result).toBe("wrong-role");
+  });
+  it("still needs 2FA when the option is true or not given", async () => {
+    expect(await code(checkAdmin(t.db, session(OWNER, "aal1"), { twoFactorRequired: true }))).toBe(
+      "needs-2fa",
+    );
+    expect(await code(checkAdmin(t.db, session(OWNER, "aal1"), {}))).toBe("needs-2fa");
+  });
+});
+
 describe("development bypass", () => {
   it("works only in development, and only with an email", () => {
     expect(

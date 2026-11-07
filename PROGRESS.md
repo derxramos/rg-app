@@ -9,6 +9,31 @@ Update this file at the end of every work session.
 
 ---
 
+## Before launch
+
+- [ ] Set `ADMIN_REQUIRE_2FA=true` on the live site and test admin login.
+
+---
+
+## Accounts and roles work (branch `feat/auth-roles`)
+
+Plan: user accounts (role `user`) and admin accounts (role `admin`). Phases:
+
+- [x] Phase 0 — Git setup (deny rules in `.claude/settings.json`, Git rules in CLAUDE.md, branch made)
+- [x] Phase 1 — 2FA flag hardening (red banner, startup warning, `checkAdmin` flag option, tests)
+- [ ] Phase 2 — Database: profiles, user_id, RLS, storage rules
+- [ ] Phase 3 — Session layer and guards
+- [ ] Phase 4 — Login, register, verify, forgot and reset, sign out
+- [ ] Phase 5 — Header and layouts
+- [ ] Phase 6 — Requests belong to users
+- [ ] Phase 7 — Account area
+- [ ] Phase 8 — Admin role management, docs and checklist
+- [ ] Phase 9 — 2FA ON path (last)
+
+Note: for this run the owner asked me to go on without stopping after each phase, and to stop only if blocked.
+
+---
+
 ## Phase checklist
 
 Details for each phase are in `docs/PHASES.md`.
