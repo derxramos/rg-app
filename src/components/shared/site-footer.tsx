@@ -7,6 +7,7 @@ import { cn, focusRing } from "@/lib/utils";
 
 const headingClass = "mb-3 text-base font-bold";
 const linkClass = cn(
+  "whitespace-nowrap",
   "flex min-h-11 items-center rounded-md text-base text-foreground underline-offset-4 hover:underline md:min-h-9",
   focusRing,
 );
@@ -25,13 +26,16 @@ export function SiteFooter() {
           </p>
         </div>
 
-        <nav aria-label="Footer" className="flex min-w-0 flex-col">
+        <nav aria-label="Footer" className="min-w-0">
           <h2 className={headingClass}>Pages</h2>
-          {FOOTER_NAV.map((item) => (
-            <Link key={item.href} href={item.href} className={linkClass}>
-              {item.label}
-            </Link>
-          ))}
+          {/* The links fill the whole column: one per line on phones, 2 by 2 on tablets, one row, spread edge to edge, on wide screens. */}
+          <div className="grid grid-cols-1 gap-x-6 md:grid-cols-2 xl:flex xl:justify-between xl:gap-x-4">
+            {FOOTER_NAV.map((item) => (
+              <Link key={item.href} href={item.href} className={linkClass}>
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </nav>
 
       </PageContainer>
