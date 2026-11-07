@@ -12,30 +12,30 @@ export function HeroArt() {
       aria-hidden="true"
       className="relative mx-auto h-72 w-full max-w-md [--k:0.6] sm:[--k:1] md:h-80"
     >
-      <span className="absolute top-2 right-6 size-40 rounded-full bg-brand-accent-soft motion-safe:animate-hero-peach md:size-48" />
-      <span className="absolute bottom-0 left-2 size-24 rounded-full bg-primary-soft motion-safe:animate-hero-teal" />
-      <span className="absolute top-0 left-12 size-6 rounded-full bg-highlight motion-safe:animate-hero-dot" />
+      <span className="absolute top-2 right-6 size-40 rounded-full [background:var(--hero-peach)] motion-safe:animate-hero-peach md:size-48" />
+      <span className="absolute bottom-0 left-2 size-24 rounded-full bg-hero-teal motion-safe:animate-hero-teal" />
+      <span className="absolute top-0 left-12 size-6 rounded-full bg-hero-dot motion-safe:animate-hero-dot" />
       <span className="absolute right-0 bottom-10 h-3 w-24 rounded-full bg-brand-accent" />
 
-      <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border bg-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a md:w-64">
-        {/* Same look as StatusBadge "in_progress". The text and the icon are split so they can appear one after the other, like "Verified" and the check. */}
-        <Badge className="bg-status-in-progress-bg text-status-in-progress-fg">
+      <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border border-hero-card-border bg-hero-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a md:w-64">
+        {/* Hero colors come from the --hero-* tokens (day and night, globals.css). The text and the icon are split so they can appear one after the other, like "Verified" and the check. */}
+        <Badge className="bg-hero-badge-bg text-hero-badge-fg">
           <LoaderCircle aria-hidden="true" className="motion-safe:animate-hero-icon" />
           <span className="motion-safe:animate-hero-verified">{STATUS_LABELS.in_progress}</span>
         </Badge>
-        <span className="h-3 w-3/4 rounded-full bg-muted" />
-        <span className="h-3 w-1/2 rounded-full bg-muted" />
+        <span className="h-3 w-3/4 rounded-full bg-hero-line-1" />
+        <span className="h-3 w-1/2 rounded-full bg-hero-line-2" />
       </div>
 
-      <div className="absolute right-0 bottom-6 flex w-56 items-center gap-3 rounded-lg border bg-card p-4 shadow-md [--dy:8px] motion-safe:animate-hero-card-b md:w-60">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success-soft text-success-ink">
+      <div className="absolute right-0 bottom-6 flex w-56 items-center gap-3 rounded-lg border border-hero-card-border bg-hero-card p-4 shadow-md [--dy:8px] motion-safe:animate-hero-card-b md:w-60">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-hero-check-bg text-hero-check-fg">
           <Check className="size-5 motion-safe:animate-hero-check" strokeWidth={3} />
         </span>
         <span className="flex flex-1 flex-col gap-2">
-          <span className="text-sm font-bold text-success-ink motion-safe:animate-hero-verified">
+          <span className="text-sm font-bold text-hero-verified-fg motion-safe:animate-hero-verified">
             Verified
           </span>
-          <span className="h-3 w-2/3 rounded-full bg-muted" />
+          <span className="h-3 w-2/3 rounded-full bg-hero-line-1" />
         </span>
       </div>
     </div>

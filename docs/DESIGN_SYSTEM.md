@@ -18,7 +18,7 @@ Language: plain English. Mobile first (390 px), then desktop (1440 px). Light mo
 | Primary | `primary` | #0B6158 | Buttons, links, active nav, focus ring, logo |
 | Primary soft | `primary-soft` | #E3F2EF | Tints, secondary buttons, selected rows |
 | Accent | `brand-accent` | #FF7B47 | One bright highlight (hero shape, G bar). Never as text |
-| Call to action | `cta` / `cta-hover` / `on-cta` | #FF7B47 / #F0652F / #FFF7ED | The one orange button style (`accent` variant). Owner chose off-white text on the original coral. Contrast is 2.4:1 (3.0:1 on hover): BELOW the 4.5:1 rule, accepted by the owner. Same in both palettes |
+| Call to action | `cta` / `cta-hover` / `on-cta` | #C2410C / #9A3412 / #FFFFFF | The one orange button style (`accent` variant). White text on dark orange: 5.2:1 at rest, 7.3:1 on hover (4.5:1 rule met). Focus ring is the brand teal. Same in day and night mode. (Before 2026-11-07 it was #FF7B47 with off-white text at 2.4:1.) |
 | Highlight | `highlight` | #FFD23F | Small marks, illustration shapes |
 | Success | `success` | #167A47 | Verified, done |
 | Warning | `warning` | #F5A524 | Check, caution (text uses `warning-ink` #7A4A00) |
@@ -74,9 +74,9 @@ Note on the name `accent`: shadcn/ui uses `--accent` for a soft hover background
   --brand-accent-soft: #FFE8DC;
   --brand-accent-ink: #8F3410;
   --on-brand-accent: #2B1305;
-  --cta: #FF7B47;
-  --cta-hover: #F0652F;
-  --on-cta: #FFF7ED;
+  --cta: #C2410C;
+  --cta-hover: #9A3412;
+  --on-cta: #FFFFFF;
   --highlight: #FFD23F;
   --on-highlight: #2A2100;
   --success: #167A47;
@@ -457,7 +457,7 @@ Not drawn yet: Admin users (A9), Export (A11 / A16), and the full Files settings
 3. **Phone.** Input shows `+63` prefix and 10 digits; store `+63XXXXXXXXXX`.
 4. **Text can grow 30 %** (Filipino translation). No fixed widths on text. Use `min-w-0`, `flex-wrap`, `gap`. Buttons grow in width, never clip. Badges do not wrap in one line; allow the row to wrap. Test with a pseudo-language that makes every string 30 % longer.
 5. **Touch targets.** Every button, input, checkbox row and nav item is at least 44 px tall. Small buttons are 40 px on desktop and 44 px on phone.
-6. **Contrast.** Text on soft backgrounds uses the `*-ink` token (for example `text-warning-ink` on `bg-warning-soft`). Never put text on `brand-accent` or `warning` except `on-brand-accent` and `on-warning`. Orange buttons use `cta` with `on-cta` (off-white).
+6. **Contrast.** Text on soft backgrounds uses the `*-ink` token (for example `text-warning-ink` on `bg-warning-soft`). Never put text on `brand-accent` or `warning` except `on-brand-accent` and `on-warning`. Orange buttons use `cta` with `on-cta` (white on #C2410C, 5.2:1).
 7. **Status is never color only.** Icon + words, always.
 8. **Light pages.** No photos. Illustrations are CSS and SVG (mini UI cards, discs, pills). No hero video. Two font files, 28 KB in total. Keep client JavaScript small; load Tesseract.js only when the client taps "Read my receipt".
 9. **Receipt image.** Show it with an object URL in the browser only. Never upload or store it. Revoke the URL when done.
