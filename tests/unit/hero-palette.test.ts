@@ -62,54 +62,92 @@ function contrast(a: Rgba, b: Rgba): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-describe("night hero: nothing disappears into the page", () => {
+describe("night hero: glass cards and flat circles", () => {
   const page = one(dark["surface-subtle"]); // the hero section background
-  const card = over(one(dark["hero-card"]), page);
+  const bigCircle = over(one(dark["hero-peach"]), page);
+  const smallCircle = over(one(dark["hero-teal"]), page);
+  // A card can sit on the page or on the big circle. Check both.
+  const cardOnPage = over(one(dark["hero-card"]), page);
+  const cardOnCircle = over(one(dark["hero-card"]), bigCircle);
 
-  it("cards, circles and the dot are at least 1.5 to 1 against the page", () => {
-    expect(contrast(card, page), "card").toBeGreaterThanOrEqual(1.5);
-    expect(
-      contrast(over(one(dark["hero-teal"]), page), page),
-      "teal circle",
-    ).toBeGreaterThanOrEqual(1.5);
-    for (const stop of colors(dark["hero-peach"]))
-      expect(contrast(over(stop, page), page), "peach circle").toBeGreaterThanOrEqual(1.5);
+  it("uses the exact colors that were asked for", () => {
+    expect(dark["hero-peach"]).toBe("#1e6b60");
+    expect(dark["hero-teal"]).toBe("#2a8f82");
+    expect(dark["hero-card"].replace(/\s/g, "")).toBe("rgba(20,45,45,0.7)");
+    expect(dark["hero-card-border-top"].replace(/\s/g, "")).toBe("rgba(255,255,255,0.28)");
+    expect(dark["hero-badge-fg"]).toBe("#fcd34d");
+    expect(dark["hero-verified-fg"]).toBe("#a7f3d0");
+  });
+
+  it("is flat: no gradient, blur, filter or glow in the night hero colors or in the component", () => {
+    for (const name of Object.keys(dark).filter((n) => n.startsWith("hero-")))
+      expect(dark[name], name).not.toMatch(/gradient|blur|filter/i);
+    const component = readFileSync(
+      path.resolve(__dirname, "../../src/components/public/hero-art.tsx"),
+      "utf8",
+    );
+    expect(component).not.toMatch(/backdrop|blur|filter|drop-shadow|gradient/i);
+  });
+
+  it("circles, cards and the dot are clearly visible against the page (1.5 to 1)", () => {
+    expect(contrast(bigCircle, page), "big circle").toBeGreaterThanOrEqual(1.5);
+    expect(contrast(smallCircle, page), "small circle").toBeGreaterThanOrEqual(1.5);
     expect(contrast(one(dark["hero-dot"]), page), "dot").toBeGreaterThanOrEqual(1.5);
+    // The glass card is a dark see-through fill, so its EDGE does the work: the top border is brighter.
+    const topEdge = over(one(dark["hero-card-border-top"]), cardOnPage);
+    expect(contrast(topEdge, page), "card top edge on the page").toBeGreaterThanOrEqual(1.5);
+    const sideEdge = over(one(dark["hero-card-border"]), cardOnPage);
+    expect(contrast(sideEdge, page), "card side edge on the page").toBeGreaterThanOrEqual(1.5);
+    // Where a card overlaps the big circle, the card must still look different from the circle.
+    expect(contrast(cardOnCircle, bigCircle), "card on the big circle").toBeGreaterThanOrEqual(1.3);
   });
 
-  it("the card edge (border) can be seen on the card and on the page", () => {
-    const edge = over(one(dark["hero-card-border"]), card);
-    expect(contrast(edge, card)).toBeGreaterThanOrEqual(1.15);
+  it("the top border is brighter than the side border", () => {
+    expect(colors(dark["hero-card-border-top"])[0][3]).toBeGreaterThan(
+      colors(dark["hero-card-border"])[0][3],
+    );
   });
 
-  it("placeholder lines are visible on the card", () => {
-    expect(contrast(over(one(dark["hero-line-1"]), card), card)).toBeGreaterThanOrEqual(1.25);
-    expect(contrast(over(one(dark["hero-line-2"]), card), card)).toBeGreaterThanOrEqual(1.15);
+  it("placeholder lines are visible on the card (on the page and on the circle)", () => {
+    for (const card of [cardOnPage, cardOnCircle]) {
+      expect(contrast(over(one(dark["hero-line-1"]), card), card)).toBeGreaterThanOrEqual(1.25);
+      expect(contrast(over(one(dark["hero-line-2"]), card), card)).toBeGreaterThanOrEqual(1.25);
+    }
   });
 
-  it("labels are at least 4.5 to 1 and icons at least 3 to 1", () => {
-    const badge = over(one(dark["hero-badge-bg"]), card);
-    expect(contrast(one(dark["hero-badge-fg"]), badge), "In progress").toBeGreaterThanOrEqual(4.5);
-    expect(contrast(one(dark["hero-verified-fg"]), card), "Verified").toBeGreaterThanOrEqual(4.5);
-    const checkBg = over(one(dark["hero-check-bg"]), card);
-    expect(contrast(one(dark["hero-check-fg"]), checkBg), "check").toBeGreaterThanOrEqual(3);
-  });
-
-  it("the peach circle is coral, not brown: bright enough, and red is much stronger than green", () => {
-    for (const stop of colors(dark["hero-peach"])) {
-      const [r, g, b] = over(stop, page);
-      expect(r, "red").toBeGreaterThanOrEqual(140);
-      expect(r - g, "red minus green").toBeGreaterThanOrEqual(55);
-      // Lightness (HSL) below about 40 percent is what makes orange look brown.
-      expect((Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255, "lightness").toBeGreaterThanOrEqual(
-        0.4,
-      );
+  it("labels are at least 4.5 to 1 and icons at least 3 to 1, on the page and on the circle", () => {
+    for (const [where, card] of [
+      ["page", cardOnPage],
+      ["circle", cardOnCircle],
+    ] as const) {
+      const badge = over(one(dark["hero-badge-bg"]), card);
+      expect(
+        contrast(one(dark["hero-badge-fg"]), badge),
+        `In progress on ${where}`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrast(one(dark["hero-verified-fg"]), card),
+        `Verified on ${where}`,
+      ).toBeGreaterThanOrEqual(4.5);
+      const checkBg = over(one(dark["hero-check-bg"]), card);
+      expect(
+        contrast(one(dark["hero-check-fg"]), checkBg),
+        `check on ${where}`,
+      ).toBeGreaterThanOrEqual(3);
     }
   });
 });
 
-describe("day hero", () => {
+describe("day hero (not changed by the night colors)", () => {
   const card = one(light["hero-card"]);
+  it("keeps the day colors", () => {
+    expect(light["hero-badge-bg"]).toBe("#daf1ee");
+    expect(light["hero-badge-fg"]).toBe("#0b5c52");
+    expect(light["hero-verified-fg"]).toBe("#14532d");
+    expect(light["hero-peach"]).toBe("#ffe8dc");
+    expect(light["hero-teal"]).toBe("#e3f2ef");
+  });
+
   it("labels are at least 4.5 to 1 and the check icon at least 3 to 1", () => {
     expect(
       contrast(one(light["hero-badge-fg"]), one(light["hero-badge-bg"])),

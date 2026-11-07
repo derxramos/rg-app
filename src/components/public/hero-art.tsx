@@ -17,7 +17,7 @@ export function HeroArt() {
       <span className="absolute top-0 left-12 size-6 rounded-full bg-hero-dot motion-safe:animate-hero-dot" />
       <span className="absolute right-0 bottom-10 h-3 w-24 rounded-full bg-brand-accent" />
 
-      <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border border-hero-card-border bg-hero-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a md:w-64">
+      <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border border-hero-card-border border-t-hero-card-border-top bg-hero-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a md:w-64">
         {/* Hero colors come from the --hero-* tokens (day and night, globals.css). The text and the icon are split so they can appear one after the other, like "Verified" and the check. */}
         <Badge className="bg-hero-badge-bg text-hero-badge-fg">
           <LoaderCircle aria-hidden="true" className="motion-safe:animate-hero-icon" />
@@ -27,7 +27,7 @@ export function HeroArt() {
         <span className="h-3 w-1/2 rounded-full bg-hero-line-2" />
       </div>
 
-      <div className="absolute right-0 bottom-6 flex w-56 items-center gap-3 rounded-lg border border-hero-card-border bg-hero-card p-4 shadow-md [--dy:8px] motion-safe:animate-hero-card-b md:w-60">
+      <div className="absolute right-0 bottom-6 flex w-56 items-center gap-3 rounded-lg border border-hero-card-border border-t-hero-card-border-top bg-hero-card p-4 shadow-md [--dy:8px] motion-safe:animate-hero-card-b md:w-60">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-hero-check-bg text-hero-check-fg">
           <Check className="size-5 motion-safe:animate-hero-check" strokeWidth={3} />
         </span>
