@@ -118,7 +118,7 @@
 */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface: #0f1a19;
+  --surface: #0f1a18;
   --surface-subtle: #0b1413;
   --surface-sunken: #1a2a28;
   --card: #1a2c2a;

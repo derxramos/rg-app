@@ -92,7 +92,8 @@ export default async function HomePage() {
         </PageContainer>
       </section>
 
-      <section aria-labelledby="home-how" className="border-y bg-surface-subtle">
+      {/* The line ABOVE this section stays. The line below it was removed: the next section has a different background instead. */}
+      <section aria-labelledby="home-how" className="border-t bg-surface-subtle">
         <PageContainer className="flex flex-col gap-6 py-10 md:py-14">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 id="home-how" className="text-2xl font-bold">

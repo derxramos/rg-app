@@ -13,7 +13,7 @@ export const viewport: Viewport = {
   // The browser bar color on phones follows the device setting (day: brand teal, night: the dark page color).
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#0b6158" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1a19" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1a18" },
   ],
   width: "device-width",
   initialScale: 1,

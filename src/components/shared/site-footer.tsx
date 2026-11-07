@@ -14,9 +14,10 @@ const linkClass = cn(
 
 // Public footer: two equal columns from md (business info, pages), one column on phones.
 // Contact buttons are not repeated here: the "Questions?" section and the Contact page have them.
+// No line above the footer and none above the copyright row: the soft background change and the spacing separate them.
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t bg-surface-subtle">
+    <footer className="mt-auto bg-surface-subtle">
       <PageContainer className="grid grid-cols-1 items-start gap-8 pt-10 md:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-3">
           <Logo />
@@ -36,7 +37,7 @@ export function SiteFooter() {
         </nav>
       </PageContainer>
 
-      <div className="mt-8 border-t">
+      <div className="mt-8">
         <PageContainer className="flex flex-col gap-1 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:gap-4">
           <p>© {BUSINESS_NAME}. All rights reserved.</p>
           <nav aria-label="Legal" className="flex flex-wrap gap-x-5">
