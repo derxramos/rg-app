@@ -554,10 +554,7 @@ export default function DevUiPage() {
           </Section>
         </PageContainer>
       </main>
-      <SiteFooter
-        messengerUrl="https://example.com/messenger-sample"
-        viberUrl="+63 900 000 0000"
-      />
+      <SiteFooter />
     </>
   );
 }

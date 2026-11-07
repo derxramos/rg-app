@@ -24,7 +24,7 @@ export async function PublicShell({ children }: { children: React.ReactNode }) {
       <main id="main-content" className="flex-1">
         {children}
       </main>
-      <SiteFooter {...links} />
+      <SiteFooter />
     </BackupLinksProvider>
   );
 }

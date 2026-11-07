@@ -1,16 +1,9 @@
 import Link from "next/link";
 
-import { ContactButtons } from "@/components/shared/contact-buttons";
 import { Logo } from "@/components/shared/logo";
 import { PageContainer } from "@/components/shared/page-container";
 import { BUSINESS_NAME, FOOTER_NAV, LEGAL_NAV } from "@/components/shared/site-nav";
-import { safeContactUrl, viberDisplayNumber } from "@/lib/contact-links";
 import { cn, focusRing } from "@/lib/utils";
-
-type SiteFooterProps = {
-  messengerUrl?: string | null;
-  viberUrl?: string | null;
-};
 
 const headingClass = "mb-3 text-base font-bold";
 const linkClass = cn(
@@ -18,14 +11,12 @@ const linkClass = cn(
   focusRing,
 );
 
-// Public footer: three equal columns from md, one column on phones.
-// The contact links come from site settings; empty links are hidden.
-export function SiteFooter({ messengerUrl, viberUrl }: SiteFooterProps) {
-  const hasChannel = Boolean(safeContactUrl(messengerUrl) || viberDisplayNumber(viberUrl));
-
+// Public footer: two equal columns from md (business info, pages), one column on phones.
+// Contact buttons are not repeated here: the "Questions?" section and the Contact page have them.
+export function SiteFooter() {
   return (
     <footer className="mt-auto border-t bg-surface-subtle">
-      <PageContainer className="grid grid-cols-1 items-start gap-8 pt-10 md:grid-cols-3">
+      <PageContainer className="grid grid-cols-1 items-start gap-8 pt-10 md:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-3">
           <Logo />
           <p className="text-sm text-muted-foreground">{BUSINESS_NAME}</p>
@@ -43,11 +34,6 @@ export function SiteFooter({ messengerUrl, viberUrl }: SiteFooterProps) {
           ))}
         </nav>
 
-        <div className="flex min-w-0 flex-col">
-          <h2 className={headingClass}>Contact</h2>
-          {hasChannel ? <p className="mb-3 text-base">Need help? Message us directly.</p> : null}
-          <ContactButtons messengerUrl={messengerUrl} viberUrl={viberUrl} />
-        </div>
       </PageContainer>
 
       <div className="mt-8 border-t">
