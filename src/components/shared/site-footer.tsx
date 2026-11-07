@@ -18,7 +18,7 @@ const linkClass = cn(
 export function SiteFooter() {
   return (
     <footer className="mt-auto bg-surface-subtle">
-      <PageContainer className="flex flex-col gap-2 py-8">
+      <PageContainer className="flex flex-col gap-3 py-8">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <Logo />
           <nav aria-label="Legal" className="flex flex-wrap gap-x-6">

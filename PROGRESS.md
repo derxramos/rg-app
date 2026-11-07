@@ -600,3 +600,9 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Sections now separate by a soft background change and spacing: the "How it works" section keeps its background; "Questions?" and the footer each differ from the section above. Day mode already alternated white and #F6F7F5. Night mode now alternates exactly #0B1413 and #0F1A18 (the night `--surface` token changed from #0F1A19 to #0F1A18; the phone browser-bar color too). Text contrast tests still pass.
 - Other public pages (Services, How it works, Contact) had no other line below their content, and the footer is shared, so they are consistent (measured in a browser, day and night).
 - Looked at the home page at 390 and 1440 px, day and night. Lint, type check, 544 tests and build pass.
+
+### 2026-11-08 — Simpler footer (branch `fix/footer-simplify`)
+- Removed the "Pages" column and the all-caps line under the logo. The header was not changed. The unused `FOOTER_NAV` list was removed from `site-nav.ts`.
+- New footer, same container as the header: row 1 has the logo on the left and "Privacy notice" and "Terms of service" on the right (24 px apart, same size and color, centered with the logo). Row 2 is the copyright text (smaller, muted, text unchanged), starting exactly under the logo. Under 640 px it is one left aligned column: logo, the two links in one row (they wrap if needed, 44 px tall), copyright. The background is unchanged.
+- Measured at 390, 639, 640, 768 and 1440 px in day and night mode: the copyright's left edge equals the logo's left edge; at 1440 px the last link ends at 1288 px, the same as the cards and the header's "Start a request" button; the link gap is 24 px; no horizontal overflow. Text contrast stays above 4.5 to 1 (day links 16:1, copyright 6.9:1; night links 14:1, copyright 8:1 on the footer color).
+- Lint, type check, 544 tests and build pass.
