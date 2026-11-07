@@ -67,7 +67,9 @@ describe("migrations", () => {
     expect(inDb).toEqual(inSchema);
   });
 
-  it("turn on Row Level Security for every table, with no policies", async () => {
+  // On a plain Postgres there are no Supabase roles, so no policies are made here. The policies for
+  // logged-in users are tested in tests/unit/accounts-rls.test.ts (with a small fake of Supabase).
+  it("turn on Row Level Security for every table (no policies without Supabase)", async () => {
     const rls = await db.query<{ relname: string; relrowsecurity: boolean }>(
       `select c.relname, c.relrowsecurity from pg_class c
        join pg_namespace n on n.oid = c.relnamespace

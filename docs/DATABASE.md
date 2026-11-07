@@ -12,20 +12,27 @@ General rules:
 
 ## 1. Access rules — decision: server-only access
 
-**Choice:** Only our server talks to the database and storage. We turn on **Row Level Security (RLS)** on every table but add **no policies**. RLS is a Postgres feature that filters rows per user. With RLS on and no policies, the public Supabase API keys can read or write **nothing**. That is a safety net if a key leaks.
+**Choice:** Only our server talks to the database and storage. We turn on **Row Level Security (RLS)** on every table. RLS is a Postgres feature that filters rows per user.
 
-**Why:**
-1. Clients have no login. RLS rules are built around logged-in users, so they do not fit our "tracking code + cookie" access well.
-2. All checks live in one place (`requireAdmin`, `requireRequestAccess`). One place is easier to read, test, and explain.
-3. Only 1–3 admins. We do not need per-row rules for many user types.
-4. We also turn off (or limit) the Supabase Data API (the automatic REST API) for the `public` schema, because we do not use it.
+- The `anon` role (the public Supabase key, nobody logged in) has **no rights and no policies**. It can read or write **nothing**. That is a safety net if a key leaks.
+- The `authenticated` role (a logged-in user) can only **read its own rows** (migration `0003_accounts_security.sql`). It has no insert, update or delete rights, except to change its own name and phone on `profiles`. Private columns (draft token, tracking lock, storage paths, note authors) are hidden with column rights.
+- Admins are checked by the function `public.is_admin()` (role `admin` in `profiles` AND an active `admin_profiles` row).
 
-**Server connection:** Drizzle connects with the pooled URL (port 6543, transaction mode, `prepare: false`). This connection user bypasses RLS, so the server code **must** check access first. Every service function takes an `actor` argument and tests cover it.
+**Why two layers:**
+1. The server checks access first (`requireUser`, `requireAdmin`, `requireRequestAccess`). One place is easier to read, test, and explain.
+2. User pages (My requests) read through `withUserRls`, which runs the query as the `authenticated` role with the user's id. So RLS filters the rows too, even if our code has a bug.
+3. We also turn off (or limit) the Supabase Data API (the automatic REST API) for the `public` schema, because we do not use it. The 0001 migration revokes the table rights from `anon` and `authenticated`. Migration 0003 gives back only the read rights above.
+
+**Server connection:** Drizzle connects with the pooled URL (port 6543, transaction mode, `prepare: false`). This connection user bypasses RLS, so the server code **must** check access first. Every service function takes an `actor` argument and tests cover it. Writes (many steps, activity log) use this connection, after the check.
+
+**Role safety:** a user cannot change their own role: (1) `authenticated` has no update right on `profiles.role`, (2) the trigger `profiles_protect_role` refuses a role change from `anon` or `authenticated` even if a wide right is given by mistake. Only the database owner (our server, or you in the SQL editor) can make an admin.
+
+**Tests:** `tests/unit/accounts-rls.test.ts` runs the real migrations on PGlite with a tiny fake of Supabase (`tests/helpers/fake-supabase.ts`) and proves these rules.
 
 **Storage:** two buckets.
 | Bucket | Public? | Contents | Who writes |
 |---|---|---|---|
-| `client-files` | **Private** | Client documents | Server only (secret key) |
+| `client-files` | **Private** | Client documents. New files: `users/{userId}/requests/{requestId}/{uuid}.{ext}`. Old files: `requests/{requestId}/...` | Server only (secret key) |
 | `public-assets` | Public read | Payment QR images, site images | Server only, after `requireAdmin({ role: "owner" })` |
 
 QR images use a new random file name on each change (no overwrite), so old links stop working and the log can point to the old file.
@@ -41,6 +48,7 @@ request_status: draft, submitted, under_review, waiting_for_client,
 payment_status: pending, verified, rejected
 payment_entry:  ocr, ocr_edited, manual
 admin_role:     owner, staff
+app_role:       user, admin
 note_visibility: internal, client
 actor_type:     admin, client, system
 email_status:   sent, failed
@@ -49,6 +57,17 @@ email_status:   sent, failed
 ---
 
 ## 3. Tables
+
+### profiles
+One row for every login. Same id as `auth.users.id`. A trigger (`handle_new_user`) makes it when someone signs up, always with role `user`.
+| Field | Type | Notes |
+|---|---|---|
+| id | uuid PK, = `auth.users.id` | on delete cascade from auth.users |
+| email | text | copy for display and data download |
+| full_name | text | |
+| phone | text, nullable | `+63…` |
+| role | app_role, default `user` | `admin` people also have an `admin_profiles` row. Nobody can change their own role |
+| created_at, updated_at | timestamptz | |
 
 ### services
 | Field | Type | Notes |
@@ -85,6 +104,7 @@ Index: `(service_id, sort_order)`.
 | tracking_code | text, unique | `RG-XXXXXXXX` |
 | service_id | uuid FK → services, on delete restrict | |
 | status | request_status, default `draft` | |
+| user_id | uuid FK → profiles, on delete set null, nullable | the owner account. Null = old guest request, or the owner deleted their account |
 | client_full_name | text | |
 | client_email | text | |
 | client_phone | text | `+63…` |
@@ -102,7 +122,7 @@ Index: `(service_id, sort_order)`.
 | tracking_locked_until | timestamptz, nullable | |
 | created_at, updated_at | timestamptz | |
 
-Indexes: unique `(tracking_code)`; `(status, created_at desc)`; `(created_at desc)`; `(service_id)`; partial `(completed_at) where status in ('completed','cancelled') and files_deleted_at is null` for cleanup.
+Indexes: unique `(tracking_code)`; `(user_id, created_at desc)` for "My requests"; `(status, created_at desc)`; `(created_at desc)`; `(service_id)`; partial `(completed_at) where status in ('completed','cancelled') and files_deleted_at is null` for cleanup.
 
 ### request_status_events
 The timeline on the tracking page and in admin.
@@ -254,11 +274,13 @@ Index: `(created_at desc)`.
 ```
 services 1───* service_requirements
 services 1───* requests
+profiles 1───* requests           (user_id; null for old guest requests)
 requests 1───* request_files      (* ───1 service_requirements, optional)
 requests 1───* request_notes      (* ───1 admin_profiles)
 requests 1───* request_status_events
 requests 1───* payments           (* ───1 payment_methods)
 admin_profiles ── auth.users (same id)
+profiles ── auth.users (same id)
 activity_log, site_settings, rate_limits, email_log: stand alone
 ```
 

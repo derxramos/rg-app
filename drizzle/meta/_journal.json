@@ -15,6 +15,20 @@
       "when": 1793937813462,
       "tag": "0001_security_and_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794034493466,
+      "tag": "0002_accounts_and_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794034504898,
+      "tag": "0003_accounts_security",
+      "breakpoints": true
     }
   ]
 }

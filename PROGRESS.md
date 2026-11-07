@@ -21,7 +21,7 @@ Plan: user accounts (role `user`) and admin accounts (role `admin`). Phases:
 
 - [x] Phase 0 — Git setup (deny rules in `.claude/settings.json`, Git rules in CLAUDE.md, branch made)
 - [x] Phase 1 — 2FA flag hardening (red banner, startup warning, `checkAdmin` flag option, tests)
-- [ ] Phase 2 — Database: profiles, user_id, RLS, storage rules
+- [x] Phase 2 — Database: profiles, user_id, RLS, storage rules (migrations 0002 and 0003, NOT yet applied to the live database)
 - [ ] Phase 3 — Session layer and guards
 - [ ] Phase 4 — Login, register, verify, forgot and reset, sign out
 - [ ] Phase 5 — Header and layouts

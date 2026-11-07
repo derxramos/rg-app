@@ -45,6 +45,8 @@ export const requestStatus = pgEnum("request_status", [
 export const paymentStatus = pgEnum("payment_status", ["pending", "verified", "rejected"]);
 export const paymentEntry = pgEnum("payment_entry", ["ocr", "ocr_edited", "manual"]);
 export const adminRole = pgEnum("admin_role", ["owner", "staff"]);
+// The login role of every account. "admin" people also have an admin_profiles row (owner or staff).
+export const appRole = pgEnum("app_role", ["user", "admin"]);
 export const noteVisibility = pgEnum("note_visibility", ["internal", "client"]);
 export const actorType = pgEnum("actor_type", ["admin", "client", "system"]);
 export const emailStatus = pgEnum("email_status", ["sent", "failed"]);
@@ -64,6 +66,21 @@ export const adminProfiles = pgTable("admin_profiles", {
   role: adminRole("role").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}).enableRLS();
+
+// ---------- profiles ----------
+// One row for every login (same id as auth.users.id). A database trigger makes it with role "user"
+// when someone signs up. A user can never change their own role (see drizzle/0003_*.sql).
+export const profiles = pgTable("profiles", {
+  id: uuid("id").primaryKey(),
+  // A copy of the login email, for display and for the data download.
+  email: text("email").notNull().default(""),
+  fullName: text("full_name").notNull().default(""),
+  // Format: +63XXXXXXXXXX
+  phone: text("phone"),
+  role: appRole("role").notNull().default("user"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }).enableRLS();
@@ -115,6 +132,9 @@ export const requests = pgTable(
       .notNull()
       .references(() => services.id, { onDelete: "restrict" }),
     status: requestStatus("status").notNull().default("draft"),
+    // The account that owns the request. Null for old guest requests (made before accounts existed),
+    // and after the owner deletes their account.
+    userId: uuid("user_id").references(() => profiles.id, { onDelete: "set null" }),
     clientFullName: text("client_full_name").notNull(),
     clientEmail: text("client_email").notNull(),
     // Format: +63XXXXXXXXXX
@@ -145,6 +165,8 @@ export const requests = pgTable(
     index("requests_status_created_idx").on(t.status, t.createdAt.desc()),
     index("requests_created_idx").on(t.createdAt.desc()),
     index("requests_service_idx").on(t.serviceId),
+    // "My requests": one user's requests, newest first.
+    index("requests_user_created_idx").on(t.userId, t.createdAt.desc()),
     // Used by the cleanup job to find finished requests that still have files.
     index("requests_cleanup_idx")
       .on(t.completedAt)
@@ -359,6 +381,7 @@ export const emailLog = pgTable(
 // Every table, used by the RLS test to make sure no table is forgotten.
 export const ALL_TABLES = {
   adminProfiles,
+  profiles,
   services,
   serviceRequirements,
   requests,

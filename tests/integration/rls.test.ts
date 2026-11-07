@@ -30,7 +30,7 @@ describe.skipIf(!hasEnv)("Supabase public key is locked out of every table", () 
     await sql.end();
   });
 
-  it("has Row Level Security on for every table and no policies", async () => {
+  it("has Row Level Security on for every table, and policies only for logged-in users", async () => {
     const rows = await sql`
       select c.relname, c.relrowsecurity
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -40,8 +40,22 @@ describe.skipIf(!hasEnv)("Supabase public key is locked out of every table", () 
     for (const row of rows) {
       expect(row.relrowsecurity, `RLS is off for ${row.relname}`).toBe(true);
     }
-    const policies = await sql`select policyname from pg_policies where schemaname = 'public'`;
-    expect(policies).toHaveLength(0);
+    // Since accounts exist, logged-in users may READ their own rows. Nobody else gets a policy:
+    // every policy must be for the "authenticated" role only (never anon or public).
+    const policies = await sql`
+      select policyname, roles::text as roles, cmd from pg_policies where schemaname = 'public'`;
+    expect(policies.length).toBeGreaterThan(0);
+    for (const policy of policies) {
+      expect(policy.roles, `${policy.policyname} is open to more than authenticated`).toBe(
+        "{authenticated}",
+      );
+      expect(["SELECT", "UPDATE"], `${policy.policyname}: ${policy.cmd}`).toContain(policy.cmd);
+    }
+  });
+
+  it("does not let the public key (anon role) run is_admin or read private views", async () => {
+    const { data, error } = await anon.rpc("is_admin");
+    expect(error !== null || data === false || data === null).toBe(true);
   });
 
   it("has real data to protect (so an empty result means something)", async () => {
