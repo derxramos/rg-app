@@ -1,6 +1,6 @@
 "use server";
 
-// The 2FA code steps and logout. Sign in itself is in src/app/auth/actions.ts (one login for everyone).
+// The 2FA code steps. Sign in and sign out are in src/app/auth/actions.ts (one login for everyone).
 // These run BEFORE a person is fully an admin, so they do not use requireAdmin.
 // Everything else in the admin area does (see tests/unit/admin-actions-guard.test.ts).
 
@@ -67,12 +67,4 @@ export async function verifyEnrollAction(
   const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
   if (error) return { ok: false, message: "That code is not right. Please try the newest code." };
   return { ok: true, message: "Done. Your authenticator app is set up." };
-}
-
-export async function logoutAction(): Promise<void> {
-  if (supabaseAuthConfigured()) {
-    const supabase = await createSupabaseServer();
-    await supabase.auth.signOut();
-  }
-  redirect("/login");
 }

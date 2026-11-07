@@ -1,7 +1,7 @@
 "use server";
 
-// Sign in, sign up, verify, forgot and reset password, sign out. These run BEFORE a person is logged in
-// (or they end a login), so they do not use requireUser. Everything else for logged-in people does
+// Sign in, sign up, verify, forgot and reset password. These run BEFORE a person is logged in,
+// so they do not use requireUser. (Sign out is the route POST /auth/sign-out.) Everything else for logged-in people does
 // (see tests/unit/admin-actions-guard.test.ts).
 //
 // Safe messages: we never say whether an email has an account. Login says "email or password is not right".
@@ -10,8 +10,7 @@
 // once, so a typo must not use it up.
 
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { landingPathFor, safeNextPath } from "@/lib/safe-next";
@@ -24,7 +23,7 @@ import {
   resetPasswordSchema,
 } from "@/lib/validation/auth";
 import { logAuthEvent } from "@/server/auth/auth-log";
-import { DEV_USER_COOKIE, ensureProfile } from "@/server/auth/session-core";
+import { ensureProfile } from "@/server/auth/session-core";
 import { getSession } from "@/server/auth/session";
 import { createSupabaseServer, supabaseAuthConfigured } from "@/server/auth/supabase-server";
 import { getDb } from "@/server/db/client";
@@ -309,31 +308,4 @@ export async function resetPasswordAction(
     ipHash,
   });
   redirect(landingPathFor(profile.role));
-}
-
-// ---------- Sign out ----------
-// Used from a <form> (POST), never from a plain link, so another website cannot sign someone out.
-// It clears the session on the SERVER, then goes to the home page, which shows "You have been signed out."
-
-export async function signOutAction(): Promise<void> {
-  const { db, ipHash } = await context();
-  const session = await getSession();
-  if (session) {
-    const profile = await ensureProfile(db, session);
-    await logAuthEvent(db, {
-      action: "auth.logout",
-      userId: profile.id,
-      isAdmin: profile.role === "admin",
-      ipHash,
-    });
-  }
-  if (supabaseAuthConfigured()) {
-    const supabase = await createSupabaseServer();
-    await supabase.auth.signOut();
-  }
-  const jar = await cookies();
-  jar.delete(DEV_USER_COOKIE);
-  jar.delete({ name: "rg_fresh2fa", path: "/admin" });
-  revalidatePath("/", "layout");
-  redirect("/?signed_out=1");
 }

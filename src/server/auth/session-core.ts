@@ -60,6 +60,12 @@ export async function checkUser(
 // It works ONLY when NODE_ENV is "development" (never in a build or in production), only for an email
 // that is listed in DEV_USER_BYPASS_EMAILS, and only for the reserved test pattern zolb-test+...@example.com.
 export const DEV_USER_COOKIE = "rg_dev_user";
+// The cookie value that means "signed out on purpose". It stops the dev admin bypass from signing you in again.
+export const DEV_SIGNED_OUT = "none";
+
+export function isDevSignedOut(env: { nodeEnv?: string; cookie?: string }): boolean {
+  return env.nodeEnv === "development" && env.cookie === DEV_SIGNED_OUT;
+}
 const TEST_EMAIL = /^zolb-test\+[a-z0-9._-]+@example\.com$/i;
 
 export function isTestEmail(email: string): boolean {

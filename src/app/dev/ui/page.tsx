@@ -113,7 +113,19 @@ export default function DevUiPage() {
 
   return (
     <>
-      <SiteHeader />
+      {/* Sample sign-in buttons (the real ones come from HeaderAuth). */}
+      <SiteHeader
+        authBar={
+          <Button variant="outline" size="sm" className="md:min-h-11">
+            Sign in
+          </Button>
+        }
+        authMenu={
+          <Button variant="outline" size="sm" className="w-full md:min-h-11">
+            Sign in
+          </Button>
+        }
+      />
       <main id="main-content">
         <PageContainer className="divide-y">
           <Section

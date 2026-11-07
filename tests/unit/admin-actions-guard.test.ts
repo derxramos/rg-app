@@ -68,8 +68,9 @@ describe("admin actions and routes check access first", () => {
       (f) => /\.(ts|tsx)$/.test(f) && readFileSync(f, "utf8").includes("DEV_ADMIN_BYPASS_EMAIL"),
     );
     const rels = offenders.map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
-    // Allowed: the session code and a comment in the core.
+    // Allowed: the session code, a comment in the core, and a comment in the development route.
     expect(rels.sort()).toEqual([
+      "app/api/dev-login/route.ts",
       "server/auth/admin-core.ts",
       "server/auth/admin.ts",
       "server/auth/session.ts",

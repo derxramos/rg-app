@@ -20,7 +20,15 @@ function navLinkClass(active: boolean) {
 }
 
 // Public header: 64 px tall. Full menu from 1024 px. A Menu button below that.
-export function SiteHeader() {
+// authBar and authMenu are the sign in / sign out buttons. They come from the server (HeaderAuth), so the
+// first page already shows the right state. authBar is the desktop row, authMenu is inside the phone menu.
+export function SiteHeader({
+  authBar,
+  authMenu,
+}: {
+  authBar: React.ReactNode;
+  authMenu: React.ReactNode;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -72,6 +80,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <div className="hidden lg:block">{authBar}</div>
           <Link
             href="/request"
             className={cn(
@@ -117,6 +126,7 @@ export function SiteHeader() {
             >
               Start a request
             </Link>
+            <div className="mt-2 border-t pt-3">{authMenu}</div>
           </PageContainer>
         </nav>
       ) : null}

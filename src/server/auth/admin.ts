@@ -1,12 +1,9 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
-import { connection } from "next/server";
 import { redirect } from "next/navigation";
 
 import { getDb } from "@/server/db/client";
-import { adminProfiles } from "@/server/db/schema";
 import { getTokenSecret, isProduction } from "@/server/env";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
 
@@ -23,25 +20,19 @@ import {
   type AdminRole,
   type AdminSession,
 } from "./admin-core";
+import { getSession } from "./session";
 import { createSupabaseServer, supabaseAuthConfigured } from "./supabase-server";
 
 const FRESH_COOKIE = "rg_fresh2fa";
 
-// Who is logged in? Supabase checks the cookie (getUser asks the server, it does not just trust the cookie).
+// Who is logged in? One place decides (getSession in session.ts): the development test login, "signed out
+// on purpose", the dev admin bypass, or a real Supabase login. For a real login we also ask Supabase
+// (getUser asks the server, it does not just trust the cookie) and read the 2FA level.
 export async function getAdminSession(): Promise<AdminSession | null> {
-  await connection(); // depends on cookies, so it runs at request time
-
-  const bypass = devBypassSession({
-    nodeEnv: process.env.NODE_ENV,
-    email: process.env.DEV_ADMIN_BYPASS_EMAIL,
-  });
-  if (bypass) {
-    const [profile] = await getDb()
-      .select({ id: adminProfiles.id })
-      .from(adminProfiles)
-      .where(eq(adminProfiles.email, bypass.email))
-      .limit(1);
-    return profile ? { ...bypass, userId: profile.id } : null;
+  const session = await getSession();
+  if (!session) return null;
+  if (session.source === "dev") {
+    return { userId: session.userId, email: session.email, aal: "aal2" };
   }
 
   if (!supabaseAuthConfigured()) return null;

@@ -1,9 +1,9 @@
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 
-import { logoutAction } from "@/app/admin/(auth)/actions";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Logo } from "@/components/shared/logo";
+import { ReloadOnRestore } from "@/components/shared/reload-on-restore";
 import { Button } from "@/components/ui/button";
 import type { AdminProfile } from "@/server/auth/admin-core";
 
@@ -18,6 +18,7 @@ export function AdminShell({
   const isOwner = admin.role === "owner";
   return (
     <div className="flex min-h-dvh flex-col bg-surface-subtle">
+      <ReloadOnRestore />
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b bg-background px-4 md:px-6">
         <Link
           href="/admin"
@@ -31,10 +32,11 @@ export function AdminShell({
             <span className="block truncate font-bold">{admin.fullName}</span>
             <span className="block text-muted-foreground">{isOwner ? "Owner" : "Staff"}</span>
           </span>
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline" size="sm">
+          {/* Same plain form POST as the public header: ends the session on the server, then loads the home page. */}
+          <form method="post" action="/auth/sign-out">
+            <Button type="submit" variant="outline" size="sm" className="md:min-h-11">
               <LogOut aria-hidden="true" />
-              Log out
+              Sign out
             </Button>
           </form>
         </div>

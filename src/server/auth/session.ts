@@ -23,6 +23,7 @@ import {
   UserAuthError,
   checkUser,
   devUserSession,
+  isDevSignedOut,
   ensureProfile,
   runAsUser,
   type Profile,
@@ -44,6 +45,10 @@ export const getSession = cache(async (): Promise<UserSession | null> => {
     cookie: jar.get(DEV_USER_COOKIE)?.value,
   });
   if (devUser) return devUser;
+
+  // Development only: signed out on purpose (so the admin bypass below does not sign you in again).
+  if (isDevSignedOut({ nodeEnv: process.env.NODE_ENV, cookie: jar.get(DEV_USER_COOKIE)?.value }))
+    return null;
 
   // Development only: the existing admin bypass.
   const adminBypass = devBypassSession({
@@ -95,12 +100,13 @@ export async function requireVerifiedUser(): Promise<AuthContext> {
 export type Viewer =
   { kind: "visitor" } | { kind: "user" | "admin"; profile: Profile; email: string };
 
-export async function getViewer(): Promise<Viewer> {
+// Cached for the request: the header asks twice (desktop bar and phone menu), the database is asked once.
+export const getViewer = cache(async (): Promise<Viewer> => {
   const session = await getSession();
   if (!session) return { kind: "visitor" };
   const profile = await ensureProfile(getDb(), session);
   return { kind: profile.role, profile, email: session.email };
-}
+});
 
 // For pages: sends the person where they can fix it instead of showing an error.
 // `path` is where to come back to after login.

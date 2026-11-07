@@ -6,9 +6,22 @@ config({ path: ".env.local", quiet: true });
 
 export const E2E_METHOD_ID = "99999999-9999-4999-8999-999999999999";
 
+// Test data is written to and deleted from this database, so it must be a LOCAL test database
+// (pnpm dev:db), never the live Supabase project. Set E2E_ALLOW_REMOTE_DB=1 only for a Supabase TEST project.
+function assertLocalDatabase(url: string) {
+  if (process.env.E2E_ALLOW_REMOTE_DB === "1") return;
+  const host = new URL(url).hostname;
+  if (host !== "127.0.0.1" && host !== "localhost") {
+    throw new Error(
+      `The end-to-end tests only run on a local database, but DATABASE_URL points to "${host}". Run "pnpm dev:db" and use its address.`,
+    );
+  }
+}
+
 export function testSql() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set. Run `pnpm dev:db` and fill .env.local.");
+  assertLocalDatabase(url);
   return postgres(url, { prepare: false, max: 1 });
 }
 
@@ -117,6 +130,17 @@ export async function removeTestAdmin() {
     await sql`delete from admin_profiles where id = ${E2E_ADMIN_ID}`;
     await sql`delete from profiles where id = ${E2E_ADMIN_ID}`;
     await sql`alter table admin_profiles enable trigger admin_profiles_protect_last_owner`;
+  } finally {
+    await sql.end();
+  }
+}
+
+// Profiles made by the development test login (zolb-test+...@example.com). Removes them again.
+// Requests that point to them keep their rows (user_id becomes null).
+export async function removeTestProfiles() {
+  const sql = testSql();
+  try {
+    await sql`delete from profiles where email like 'zolb-test+%@example.com' and role = 'user'`;
   } finally {
     await sql.end();
   }

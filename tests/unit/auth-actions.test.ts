@@ -52,10 +52,32 @@ describe("public sign-in actions", () => {
     }
   });
 
-  it("sign out is a Server Action that clears the session on the server", () => {
-    const text = body("signOutAction");
-    expect(text).toContain("auth.signOut()");
-    expect(text).toContain('redirect("/?signed_out=1")');
+  it("sign out is a POST-only route that clears the session on the server", () => {
+    const route = readFileSync(
+      path.resolve(__dirname, "../../src/app/auth/sign-out/route.ts"),
+      "utf8",
+    );
+    expect(route).toContain("export async function POST(");
+    expect(route).not.toContain("export async function GET(");
+    // A full page redirect, so the Back button cannot show a private page from the router cache.
+    expect(route).toContain("status: 303");
+    expect(route).toContain("signed_out");
+    expect(route).toContain("Origin".toLowerCase());
+    const core = readFileSync(path.resolve(__dirname, "../../src/server/auth/sign-out.ts"), "utf8");
+    expect(core).toContain("auth.signOut()");
+    expect(core).toContain('action: "auth.logout"');
+  });
+
+  it("the sign out buttons are plain form posts, never links", () => {
+    for (const rel of [
+      "src/components/shared/header-auth.tsx",
+      "src/components/admin/admin-shell.tsx",
+    ]) {
+      const text = readFileSync(path.resolve(__dirname, "../..", rel), "utf8");
+      expect(text, rel).toContain('method="post"');
+      expect(text, rel).toContain('action="/auth/sign-out"');
+      expect(text, rel).not.toMatch(/href=["']\/auth\/sign-out/);
+    }
   });
 
   it("the file is a use server file and never reads the role from the browser", () => {

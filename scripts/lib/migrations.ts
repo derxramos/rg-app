@@ -15,9 +15,12 @@ function statementsOf(file: string): string[] {
     .filter(Boolean);
 }
 
-export async function applyMigrations(db: PGlite) {
+// `fromFile` (for example "0002") skips the older files. The local dev database uses it to add only the
+// migrations it does not have yet.
+export async function applyMigrations(db: PGlite, options: { fromFile?: string } = {}) {
   const files = readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith(".sql"))
+    .filter((f) => !options.fromFile || f >= options.fromFile)
     .sort();
   for (const file of files) {
     for (const statement of statementsOf(file)) {

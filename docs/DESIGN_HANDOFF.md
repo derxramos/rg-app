@@ -54,6 +54,39 @@ For each screen: **default**, **loading**, **error**, and **empty** state where 
 
 ---
 
+## 2b. Account screens (new: sign in, accounts, My requests)
+
+Clients now have accounts. Reuse the existing components and tokens (page heading, form fields, warning box, status badge, timeline, empty state, Turnstile area). Each screen needs: **default, field errors, submitting, server error, rate-limited** where it has a form. Forms keep what the person typed after an error. Errors use an icon and words, never color alone. All touch targets at least 44 px.
+
+| # | Screen | Route | States / notes |
+|---|---|---|---|
+| U1 | Sign in | `/login` | default; field errors; wrong email or password (one message for both); "Please verify your email first" with a link to send it again; too many tries; "Your session ended. Please sign in again." (comes with a return path); already signed in (redirects). Links: Forgot your password, Create an account, Track my request (code only) |
+| U2 | Create an account | `/register` | full name, email, password (with the rule: at least 12 characters), confirm password, consent checkbox (Privacy notice + Terms links), Turnstile; field errors; weak password; too many tries |
+| U3 | Check your email | `/register/check-email` | what to do next, "Send the link again" form (email + Turnstile), the same answer whether or not the email exists |
+| U4 | Forgot password | `/forgot-password` | email + Turnstile; success message is always the same ("If an account exists..."); too many tries |
+| U5 | Choose a new password | `/reset-password` | new password + confirm; link ended (old or used) with a link to ask again; same-as-old and weak password errors |
+| U6 | Link did not work | `/auth/error` | old or used email link; buttons to ask for a new link |
+| U7 | My requests (account) | `/account` | list of the person's requests (card on phone, table on desktop) with status badge; empty state ("You have no requests yet" + Start a request); profile block (name, phone, email); Download my data; Delete my account (type DELETE + password, blocked while a request is open). Built in Phase 7 |
+| U8 | Request detail (account) | `/account/requests/[id]` | status badge, timeline, the latest message from us, payment state, **file names and dates only** (no open or download link), Pay now / Upload more buttons only when the status allows, refreshes by itself every 60 seconds; "not found" looks the same for a request that is not yours. Built in Phase 7 |
+| U9 | Not allowed | `/admin/not-allowed` | a signed-in person who is not an admin opened /admin: short text and buttons to My requests and Home |
+
+### Header states (public pages, `SiteHeader`)
+
+Orange stays **only** for "Start a request". Sign in and sign out use the outline style. The header is 64 px tall; from 1024 px the buttons are in the bar, below that they are inside the Menu (phone, 390 px).
+
+| State | Desktop bar (from 1024 px) | Phone menu (390 px) |
+|---|---|---|
+| Visitor (not signed in) | Home, Services, How it works, Contact, Track my request · **Sign in** (outline) · **Start a request** (orange) | menu links, then Start a request (orange), then a divider and **Sign in** (outline, full width) |
+| User | same links · **My requests** (ghost link to /account) · **Sign out** (outline, with icon) · Start a request (orange) | menu links, Start a request, divider, **My requests**, **Sign out** (full width) |
+| Admin | same links · **Admin** (ghost link to /admin) · **Sign out** · Start a request (orange) | menu links, Start a request, divider, **Admin**, **Sign out** (full width) |
+| Loading (first paint) | an empty space of the same size where the buttons go. It never shows a wrong button. | same |
+
+- The sign out button is a form button, never a link. After sign out the home page shows a toast: "You have been signed out."
+- Admin pages (`AdminShell`) show **Sign out** in the top bar at every screen width.
+- Admin pages show a red banner at the very top while 2-step login is off: "2-step login is OFF. Turn it on before real clients use this site." It must stay visible and cannot be closed.
+
+---
+
 ## 3. Admin screens
 
 | # | Screen | Route | States / notes |

@@ -39,6 +39,15 @@ async function main() {
     console.log("Default settings added.");
   }
 
+  // An older local database (made before accounts existed) gets the newer migrations once.
+  const hasProfiles = await db.query<{ exists: boolean }>(
+    `select to_regclass('public.profiles') is not null as exists`,
+  );
+  if (!hasProfiles.rows[0].exists) {
+    console.log("Adding the accounts migrations (0002 and later)...");
+    await applyMigrations(db, { fromFile: "0002" });
+  }
+
   const server = new PGLiteSocketServer({ db, port: PORT, host: "127.0.0.1", maxConnections: 3 });
   await server.start();
   console.log(`Local database is ready on postgres://postgres:postgres@127.0.0.1:${PORT}/postgres`);
