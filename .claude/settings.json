@@ -1,3 +1,21 @@
 {
-  "model": "opusplan"
+  "model": "opusplan",
+  "permissions": {
+    "deny": [
+      "Bash(git push)",
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git remote:*)",
+      "Bash(git config:*)",
+      "Bash(git * --force*)",
+      "Bash(git * -f *)",
+      "PowerShell(git push)",
+      "PowerShell(git push:*)",
+      "PowerShell(git reset --hard:*)",
+      "PowerShell(git remote:*)",
+      "PowerShell(git config:*)",
+      "PowerShell(git * --force*)",
+      "PowerShell(git * -f *)"
+    ]
+  }
 }
