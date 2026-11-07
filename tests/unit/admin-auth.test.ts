@@ -10,13 +10,15 @@ import {
   makeFresh2faValue,
   type AdminSession,
 } from "@/server/auth/admin-core";
-import { adminProfiles } from "@/server/db/schema";
+import { adminProfiles, profiles } from "@/server/db/schema";
 
 import { createTestDb } from "../helpers/test-db";
 
 const OWNER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const STAFF = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const OFF = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+// Has an active admin_profiles row, but the account role is only "user". Must be refused.
+const MISMATCH = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 const session = (userId: string, aal: AdminSession["aal"] = "aal2"): AdminSession => ({
   userId,
   email: "zolb-test+a@example.com",
@@ -30,6 +32,14 @@ beforeAll(async () => {
     { id: OWNER, fullName: "Owner", email: "zolb-test+o@example.com", role: "owner" },
     { id: STAFF, fullName: "Staff", email: "zolb-test+s@example.com", role: "staff" },
     { id: OFF, fullName: "Off", email: "zolb-test+x@example.com", role: "staff", isActive: false },
+    { id: MISMATCH, fullName: "Mismatch", email: "zolb-test+m@example.com", role: "owner" },
+  ]);
+  // The account role. Everyone above is "admin" except MISMATCH.
+  await t.db.insert(profiles).values([
+    { id: OWNER, email: "zolb-test+o@example.com", role: "admin" },
+    { id: STAFF, email: "zolb-test+s@example.com", role: "admin" },
+    { id: OFF, email: "zolb-test+x@example.com", role: "admin" },
+    { id: MISMATCH, email: "zolb-test+m@example.com", role: "user" },
   ]);
 }, 60_000);
 afterAll(async () => t.close());
@@ -59,6 +69,9 @@ describe("checkAdmin", () => {
   it("refuses a turned-off admin at once", async () => {
     expect(await code(checkAdmin(t.db, session(OFF)))).toBe("inactive");
   });
+  it("refuses an account whose role is only user, even with an admin_profiles row", async () => {
+    expect(await code(checkAdmin(t.db, session(MISMATCH)))).toBe("not-admin");
+  });
   it("keeps staff out of owner-only actions (payment methods, users, export)", async () => {
     expect(await code(checkAdmin(t.db, session(STAFF), { roles: OWNER_ONLY }))).toBe("wrong-role");
     expect(await code(checkAdmin(t.db, session(OWNER), { roles: OWNER_ONLY }))).toBe("ok");
@@ -79,6 +92,9 @@ describe("checkAdmin with the 2FA flag OFF (twoFactorRequired: false)", () => {
   });
   it("still refuses a turned-off admin", async () => {
     expect(await code(checkAdmin(t.db, session(OFF, "aal1"), off))).toBe("inactive");
+  });
+  it("still refuses an account with the role user", async () => {
+    expect(await code(checkAdmin(t.db, session(MISMATCH, "aal1"), off))).toBe("not-admin");
   });
   it("still keeps staff out of owner-only actions", async () => {
     const result = await code(

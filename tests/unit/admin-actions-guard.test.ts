@@ -73,6 +73,57 @@ describe("admin actions and routes check access first", () => {
       "app/admin/(auth)/login/page.tsx",
       "server/auth/admin-core.ts",
       "server/auth/admin.ts",
+      "server/auth/session.ts",
+    ]);
+  });
+});
+
+// ---------- The user area (logged-in people) ----------
+// Every Server Action in /account must check the login first. A page check is not enough, because a
+// Server Action can be called with a direct POST request. (The folder may not exist yet in early phases.)
+const USER_GUARD = /withUser\(|requireUser\(|requireVerifiedUser\(|requireRequestAccess\(/;
+const accountDir = path.join(ROOT, "app/account");
+const accountActions = (() => {
+  try {
+    return walk(accountDir).filter((f) => /actions\.ts$/.test(f));
+  } catch {
+    return [];
+  }
+})();
+
+describe("user actions check the login first", () => {
+  for (const file of accountActions) {
+    const rel = path.relative(ROOT, file);
+    const source = readFileSync(file, "utf8");
+    it(`${rel} is a "use server" file`, () => {
+      expect(source.trimStart().startsWith('"use server"')).toBe(true);
+    });
+    for (const fn of exportedFunctions(source)) {
+      it(`${rel}: ${fn.name}() calls withUser / requireUser / requireVerifiedUser`, () => {
+        expect(USER_GUARD.test(fn.body)).toBe(true);
+      });
+    }
+  }
+
+  it("the development test login route answers 404 unless NODE_ENV is development", () => {
+    const source = readFileSync(path.join(ROOT, "app/api/dev-login/route.ts"), "utf8");
+    expect(source).toContain('process.env.NODE_ENV !== "development"');
+    expect(source.indexOf('NODE_ENV !== "development"')).toBeLessThan(
+      source.indexOf("cookies.set"),
+    );
+  });
+
+  it("the development test user is only read in session.ts and the dev route", () => {
+    const offenders = walk(ROOT)
+      .filter(
+        (f) => /\.(ts|tsx)$/.test(f) && readFileSync(f, "utf8").includes("DEV_USER_BYPASS_EMAILS"),
+      )
+      .map((f) => path.relative(ROOT, f).replace(/\\/g, "/"));
+    // Allowed: the session code, a comment in the core, and the development route.
+    expect(offenders.sort()).toEqual([
+      "app/api/dev-login/route.ts",
+      "server/auth/session-core.ts",
+      "server/auth/session.ts",
     ]);
   });
 });

@@ -7,6 +7,7 @@ import {
   activityLog,
   adminProfiles,
   paymentMethods,
+  profiles,
   payments,
   requestFiles,
   requests,
@@ -496,6 +497,12 @@ describe("admin users", () => {
       "needs-fresh-2fa",
     );
     await inviteAdmin(t.db, owner, api, input, { fresh2fa: true });
+    // The account role is "admin" too, because requireAdmin checks both records.
+    const [account] = await t.db
+      .select({ role: profiles.role })
+      .from(profiles)
+      .where(eq(profiles.id, "dddddddd-dddd-4ddd-8ddd-dddddddddddd"));
+    expect(account.role).toBe("admin");
     expect(await rejects(inviteAdmin(t.db, owner, api, input, { fresh2fa: true }))).toBe("exists");
     expect(
       await rejects(inviteAdmin(t.db, owner, api, { ...input, email: "bad" }, { fresh2fa: true })),

@@ -2,11 +2,12 @@ import "server-only";
 
 // The core of admin access checks. No cookies and no Supabase here, so it is easy to test.
 // requireAdmin checks, in this order (docs/ARCHITECTURE.md section 5):
-//   1. a valid session   2. AAL2 (password + 2FA code)   3. an active admin_profiles row   4. the needed role
+//   1. a valid session   2. AAL2 (password + 2FA code, skipped only while ADMIN_REQUIRE_2FA=false)
+//   3. an active admin_profiles row   4. profiles.role = "admin"   5. the needed owner/staff level
 
 import { eq } from "drizzle-orm";
 
-import { adminProfiles } from "@/server/db/schema";
+import { adminProfiles, profiles } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 import { hmacHex, safeEqual } from "@/server/security/tokens";
 
@@ -59,6 +60,14 @@ export async function checkAdmin(
   if (!profile) throw new AdminAuthError("not-admin");
   // Turning an account off blocks it at once, even if the session is still valid.
   if (!profile.isActive) throw new AdminAuthError("inactive");
+  // The account role must ALSO be "admin" (profiles table). Two separate records must agree, so a
+  // mistake in one place does not make someone an admin. This check runs even when 2FA is off.
+  const [account] = await db
+    .select({ role: profiles.role })
+    .from(profiles)
+    .where(eq(profiles.id, session.userId))
+    .limit(1);
+  if (account?.role !== "admin") throw new AdminAuthError("not-admin");
   if (options.roles && !hasRole(profile, options.roles)) throw new AdminAuthError("wrong-role");
   return profile;
 }

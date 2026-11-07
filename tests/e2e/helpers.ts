@@ -95,6 +95,10 @@ export async function ensureTestAdmin() {
     await sql`insert into admin_profiles (id, full_name, email, role, is_active)
               values (${E2E_ADMIN_ID}, 'Test Owner', ${E2E_ADMIN_EMAIL}, 'owner', true)
               on conflict (id) do update set is_active = true, role = 'owner'`;
+    // requireAdmin also needs the account role "admin".
+    await sql`insert into profiles (id, email, full_name, role)
+              values (${E2E_ADMIN_ID}, ${E2E_ADMIN_EMAIL}, 'Test Owner', 'admin')
+              on conflict (id) do update set role = 'admin'`;
   } finally {
     await sql.end();
   }
@@ -111,6 +115,7 @@ export async function removeTestAdmin() {
     await sql`update payment_methods set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;
     await sql`update site_settings set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;
     await sql`delete from admin_profiles where id = ${E2E_ADMIN_ID}`;
+    await sql`delete from profiles where id = ${E2E_ADMIN_ID}`;
     await sql`alter table admin_profiles enable trigger admin_profiles_protect_last_owner`;
   } finally {
     await sql.end();

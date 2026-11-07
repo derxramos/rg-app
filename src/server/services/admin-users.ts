@@ -10,7 +10,7 @@ import {
   type AdminProfile,
   type AdminRole,
 } from "@/server/auth/admin-core";
-import { activityLog, adminProfiles } from "@/server/db/schema";
+import { activityLog, adminProfiles, profiles } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 
 // What we need from Supabase Auth. A fake is used in tests.
@@ -64,6 +64,12 @@ export async function inviteAdmin(
   const { id } = await api.invite(email);
   await db.transaction(async (tx) => {
     await tx.insert(adminProfiles).values({ id, fullName, email, role: input.role });
+    // The account role must also say "admin" (requireAdmin checks both). The sign-up trigger already
+    // made a "user" profile for the new login, so this upsert changes it.
+    await tx
+      .insert(profiles)
+      .values({ id, email, fullName, role: "admin" })
+      .onConflictDoUpdate({ target: profiles.id, set: { role: "admin", fullName } });
     await tx.insert(activityLog).values({
       actorType: "admin",
       actorId: actor.id,
