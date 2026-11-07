@@ -21,15 +21,12 @@ export function SiteFooter() {
         <div className="flex min-w-0 flex-col gap-3">
           <Logo />
           <p className="text-sm text-muted-foreground">{BUSINESS_NAME}</p>
-          <p className="text-sm text-muted-foreground">
-            You pay in your own GCash, Maya or bank app. You never pay on this website.
-          </p>
         </div>
 
-        <nav aria-label="Footer" className="min-w-0">
+        <nav aria-label="Footer" className="min-w-0 xl:justify-self-end">
           <h2 className={headingClass}>Pages</h2>
-          {/* The links fill the whole column: one per line on phones, 2 by 2 on tablets, one row, spread edge to edge, on wide screens. */}
-          <div className="grid grid-cols-1 gap-x-6 md:grid-cols-2 xl:flex xl:justify-between xl:gap-x-4">
+          {/* One per line on phones, 2 by 2 on tablets. On wide screens one row with equal gaps, pushed to the right, so the last link ("Track my request") ends at the same right edge as the legal links below. */}
+          <div className="grid grid-cols-1 gap-x-6 md:grid-cols-2 xl:flex xl:justify-end xl:gap-x-6">
             {FOOTER_NAV.map((item) => (
               <Link key={item.href} href={item.href} className={linkClass}>
                 {item.label}
@@ -37,7 +34,6 @@ export function SiteFooter() {
             ))}
           </div>
         </nav>
-
       </PageContainer>
 
       <div className="mt-8 border-t">

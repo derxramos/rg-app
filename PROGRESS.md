@@ -582,3 +582,9 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Hero animation checked in a browser: all five shapes, the spinner and the check move; with reduced motion nothing moves.
 - Test accounts: three local test accounts (zolb-test+hdr-user, zolb-test+hdr-admin, zolb-test+hdr-long @example.com) were made in the LOCAL throwaway database only. **One has the role admin** (needed to see the admin header state). All three were deleted afterwards and a search found 0 left in profiles, admin_profiles, requests, email_log and activity_log.
 - Not checked: the real Supabase sign in with the new header (the local test login was used).
+
+### 2026-11-07 — Footer cleanup (branch `fix/footer-cleanup`)
+- Removed "You pay in your own GCash, Maya or bank app. You never pay on this website." from the footer. It stays in the Terms of service and on the How it works page (not changed).
+- The footer already used the same container as the header (max 1200 px, same side padding). From 1280 px the page links are one row with equal 24 px gaps, pushed to the right, so "Track my request" ends at the same right edge as "Terms of service" (measured at 1280 and 1440: the same pixel). The "Pages" heading now sits above the first link.
+- Phones (390 px) and tablets are unchanged: one link per line, and 2 by 2 on tablets.
+- Checked the footer at 390, 768, 1280 and 1440 px in day and night mode. Lint, type check and build pass.
