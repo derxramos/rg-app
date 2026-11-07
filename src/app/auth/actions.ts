@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { landingPathFor, safeNextPath } from "@/lib/safe-next";
+import { landingPathFor } from "@/lib/safe-next";
 import { isTwoFactorRequired } from "@/lib/two-factor-flag";
 import {
   emailOnlySchema,
@@ -22,6 +22,7 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from "@/lib/validation/auth";
+import { afterLoginDestination } from "@/server/auth/admin-core";
 import { logAuthEvent } from "@/server/auth/auth-log";
 import { ensureProfile } from "@/server/auth/session-core";
 import { getSession } from "@/server/auth/session";
@@ -128,14 +129,21 @@ export async function loginAction(_previous: AuthState, formData: FormData): Pro
   await logAuthEvent(db, { action: "auth.login.success", userId: profile.id, isAdmin, ipHash });
 
   // Admins: with 2FA required they must pass the code step first. With the flag "false" they go straight in.
-  if (isAdmin && isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA)) {
+  // Users are never asked for a code.
+  const twoFactorRequired = isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA);
+  let hasVerifiedFactor = false;
+  if (isAdmin && twoFactorRequired) {
     const { data: factors } = await supabase.auth.mfa.listFactors();
-    redirect(
-      factors?.totp.some((f) => f.status === "verified") ? "/admin/mfa" : "/admin/mfa/setup",
-    );
+    hasVerifiedFactor = Boolean(factors?.totp.some((f) => f.status === "verified"));
   }
-  const fallback = landingPathFor(isAdmin ? "admin" : "user");
-  redirect(safeNextPath(String(formData.get("next") ?? ""), fallback));
+  redirect(
+    afterLoginDestination({
+      isActiveAdmin: isAdmin,
+      twoFactorRequired,
+      hasVerifiedFactor,
+      next: String(formData.get("next") ?? ""),
+    }),
+  );
 }
 
 // ---------- Sign up ----------

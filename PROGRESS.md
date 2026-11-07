@@ -2,8 +2,8 @@
 
 Update this file at the end of every work session.
 
-**Current status:** All 8 phases are built and each is committed. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
-**Last updated:** 2026-11-06
+**Current status:** All 8 phases are built and each is committed. The accounts and roles work (branch `feat/auth-roles`, merged into `main`, not pushed) is built too: see "Accounts and roles work" below and docs/AUTH_AND_ROLES.md. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
+**Last updated:** 2026-11-07
 
 **Next step:** Owner: answer the open questions, set up the real accounts, and run the live checklist. Then deploy a preview.
 
@@ -28,7 +28,7 @@ Plan: user accounts (role `user`) and admin accounts (role `admin`). Phases:
 - [x] Phase 6 — Requests belong to users (the old guest draft cookie code stays only for old guest drafts; they expire within 7 days)
 - [x] Phase 7 — Account area (My requests, request page, profile, download my data, delete my account, privacy notice 2.0)
 - [x] Phase 8 — Admin role management, docs and checklist (Make admin, Remove admin, docs/AUTH_AND_ROLES.md, manual test list)
-- [ ] Phase 9 — 2FA ON path (last)
+- [x] Phase 9 — 2FA ON path (last) (tested for both flag values; the live check is in "Before launch")
 
 Note: for this run the owner asked me to go on without stopping after each phase, and to stop only if blocked.
 
@@ -447,3 +447,45 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 - None of this session's work was committed or pushed when this was written, so Vercel production still showed the old design.
 - **Footer is now two columns (owner request):** the Contact column (Contact us + Viber buttons) was removed because the home "Questions?" section shows the same buttons. Footer = business info | Pages, from md up (`md:grid-cols-2`); the bottom row (copyright, Privacy notice, Terms of service) is unchanged. `SiteFooter` no longer takes Messenger/Viber props. Other pages still show their own contact block, and "Contact" stays in Pages. Checked at 390, 768 and 1440 px (no sideways scroll).
 - **Footer Pages links fill their column (owner request):** the four links were stuck at the left of the right half, leaving a blank space. Now one per line on phones, 2 by 2 from md, and one row spread edge to edge from xl (1280 px), with no wrapping. Checked at 390, 768, 1024 and 1440 px (no sideways scroll); looked at the 390, 768 and 1440 px footers.
+
+
+### Accounts and roles session (branch `feat/auth-roles`, 2026-11-07)
+
+Built in phases 0 to 9 (see the list near the top). Every phase was merged into `main` with `--ff-only` after lint, typecheck, unit tests and build passed. Nothing was pushed. Nothing was run on a live database.
+
+**What changed**
+- Users can create an account (email + password, email verified), sign in, reset the password, send requests, see "My requests", change their name and phone, download their data and delete their account.
+- Admins sign in on the same `/login` page. `requireAdmin` needs `profiles.role = 'admin'` AND an active `admin_profiles` row. An owner can make an existing account an admin and remove the admin role (Settings > Admin users).
+- Access is checked in three places: the proxy, every page/action/route, and database Row Level Security (users read only their own rows).
+- Header: Sign in / My requests / Admin / Sign out, in the bar and in the phone menu. Sign out is a form POST with a full page redirect.
+- `ADMIN_REQUIRE_2FA` stays off for now: only the exact word `false` turns it off. A red banner shows on every admin page and the server logs a warning at start. With it required: forced TOTP setup, a code at each sign in, fresh codes for risky actions. Tested for both values.
+- New files: `drizzle/0002_accounts_and_roles.sql`, `drizzle/0003_accounts_security.sql`, `docs/AUTH_AND_ROLES.md`.
+
+**Tests**
+- Unit: 486 tests pass (database rules run on the real SQL with a small fake of Supabase: `tests/unit/accounts-rls.test.ts`).
+- Browser (local test database only): `accounts.spec.ts` (header states, sign out and Back button, /admin for a user, user A and B, upload with no access, My requests, download, delete) and `admin-2fa.spec.ts` (run once with the flag false and once with true).
+- Known failures that are NOT from this work: `smoke.spec.ts` "how it works" expects 5 h2 headings and the page has 6 (content changed in an earlier session), and `admin.spec.ts` "payment methods: a risky change needs a fresh code" only passes with `ADMIN_REQUIRE_2FA=true`.
+
+**Decisions**
+| Decision | Why |
+|---|---|
+| Sign out is `POST /auth/sign-out` (route handler, 303 redirect), not a Server Action | A soft redirect let the Back button show the admin page from the Next.js router cache. A full page load does not. |
+| Delete account is `POST /api/account/delete` called with `fetch`, not a Server Action | A Server Action that changes cookies makes Next.js draw the current page again (already signed out). |
+| "Signed out" and "account deleted" messages use a 30 second flash cookie, not a `?signed_out=1` address | Changing the address made the header load again and closed the phone menu. |
+| The header's sign in part reads the login at request time in its own Suspense, and uses `unstable_rethrow` | Otherwise the signed-out header could be saved in the cached page and shown to everyone. |
+| Old guest requests keep `user_id = null`; nobody can claim one by email | Claiming by email alone would be unsafe. Admins and the tracking code still work for them. |
+| The old draft-cookie code stays only for old guest drafts | They expire in 7 days. New requests have no draft cookie. |
+| In "My requests" users see file names and dates only | Owner choice. No link to open a file. |
+| Dev test login (`/api/dev-login`, `DEV_USER_BYPASS_EMAILS`) works only when NODE_ENV is development | Lets pages and browser tests run with no Supabase. Tests prove it is refused elsewhere. |
+| `withUserRls` falls back to the normal connection only in development when the local database has no `authenticated` role | The plain local test database has no Supabase roles. Production and tests always use the role. |
+| e2e helpers refuse a database that is not on this computer (set `E2E_ALLOW_REMOTE_DB=1` for a Supabase TEST project) | `.env.local` points at the live Supabase project; the tests write and delete data. |
+| For the browser tests, blank `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `BREVO_API_KEY`, the Supabase variables | Otherwise the real keys from `.env.local` make the tests wait for the internet. |
+| Dev-only HTTP status for a missing `/account/requests/[id]` is 200 with the "not found" page | The page streams. The page is the same in every case. |
+
+**The owner must do by hand** (details in `docs/AUTH_AND_ROLES.md`)
+1. On a Supabase TEST project: sign-ups ON, "Confirm email" ON, password length 12, Site URL, email templates, Brevo SMTP (section 2).
+2. Back up, then apply the two migrations (section 3).
+3. Create the first admin (section 4).
+4. Run the manual test list (section 6).
+5. Approve the new privacy notice text (version 2.0) and set "Privacy notice version" to `2.0` in Settings > Site content.
+6. **Before real clients: set `ADMIN_REQUIRE_2FA=true` on the live site** and test the admin login.

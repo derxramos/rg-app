@@ -9,6 +9,7 @@ import { hashIp, readClientIp } from "@/server/security/client-ip";
 
 import {
   AdminAuthError,
+  adminFailureRedirect,
   checkAdmin,
   devBypassSession,
   isFresh2faValid,
@@ -72,11 +73,37 @@ export async function guardAdminPage(
     failure = error.code;
   }
   if (profile) return profile;
-  if (failure === "needs-2fa") redirect("/admin/mfa");
-  if (failure === "wrong-role") redirect("/admin?denied=1");
-  // Logged in, but not an (active) admin: show the "Not allowed" page, not the login page.
-  if (failure === "not-admin" || failure === "inactive") redirect("/admin/not-allowed");
-  redirect("/login?next=%2Fadmin&reason=expired");
+  redirect(adminFailureRedirect(failure ?? "no-session"));
+}
+
+// For the 2FA code pages and their actions. The person must be a signed-in, active admin (the password step
+// is done), but has NOT passed 2FA yet, so requireAdmin cannot be used. If not: AdminAuthError.
+export async function requireAdminPendingMfa(): Promise<AdminSession> {
+  const session = await getAdminSession();
+  await checkAdmin(getDb(), session, { twoFactorRequired: false });
+  return session as AdminSession;
+}
+
+// For the 2FA pages. Sends people who do not belong there somewhere useful, and says whether a verified
+// authenticator app already exists.
+export async function guardMfaPage(): Promise<{ hasVerifiedFactor: boolean }> {
+  let session: AdminSession | null = null;
+  let failure: AdminAuthCode | null = null;
+  try {
+    session = await requireAdminPendingMfa();
+  } catch (error) {
+    if (!(error instanceof AdminAuthError)) throw error;
+    failure = error.code;
+  }
+  if (!session) redirect(adminFailureRedirect(failure ?? "no-session"));
+  // Nothing to do while 2FA is off, or after the code was already accepted.
+  if (!isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA) || session.aal === "aal2") {
+    redirect("/admin");
+  }
+  if (!supabaseAuthConfigured()) return { hasVerifiedFactor: false };
+  const supabase = await createSupabaseServer();
+  const { data: factors } = await supabase.auth.mfa.listFactors();
+  return { hasVerifiedFactor: Boolean(factors?.totp.some((f) => f.status === "verified")) };
 }
 
 // ---------- Fresh 2FA ----------

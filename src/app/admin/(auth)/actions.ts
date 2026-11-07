@@ -7,11 +7,26 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import type { ActionResult } from "@/server/auth/admin";
+import { AdminAuthError } from "@/server/auth/admin-core";
+import { requireAdminPendingMfa, type ActionResult } from "@/server/auth/admin";
 import { createSupabaseServer, supabaseAuthConfigured } from "@/server/auth/supabase-server";
 import { getDb } from "@/server/db/client";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
 import { rateLimit } from "@/server/security/rate-limit";
+
+const NOT_ALLOWED = "This account is not allowed here.";
+
+// These steps are for admins only (the password step is done, the 2FA step may not be). A normal user
+// cannot enroll an authenticator or try codes here.
+async function adminPending(): Promise<boolean> {
+  try {
+    await requireAdminPendingMfa();
+    return true;
+  } catch (error) {
+    if (error instanceof AdminAuthError) return false;
+    throw error;
+  }
+}
 
 // Step 2: the 6-digit code from the authenticator app. A good code lifts the session to AAL2.
 export async function verifyMfaAction(
@@ -19,6 +34,7 @@ export async function verifyMfaAction(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!supabaseAuthConfigured()) return { ok: false, message: "Login is not set up yet." };
+  if (!(await adminPending())) return { ok: false, message: NOT_ALLOWED };
   const db = getDb();
   const ipHash = hashIp(readClientIp(await headers()));
   const limit = await rateLimit(db, { key: `mfa:ip:${ipHash}`, limit: 10, windowSeconds: 900 });
@@ -43,6 +59,7 @@ export async function startEnrollAction(): Promise<
   { ok: true; factorId: string; qr: string; secret: string } | { ok: false; message: string }
 > {
   if (!supabaseAuthConfigured()) return { ok: false, message: "Login is not set up yet." };
+  if (!(await adminPending())) return { ok: false, message: NOT_ALLOWED };
   const supabase = await createSupabaseServer();
   const { data: user } = await supabase.auth.getUser();
   if (!user.user) return { ok: false, message: "Please log in again." };
@@ -61,6 +78,7 @@ export async function verifyEnrollAction(
   formData: FormData,
 ): Promise<ActionResult> {
   if (!supabaseAuthConfigured()) return { ok: false, message: "Login is not set up yet." };
+  if (!(await adminPending())) return { ok: false, message: NOT_ALLOWED };
   const supabase = await createSupabaseServer();
   const factorId = String(formData.get("factorId") ?? "");
   const code = String(formData.get("code") ?? "").replace(/\s/g, "");

@@ -7,6 +7,7 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 
+import { landingPathFor, safeNextPath } from "@/lib/safe-next";
 import { adminProfiles, profiles } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 import { hmacHex, safeEqual } from "@/server/security/tokens";
@@ -70,6 +71,39 @@ export async function checkAdmin(
   if (account?.role !== "admin") throw new AdminAuthError("not-admin");
   if (options.roles && !hasRole(profile, options.roles)) throw new AdminAuthError("wrong-role");
   return profile;
+}
+
+// ---------- Where to send people ----------
+// Pure functions (no cookies), so the 2FA on / off paths are easy to test.
+
+// A page guard failed. Where does the person go?
+export function adminFailureRedirect(code: AdminAuthCode): string {
+  switch (code) {
+    case "no-session":
+      return "/login?next=%2Fadmin&reason=expired";
+    case "needs-2fa":
+    case "needs-fresh-2fa":
+      return "/admin/mfa";
+    case "wrong-role":
+      return "/admin?denied=1";
+    case "not-admin":
+    case "inactive":
+      // Signed in, but not an (active) admin: show the "Not allowed" page, not the login page.
+      return "/admin/not-allowed";
+  }
+}
+
+// Right after a good password. Users are never asked for 2FA. An admin is asked only while 2FA is required.
+export function afterLoginDestination(input: {
+  isActiveAdmin: boolean;
+  twoFactorRequired: boolean;
+  hasVerifiedFactor: boolean;
+  next: string | null | undefined;
+}): string {
+  if (input.isActiveAdmin && input.twoFactorRequired) {
+    return input.hasVerifiedFactor ? "/admin/mfa" : "/admin/mfa/setup";
+  }
+  return safeNextPath(input.next, landingPathFor(input.isActiveAdmin ? "admin" : "user"));
 }
 
 // ---------- Development bypass ----------
