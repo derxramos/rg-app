@@ -85,8 +85,16 @@ This is the Google screen that says "RG'S Bookkeeping wants to access your Googl
        Just clear the box and continue.
      - If you later add links to the consent screen, use your own domain (for example `rgservices.ph`) or the
        full address with your name in front (for example `abcdefghijklmno.supabase.co`).
-7. **Data access / Scopes**: do **not** add extra scopes. The three basic ones (`openid`, `email`, `profile`)
-   are included by default. These need no review from Google. Keep it that way.
+7. **Data access / Scopes**: the page starts empty. Add the three basic scopes yourself:
+   1. Click **Add or remove scopes**.
+   2. Tick these three (use the filter box if the list is long):
+      - `.../auth/userinfo.email` (see your email address)
+      - `.../auth/userinfo.profile` (see your name and picture)
+      - `openid` (associate you with your personal info on Google)
+   3. Click **Update**, then **Save** at the bottom of the Data Access page.
+
+   These three are "non-sensitive" scopes, so Google does not need to review the app. Do **not** tick any
+   other scope: extra scopes can force a Google review.
 
 ### A3. Publish the app (important)
 
@@ -97,7 +105,7 @@ Real clients would see an error. So:
 2. Under **Publishing status**, click **Publish app** → **Confirm**.
 3. The status must say **In production**.
 
-Because we only ask for the basic scopes (name, email, picture), Google does not need to review the app.
+Because we only ask for the three basic scopes (name, email, picture), Google does not need to review the app.
 Google may show a small notice that the app is not verified if you add a logo or sensitive scopes. We do not.
 
 ### A4. Make the Client ID and Client Secret

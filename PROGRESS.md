@@ -547,3 +547,6 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 
 ### 2026-11-07 — Google guide fix (branch `fix/google-guide-authorized-domains`)
 - The owner got "Invalid domain: must be a top private domain" when adding `supabase.co` under Authorized domains. The guide was wrong. It now says to leave that box empty (not needed for sign in) and explains the error. Docs only.
+
+### 2026-11-07 — Google guide fix 2 (branch `fix/google-guide-scopes`)
+- The Data Access page in Google Cloud starts empty. The guide said the three basic scopes were included by default. It now tells the owner to click "Add or remove scopes" and tick `userinfo.email`, `userinfo.profile` and `openid`. Docs only.
