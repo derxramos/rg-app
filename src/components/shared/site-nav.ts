@@ -1,4 +1,4 @@
-// Links shown in the public header and footer.
+// Links shown in the public header. (The footer has only the legal links below.)
 // The pages behind most of these links are built in Phase 2.
 export const MAIN_NAV = [
   { href: "/", label: "Home" },
@@ -8,10 +8,7 @@ export const MAIN_NAV = [
   { href: "/track", label: "Track my request" },
 ] as const;
 
-// "Pages" column of the footer.
-export const FOOTER_NAV = MAIN_NAV.filter((item) => item.href !== "/");
-
-// Thin bottom row of the footer, next to the copyright text.
+// The two links on the right of the footer, next to the logo.
 export const LEGAL_NAV = [
   { href: "/privacy", label: "Privacy notice" },
   { href: "/terms", label: "Terms of service" },

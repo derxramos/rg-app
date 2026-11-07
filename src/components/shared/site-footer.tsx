@@ -2,60 +2,35 @@ import Link from "next/link";
 
 import { Logo } from "@/components/shared/logo";
 import { PageContainer } from "@/components/shared/page-container";
-import { BUSINESS_NAME, FOOTER_NAV, LEGAL_NAV } from "@/components/shared/site-nav";
+import { BUSINESS_NAME, LEGAL_NAV } from "@/components/shared/site-nav";
 import { cn, focusRing } from "@/lib/utils";
 
-const headingClass = "mb-3 text-base font-bold";
 const linkClass = cn(
-  "whitespace-nowrap",
-  "flex min-h-11 items-center rounded-md text-base text-foreground underline-offset-4 hover:underline md:min-h-9",
+  "flex min-h-11 items-center rounded-md text-sm whitespace-nowrap text-foreground underline-offset-4 hover:underline sm:min-h-9",
   focusRing,
 );
 
-// Public footer: two equal columns from md (business info, pages), one column on phones.
-// Contact buttons are not repeated here: the "Questions?" section and the Contact page have them.
-// No line above the footer and none above the copyright row: the soft background change and the spacing separate them.
+// Public footer, in the same container as the header and the page content.
+//   Row 1: the logo on the left, "Privacy notice" and "Terms of service" on the right (24 px apart, centered with the logo).
+//   Row 2: the copyright line, starting exactly under the logo.
+// On phones (under 640 px) it is one left aligned column: logo, the two links in one row (they wrap if needed), copyright.
+// The page links are not repeated here: the sticky header has them. Contact buttons are in the "Questions?" section.
 export function SiteFooter() {
   return (
     <footer className="mt-auto bg-surface-subtle">
-      <PageContainer className="grid grid-cols-1 items-start gap-8 pt-10 md:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-3">
+      <PageContainer className="flex flex-col gap-2 py-8">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <Logo />
-          <p className="text-sm text-muted-foreground">{BUSINESS_NAME}</p>
-        </div>
-
-        <nav aria-label="Footer" className="min-w-0 xl:justify-self-end">
-          <h2 className={headingClass}>Pages</h2>
-          {/* One per line on phones, 2 by 2 on tablets. On wide screens one row with equal gaps, pushed to the right, so the last link ("Track my request") ends at the same right edge as the legal links below. */}
-          <div className="grid grid-cols-1 gap-x-6 md:grid-cols-2 xl:flex xl:justify-end xl:gap-x-6">
-            {FOOTER_NAV.map((item) => (
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-6">
+            {LEGAL_NAV.map((item) => (
               <Link key={item.href} href={item.href} className={linkClass}>
                 {item.label}
               </Link>
             ))}
-          </div>
-        </nav>
-      </PageContainer>
-
-      <div className="mt-8">
-        <PageContainer className="flex flex-col gap-1 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between md:gap-4">
-          <p>© {BUSINESS_NAME}. All rights reserved.</p>
-          <nav aria-label="Legal" className="flex flex-wrap gap-x-5">
-            {LEGAL_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex min-h-11 items-center rounded-md text-foreground underline-offset-4 hover:underline md:min-h-9",
-                  focusRing,
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
           </nav>
-        </PageContainer>
-      </div>
+        </div>
+        <p className="text-xs text-muted-foreground">© {BUSINESS_NAME}. All rights reserved.</p>
+      </PageContainer>
     </footer>
   );
 }
