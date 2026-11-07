@@ -258,7 +258,7 @@ Test with a Google account that is **not** an admin account on the website.
   takes this Google account, they could change the sign in settings.
 - Do not share the Client Secret. If it leaks: Google Cloud Console → **Credentials** → your client →
   **Add secret** (make a new one), paste it in Supabase, then disable the old one.
-- Our app asks only for name, email and picture. Google reads the Privacy notice page linked in Branding, so check that it says the website receives your name, email and picture when someone uses Google sign in (open Settings > Site texts or the privacy page text and add one sentence if it does not).
+- Our app asks only for name, email and picture. Google reads the Privacy notice page linked in Branding, so check that it says the website receives your name, email and picture when someone uses Google sign in (the Privacy notice text is in the code file `src/content/privacy-notice.ts`, not in the admin panel, so ask the developer to add one sentence if it does not).
   If you add other Google features later, check the notice again.
 - When you move to your own domain, repeat Part A4 (add the new domain to **Authorized JavaScript origins**),
   Part B2 (Site URL and Redirect URLs) and Part C1 (`APP_BASE_URL`).
