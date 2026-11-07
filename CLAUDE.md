@@ -54,6 +54,14 @@ Exact versions and the date we checked them are in `docs/ARCHITECTURE.md` → "V
 13. **Write tests** for OCR parsers, Zod validation, status changes, and permission checks.
 14. **Watch the free limits.** The Vercel free (Hobby) plan has usage limits, and it is meant for non-commercial use. Check Vercel's current terms before real clients use the site. Do not deploy to production for every small change. Use preview deployments.
 
+## Git rules (every session)
+
+- Work on the branch `feat/auth-roles` (made from `main`) for the accounts and roles work.
+- After EVERY finished step: run `git status` (never stage `.env` files or secrets), then `git add` the files and `git commit` with a clear message.
+- When a phase is finished and lint, tests and build pass: switch to `main` and run `git merge --ff-only feat/auth-roles`. If a fast-forward is not possible, rebase the feature branch on `main` first, fix conflicts, and run the checks again. Stay on `main`. Keep the feature branch.
+- NEVER run `git push`. Never force anything. Never run `git reset --hard`. Never change remotes or git config. (`.claude/settings.json` blocks these.)
+- At the end, show `git status -sb` and `git log --oneline -15`, and tell the owner: "Ready for you to run git push from rg-app."
+
 ## Code conventions
 
 - Folder layout: see `docs/ARCHITECTURE.md` → "Folders".
