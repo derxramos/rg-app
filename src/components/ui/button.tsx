@@ -22,7 +22,8 @@ const buttonVariants = cva(
         outline: "border border-input bg-background text-foreground hover:bg-accent",
         ghost: "text-foreground hover:bg-accent",
         destructive: "bg-destructive text-destructive-foreground hover:brightness-90",
-        accent: "bg-brand-accent text-on-brand-accent hover:brightness-95",
+        // The one orange button style. Colors are tokens (globals.css). Weight 600. Focus ring comes from focusRing.
+        accent: "bg-cta text-on-cta font-semibold hover:bg-cta-hover",
       },
       size: {
         sm: "min-h-11 px-4 py-2 text-sm md:min-h-10 md:py-1.5",

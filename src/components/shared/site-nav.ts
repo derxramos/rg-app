@@ -8,8 +8,11 @@ export const MAIN_NAV = [
   { href: "/track", label: "Track my request" },
 ] as const;
 
-export const FOOTER_NAV = [
-  ...MAIN_NAV.filter((item) => item.href !== "/"),
+// "Pages" column of the footer.
+export const FOOTER_NAV = MAIN_NAV.filter((item) => item.href !== "/");
+
+// Thin bottom row of the footer, next to the copyright text.
+export const LEGAL_NAV = [
   { href: "/privacy", label: "Privacy notice" },
   { href: "/terms", label: "Terms of service" },
 ] as const;

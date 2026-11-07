@@ -25,6 +25,10 @@
   --brand-accent-soft: #ffe8dc;
   --brand-accent-ink: #8f3410;
   --on-brand-accent: #2b1305;
+  /* Orange call-to-action button: the original coral with off-white text (owner's choice). Contrast is 2.4 to 1 at rest and 3.0 to 1 on hover, below the 4.5 to 1 rule for normal text. Same in both palettes. */
+  --cta: #ff7b47;
+  --cta-hover: #f0652f;
+  --on-cta: #fff7ed;
   --highlight: #ffd23f;
   --on-highlight: #2a2100;
   --success: #167a47;
@@ -137,6 +141,9 @@
   --color-brand-accent-soft: var(--brand-accent-soft);
   --color-brand-accent-ink: var(--brand-accent-ink);
   --color-on-brand-accent: var(--on-brand-accent);
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+  --color-on-cta: var(--on-cta);
   --color-highlight: var(--highlight);
   --color-on-highlight: var(--on-highlight);
   --color-surface-subtle: var(--surface-subtle);

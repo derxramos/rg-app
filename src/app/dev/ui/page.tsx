@@ -65,6 +65,7 @@ const COLOR_TOKENS = [
   "primary-soft",
   "primary-ink",
   "brand-accent",
+  "cta",
   "brand-accent-soft",
   "highlight",
   "success",
@@ -414,7 +415,7 @@ export default function DevUiPage() {
                 <p className="text-sm text-muted-foreground">Both links</p>
                 <BackupContactBlock
                   messengerUrl="https://example.com/messenger-sample"
-                  viberUrl="https://example.com/viber-sample"
+                  viberUrl="+63 900 000 0000"
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -555,7 +556,7 @@ export default function DevUiPage() {
       </main>
       <SiteFooter
         messengerUrl="https://example.com/messenger-sample"
-        viberUrl="https://example.com/viber-sample"
+        viberUrl="+63 900 000 0000"
       />
     </>
   );

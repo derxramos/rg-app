@@ -48,8 +48,8 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
     address: "P. Zamora St. Pob. 17, Batangas City, Philippines 4200",
   },
   business_hours: { text: "" },
-  // Viber opens a chat with the business number. No Messenger link was given yet: the button stays hidden until the owner adds one.
-  social_links: { messenger: "", viber: "viber://chat?number=%2B639912348299" },
+  // Viber is shown as a number (not a button). No Messenger link was given yet: the button stays hidden until the owner adds one.
+  social_links: { messenger: "", viber: "+63 991 234 8299" },
   home_texts: { headline: "RG'S Bookkeeping and Accounting Services", intro: "" },
   file_retention_days: 30,
   max_files_per_request: 15,

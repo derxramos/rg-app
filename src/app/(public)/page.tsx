@@ -5,9 +5,10 @@ import Link from "next/link";
 import { HeroArt } from "@/components/public/hero-art";
 import { ServicesGrid } from "@/components/public/services-grid";
 import { StepsList } from "@/components/public/steps-list";
-import { BackupContactBlock } from "@/components/shared/backup-contact-block";
+import { ContactButtons } from "@/components/shared/contact-buttons";
 import { PageContainer } from "@/components/shared/page-container";
 import { buttonVariants } from "@/components/ui/button";
+import { contactChannelSentence, safeContactUrl, viberDisplayNumber } from "@/lib/contact-links";
 import { cn } from "@/lib/utils";
 import { getPublicSettings, listActiveServices } from "@/server/services/site-content";
 
@@ -23,6 +24,11 @@ const DEFAULT_INTRO =
 export default async function HomePage() {
   const [settings, services] = await Promise.all([getPublicSettings(), listActiveServices()]);
   const { headline, intro } = settings.home_texts;
+  // The sentence names only the channels that have a saved link.
+  const channelSentence = contactChannelSentence({
+    messenger: safeContactUrl(settings.social_links.messenger) !== null,
+    viber: viberDisplayNumber(settings.social_links.viber) !== null,
+  });
 
   return (
     <>
@@ -85,22 +91,21 @@ export default async function HomePage() {
       </section>
 
       <section aria-labelledby="home-contact">
-        <PageContainer className="flex flex-col gap-4 py-10 md:py-14">
-          <h2 id="home-contact" className="text-2xl font-bold">
-            Questions?
-          </h2>
-          <p className="max-w-prose text-base text-muted-foreground">
-            Send us a message and we will reply. You can also write to us on Messenger or Viber.
-          </p>
-          <div className="flex flex-wrap items-start gap-6">
-            <Link href="/contact" className={buttonVariants({ variant: "outline" })}>
-              Contact us
-            </Link>
-            <BackupContactBlock
-              messengerUrl={settings.social_links.messenger}
-              viberUrl={settings.social_links.viber}
-            />
+        <PageContainer className="flex flex-col gap-6 py-10 md:flex-row md:items-center md:justify-between md:gap-10 md:py-14">
+          <div className="flex min-w-0 flex-col gap-2 md:max-w-prose md:flex-1">
+            <h2 id="home-contact" className="text-2xl font-bold">
+              Questions?
+            </h2>
+            <p className="text-base text-muted-foreground">
+              Send us a message and we will reply.
+              {channelSentence ? ` ${channelSentence}` : ""}
+            </p>
           </div>
+          <ContactButtons
+            messengerUrl={settings.social_links.messenger}
+            viberUrl={settings.social_links.viber}
+            className="md:shrink-0 md:flex-nowrap md:justify-end"
+          />
         </PageContainer>
       </section>
     </>

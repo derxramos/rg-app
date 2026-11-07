@@ -409,3 +409,14 @@ react-markdown 10.1.0, @electric-sql/pglite-socket 0.2.18 (dev only). Everything
 
 ### Phase 8 session
 - Built Phase 8 and committed it. See "Phase 8 report" above.
+
+### UI fixes session (buttons, "Questions?" section, footer)
+- **Orange buttons:** one shared style, the `accent` variant in `src/components/ui/button.tsx`. New tokens `--cta` #C2410C, `--cta-hover` #9A3412, `--on-cta` off-white #FFF7ED (4.8:1 on #C2410C, 6.9:1 on #9A3412; changed from white on request) (in `globals.css`, listed in `docs/DESIGN_SYSTEM.md`). Weight 600. Focus ring is the brand ring. Contrast: white on #C2410C is 5.18:1, on #9A3412 is 7.31:1, ring on white 7.33:1. All orange buttons (nav, hero, how-it-works, service page, mobile menu) already used this variant, so no other change was needed.
+- **Contact buttons:** new `components/shared/contact-buttons.tsx` (Contact us, Messenger, Viber; each hidden when its setting is empty; stacked full width on phones). `BackupContactBlock` now uses it (keeps its label for the other pages). New `contactChannelSentence()` in `lib/contact-links.ts` (with tests) builds "You can also write to us on Viber." from the channels that are set.
+- **Home "Questions?":** text on the left, buttons on the right in one row; the "Need help? Message us directly." label is removed here.
+- **Footer:** `grid-cols-1 md:grid-cols-3`, three equal columns (logo + name + payment note / Pages / Contact with the label and the same buttons), same heading style. Privacy notice and Terms of service moved to a thin bottom row with the copyright text (`LEGAL_NAV` in `site-nav.ts`). The copyright has no year, so it never goes out of date.
+- **Viber is not a real button:** an earlier change that was not yet committed (still in the working tree) shows Viber as a number because the viber:// link did nothing on many devices. I kept that. It has the same size and shape as the buttons but is not clickable.
+- **Checked:** screenshots at 390, 768 and 1440 px (no sideways scroll). Known small issue: at 768 px the Viber number wraps to two lines in the narrow footer column. `typecheck`, `lint` and the unit tests for contact links pass. Not run: the Playwright e2e suite.
+- No test accounts were created and no database was written, so there is nothing to clean up.
+- **Button color changed again (owner's choice):** background back to the original coral `--cta` #FF7B47 (hover #F0652F), text stays off-white #FFF7ED. Contrast is 2.4:1 at rest and 3.0:1 on hover. This is below the 4.5:1 rule; the owner chose it knowingly. Darker oranges that pass (for example #CA450D, 4.5:1) were offered. The earlier #C2410C numbers above no longer apply.
+- None of this session's work was committed or pushed when this was written, so Vercel production still showed the old design.

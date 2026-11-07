@@ -96,17 +96,18 @@ export default async function SiteContentPage() {
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="s-v">Viber link</Label>
+                <Label htmlFor="s-v">Viber number</Label>
                 <Input
                   id="s-v"
                   name="viber"
                   defaultValue={social.viber}
                   maxLength={500}
-                  placeholder="viber://chat?number=..."
+                  placeholder="+63 9XX XXX XXXX"
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                Leave a link empty to hide its button.
+                The Messenger button is hidden when its link is empty. Viber shows the number only (no
+                button). Leave it empty to hide it.
               </p>
             </ActionForm>
           </CardContent>
