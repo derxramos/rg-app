@@ -335,6 +335,41 @@ describe("requests rules", () => {
     );
   });
 
+  it("keeps the service fee as whole centavos and allows no fee (null)", async () => {
+    const serviceId = await addService();
+    const empty = await db.query<{ fee_centavos: string | null }>(
+      `select fee_centavos from services where id = $1`,
+      [serviceId],
+    );
+    expect(empty.rows[0].fee_centavos).toBeNull();
+    await db.query(`update services set fee_centavos = 500000 where id = $1`, [serviceId]);
+    const set = await db.query<{ fee_centavos: string }>(
+      `select fee_centavos from services where id = $1`,
+      [serviceId],
+    );
+    expect(Number(set.rows[0].fee_centavos)).toBe(500000);
+  });
+
+  it("links a service to payment methods, and removes the links with the service", async () => {
+    const serviceId = await addService();
+    const methodId = await addPaymentMethod();
+    await db.query(
+      `insert into service_payment_methods (service_id, payment_method_id) values ($1, $2)`,
+      [serviceId, methodId],
+    );
+    expect(
+      await fails(
+        `insert into service_payment_methods (service_id, payment_method_id) values ($1, $2)`,
+        [serviceId, methodId],
+      ),
+    ).toMatch(/duplicate|unique|primary/);
+    await db.query(`delete from services where id = $1`, [serviceId]);
+    const left = await db.query(`select 1 from service_payment_methods where service_id = $1`, [
+      serviceId,
+    ]);
+    expect(left.rows).toHaveLength(0);
+  });
+
   it("removes a service's checklist when the service is deleted", async () => {
     const serviceId = await addService();
     await db.query(`insert into service_requirements (service_id, label) values ($1, 'Item')`, [

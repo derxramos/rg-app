@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { phoneLast4 } from "@/lib/phone";
 import { canChangeStatus, type RequestStatus, type StatusActor } from "@/lib/status";
@@ -43,7 +43,7 @@ export async function createDraft(db: AppDb, details: RequestDetails, options: C
   const now = options.now ?? new Date();
 
   const [service] = await db
-    .select({ id: services.id })
+    .select({ id: services.id, feeCentavos: services.feeCentavos })
     .from(services)
     .where(and(eq(services.slug, details.serviceSlug), eq(services.isActive, true)))
     .limit(1);
@@ -63,6 +63,8 @@ export async function createDraft(db: AppDb, details: RequestDetails, options: C
           .values({
             trackingCode,
             serviceId: service.id,
+            // The fee as it is today. A later price change does not change this request.
+            serviceFeeCentavos: service.feeCentavos,
             status: "draft",
             userId: options.userId ?? null,
             clientFullName: details.fullName,
@@ -168,6 +170,12 @@ export async function getRequestWithService(db: AppDb, requestId: string) {
       status: requests.status,
       serviceId: requests.serviceId,
       serviceName: services.name,
+      // The fee saved on the request. Old requests have none, so they use the service's fee now.
+      feeCentavos: sql<
+        number | null
+      >`coalesce(${requests.serviceFeeCentavos}, ${services.feeCentavos})`.mapWith((value) =>
+        value === null ? null : Number(value),
+      ),
       clientFullName: requests.clientFullName,
       clientEmail: requests.clientEmail,
       clientPhone: requests.clientPhone,

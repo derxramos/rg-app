@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatFee } from "@/lib/money";
 import { cn, focusRing } from "@/lib/utils";
 import type { PublicService } from "@/server/services/site-content";
 
@@ -25,6 +26,12 @@ export function ServiceCard({
             <CardDescription className="text-base">{service.shortDescription}</CardDescription>
           ) : null}
         </CardHeader>
+        <p className="text-base">
+          <span className="text-muted-foreground">Service fee: </span>
+          <strong className="font-bold">
+            {service.feeCentavos === null ? "Fee will be confirmed" : formatFee(service.feeCentavos)}
+          </strong>
+        </p>
         <span className="mt-auto inline-flex items-center gap-2 text-base font-bold text-primary">
           See what you need
           <ArrowRight aria-hidden="true" className="size-5" />

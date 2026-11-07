@@ -6,9 +6,12 @@ import { HeroArt } from "@/components/public/hero-art";
 import { ServicesGrid } from "@/components/public/services-grid";
 import { StepsList } from "@/components/public/steps-list";
 import { ContactButtons } from "@/components/shared/contact-buttons";
+import { JsonLd } from "@/components/shared/json-ld";
 import { PageContainer } from "@/components/shared/page-container";
 import { buttonVariants } from "@/components/ui/button";
 import { contactChannelSentence, safeContactUrl, viberDisplayNumber } from "@/lib/contact-links";
+import { businessJsonLd, websiteJsonLd } from "@/lib/seo";
+import { getBaseUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
 import { getPublicSettings, listActiveServices } from "@/server/services/site-content";
 
@@ -30,8 +33,24 @@ export default async function HomePage() {
     viber: viberDisplayNumber(settings.social_links.viber) !== null,
   });
 
+  const base = getBaseUrl();
+  const sameAs = [settings.social_links.messenger]
+    .map((url) => (typeof url === "string" ? url : ""))
+    .filter((url) => url.startsWith("https://"));
+
   return (
     <>
+      <JsonLd
+        data={[
+          websiteJsonLd(base),
+          businessJsonLd(base, {
+            phone: settings.contact.phone,
+            email: settings.contact.email,
+            address: settings.contact.address,
+            sameAs,
+          }),
+        ]}
+      />
       <section className="overflow-hidden border-b bg-surface-subtle">
         <PageContainer className="grid gap-10 py-12 md:py-16 lg:grid-cols-2 lg:items-center">
           <div className="flex flex-col items-start gap-5">

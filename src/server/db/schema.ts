@@ -95,12 +95,28 @@ export const services = pgTable(
     shortDescription: text("short_description").notNull().default(""),
     // Markdown for the detail page.
     description: text("description").notNull().default(""),
+    // Service fee in whole centavos (5000 pesos is 500000). Null until the owner fills it in.
+    feeCentavos: bigint("fee_centavos", { mode: "number" }),
     sortOrder: integer("sort_order").notNull().default(0),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [index("services_active_sort_idx").on(t.isActive, t.sortOrder)],
+).enableRLS();
+
+// Which payment QR codes a service shows. A service with no rows here shows all active methods.
+export const servicePaymentMethods = pgTable(
+  "service_payment_methods",
+  {
+    serviceId: uuid("service_id")
+      .notNull()
+      .references(() => services.id, { onDelete: "cascade" }),
+    paymentMethodId: uuid("payment_method_id")
+      .notNull()
+      .references(() => paymentMethods.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.serviceId, t.paymentMethodId] })],
 ).enableRLS();
 
 // The checklist for each service. It starts empty: the owner fills it in.
@@ -132,6 +148,8 @@ export const requests = pgTable(
       .notNull()
       .references(() => services.id, { onDelete: "restrict" }),
     status: requestStatus("status").notNull().default("draft"),
+    // The service fee when the request was made. A later price change does not change old requests.
+    serviceFeeCentavos: bigint("service_fee_centavos", { mode: "number" }),
     // The account that owns the request. Null for old guest requests (made before accounts existed),
     // and after the owner deletes their account.
     userId: uuid("user_id").references(() => profiles.id, { onDelete: "set null" }),
@@ -384,6 +402,7 @@ export const ALL_TABLES = {
   profiles,
   services,
   serviceRequirements,
+  servicePaymentMethods,
   requests,
   requestStatusEvents,
   requestFiles,

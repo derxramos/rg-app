@@ -77,11 +77,19 @@ One row for every login. Same id as `auth.users.id`. A trigger (`handle_new_user
 | name | text | e.g. "Business permit registration" |
 | short_description | text | for cards |
 | description | text | Markdown, for detail page |
+| fee_centavos | bigint, nullable | the owner's service fee in whole centavos (₱5,000 = 500000). Null = "Fee will be confirmed" |
 | sort_order | int | |
 | is_active | boolean, default true | hidden from public when false |
 | created_at, updated_at | timestamptz | |
 
 Index: `(is_active, sort_order)`.
+
+### service_payment_methods
+Which payment QR codes a service shows. A service with **no rows** shows all active payment methods.
+| Field | Type | Notes |
+|---|---|---|
+| service_id | uuid FK → services, on delete cascade | part of the primary key |
+| payment_method_id | uuid FK → payment_methods, on delete cascade | part of the primary key |
 
 ### service_requirements
 The checklist for each service. **Starts empty** — the owner fills it in.
@@ -104,6 +112,7 @@ Index: `(service_id, sort_order)`.
 | tracking_code | text, unique | `RG-XXXXXXXX` |
 | service_id | uuid FK → services, on delete restrict | |
 | status | request_status, default `draft` | |
+| service_fee_centavos | bigint, nullable | the service fee when the request was made. A later price change does not change it |
 | user_id | uuid FK → profiles, on delete set null, nullable | the owner account. Null = old guest request, or the owner deleted their account |
 | client_full_name | text | |
 | client_email | text | |

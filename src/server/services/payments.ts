@@ -5,7 +5,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { todayInManila } from "@/lib/time";
 import { validatePayment, type PaymentField, type PaymentRaw } from "@/lib/validation/payment";
 import { getParser } from "@/ocr/parsers";
-import { paymentMethods, payments, requests } from "@/server/db/schema";
+import { paymentMethods, payments, requests, servicePaymentMethods } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 import { changeStatus, isUniqueViolation } from "@/server/services/requests";
 
@@ -31,6 +31,21 @@ export async function listActivePaymentMethods(db: AppDb) {
     .from(paymentMethods)
     .where(eq(paymentMethods.isActive, true))
     .orderBy(asc(paymentMethods.sortOrder), asc(paymentMethods.name));
+}
+
+// The methods one service shows: the ones the admin chose for it. If the admin chose none,
+// all active methods are shown (the same as before this setting existed).
+export async function listPaymentMethodsForService(db: AppDb, serviceId: string) {
+  const all = await listActivePaymentMethods(db);
+  const chosen = await db
+    .select({ id: servicePaymentMethods.paymentMethodId })
+    .from(servicePaymentMethods)
+    .where(eq(servicePaymentMethods.serviceId, serviceId));
+  if (chosen.length === 0) return all;
+  const ids = new Set(chosen.map((row) => row.id));
+  const filtered = all.filter((method) => ids.has(method.id));
+  // If every chosen method is turned off, do not leave the client with nothing.
+  return filtered.length > 0 ? filtered : all;
 }
 
 export async function listPaymentsForRequest(db: AppDb, requestId: string) {

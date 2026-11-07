@@ -8,6 +8,8 @@ import "server-only";
 
 import { and, asc, count, eq, sql } from "drizzle-orm";
 
+import { formatFee } from "@/lib/money";
+
 import { slugify } from "@/lib/slug";
 import { parseSetting, type SettingKey, type SettingValue } from "@/lib/validation/settings";
 import { AdminAuthError, OWNER_ONLY, hasRole, type AdminProfile } from "@/server/auth/admin-core";
@@ -15,6 +17,7 @@ import {
   activityLog,
   paymentMethods,
   payments,
+  servicePaymentMethods,
   serviceRequirements,
   services,
   siteSettings,
@@ -126,6 +129,10 @@ type ServiceInput = {
   shortDescription: string;
   description: string;
   isActive: boolean;
+  // Whole centavos, or null for "no fee yet". Left out (undefined) means "keep the current fee".
+  feeCentavos?: number | null;
+  // The payment methods this service shows. Empty means "all active methods". Left out means "keep".
+  paymentMethodIds?: string[];
 };
 
 function checkService(input: ServiceInput) {
@@ -136,7 +143,28 @@ function checkService(input: ServiceInput) {
     throw new SettingsError("invalid", "The short description is too long (300 characters).");
   if (input.description.length > 10000)
     throw new SettingsError("invalid", "The description is too long.");
+  const fee = input.feeCentavos;
+  if (fee !== undefined && fee !== null && (!Number.isSafeInteger(fee) || fee < 0))
+    throw new SettingsError("invalid", "The service fee must be a number of pesos, like 5000.");
   return { ...input, name };
+}
+
+const feeText = (centavos: number | null) => (centavos === null ? "not set" : formatFee(centavos));
+
+// The payment methods a service shows (empty list = all active methods), and all methods to choose from.
+export async function getServicePaymentMethodIds(db: AppDb, serviceId: string) {
+  const rows = await db
+    .select({ id: servicePaymentMethods.paymentMethodId })
+    .from(servicePaymentMethods)
+    .where(eq(servicePaymentMethods.serviceId, serviceId));
+  return rows.map((row) => row.id);
+}
+
+export async function listPaymentMethodChoices(db: AppDb) {
+  return db
+    .select({ id: paymentMethods.id, name: paymentMethods.name, isActive: paymentMethods.isActive })
+    .from(paymentMethods)
+    .orderBy(asc(paymentMethods.sortOrder), asc(paymentMethods.name));
 }
 
 // New services start with an EMPTY checklist (docs/FEATURES.md A7).
@@ -161,6 +189,7 @@ export async function createService(
           name: clean.name,
           shortDescription: clean.shortDescription,
           description: clean.description,
+          feeCentavos: clean.feeCentavos ?? null,
           isActive: clean.isActive,
           sortOrder: max + 1,
         })
@@ -199,15 +228,32 @@ export async function updateService(
         shortDescription: clean.shortDescription,
         description: clean.description,
         isActive: clean.isActive,
+        ...(clean.feeCentavos !== undefined ? { feeCentavos: clean.feeCentavos } : {}),
       })
       .where(eq(services.id, serviceId));
+    if (clean.paymentMethodIds !== undefined) {
+      await tx.delete(servicePaymentMethods).where(eq(servicePaymentMethods.serviceId, serviceId));
+      if (clean.paymentMethodIds.length > 0)
+        await tx
+          .insert(servicePaymentMethods)
+          .values(
+            clean.paymentMethodIds.map((paymentMethodId) => ({ serviceId, paymentMethodId })),
+          );
+    }
     await log(tx, actor, {
       action: "service.updated",
       entityType: "service",
       entityId: serviceId,
       details: {
-        before: { name: before.name, isActive: before.isActive },
-        after: { name: clean.name, isActive: clean.isActive },
+        before: { name: before.name, isActive: before.isActive, fee: feeText(before.feeCentavos) },
+        after: {
+          name: clean.name,
+          isActive: clean.isActive,
+          fee: feeText(clean.feeCentavos === undefined ? before.feeCentavos : clean.feeCentavos),
+          ...(clean.paymentMethodIds !== undefined
+            ? { paymentMethodIds: clean.paymentMethodIds }
+            : {}),
+        },
       },
       ipHash,
     });

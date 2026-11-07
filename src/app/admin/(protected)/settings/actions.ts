@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { safeContactUrl } from "@/lib/contact-links";
+import { parsePesosToCentavos } from "@/lib/money";
 import type { SettingKey } from "@/lib/validation/settings";
 import { withAdmin, type ActionResult } from "@/server/auth/admin";
 import { CACHE_TAGS } from "@/server/cache-tags";
@@ -15,6 +16,7 @@ import {
   moveRequirement,
   moveService,
   saveSetting,
+  SettingsError,
   updateRequirement,
   updateService,
 } from "@/server/services/admin-settings";
@@ -73,12 +75,25 @@ export async function saveSettingAction(
 
 // ---------- Services ----------
 
-const serviceInput = (formData: FormData) => ({
-  name: text(formData, "name"),
-  shortDescription: text(formData, "shortDescription"),
-  description: text(formData, "description"),
-  isActive: flag(formData, "isActive"),
-});
+// The fee box holds pesos ("5000"). A bad value stops the save with a clear message.
+function serviceInput(formData: FormData) {
+  const feeCentavos = parsePesosToCentavos(text(formData, "fee"));
+  if (Number.isNaN(feeCentavos))
+    throw new SettingsError("invalid", "The service fee must be a number of pesos, like 5000.");
+  const paymentMethodIds = formData
+    .getAll("paymentMethodIds")
+    .map(String)
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  return {
+    name: text(formData, "name"),
+    shortDescription: text(formData, "shortDescription"),
+    description: text(formData, "description"),
+    isActive: flag(formData, "isActive"),
+    feeCentavos,
+    // Only the edit page has the QR checkboxes. The "add" form leaves them out.
+    ...(formData.get("hasPaymentChoices") ? { paymentMethodIds } : {}),
+  };
+}
 
 export async function createServiceAction(
   _previous: ActionResult | null,

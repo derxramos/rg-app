@@ -11,12 +11,14 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { WarningBox } from "@/components/shared/warning-box";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatFee } from "@/lib/money";
 import { qrImageUrl } from "@/lib/qr-url";
 import { cn } from "@/lib/utils";
 import { flowMode } from "@/server/auth/request-access-core";
 import { guardRequestAccess } from "@/server/auth/request-page-guard";
 import { getDb } from "@/server/db/client";
-import { listActivePaymentMethods } from "@/server/services/payments";
+import { listPaymentMethodsForService } from "@/server/services/payments";
+import { getRequestWithService } from "@/server/services/requests";
 import { getPublicSettings } from "@/server/services/site-content";
 
 export const metadata: Metadata = { title: "Pay with a QR code", robots: { index: false } };
@@ -34,9 +36,11 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
   const access = await guardRequestAccess(id, "pay");
   const mode = flowMode(access);
   const fromTracking = mode.afterSend;
-  const [methods, settings] = await Promise.all([
-    listActivePaymentMethods(getDb()),
+  const db = getDb();
+  const [methods, settings, summary] = await Promise.all([
+    listPaymentMethodsForService(db, access.request.serviceId),
     getPublicSettings(),
+    getRequestWithService(db, id),
   ]);
 
   return (
@@ -45,6 +49,25 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
       title="Pay with a QR code"
       intro="Scan a QR code in your own GCash, Maya or bank app. You pay in your app, not on this website. You can also pay later."
     >
+      {summary ? (
+        <section
+          aria-label="What you are paying for"
+          className="flex flex-col gap-3 rounded-lg border bg-surface-subtle p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="text-sm text-muted-foreground">Service</span>
+            <span className="text-lg font-bold break-words">{summary.serviceName}</span>
+          </div>
+          <div className="flex flex-col gap-1 sm:text-right">
+            <span className="text-sm text-muted-foreground">Service fee</span>
+            <span className="text-2xl font-bold">
+              {summary.feeCentavos === null
+                ? "Fee will be confirmed"
+                : formatFee(summary.feeCentavos)}
+            </span>
+          </div>
+        </section>
+      ) : null}
       {methods.length === 0 ? (
         <EmptyState
           icon={Wallet}
@@ -72,10 +95,11 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
                         <Image
                           src={qr}
                           alt={`${method.name} QR code`}
-                          width={260}
-                          height={320}
+                          width={192}
+                          height={240}
                           unoptimized
-                          className="h-auto w-full max-w-[260px] rounded-md border bg-white"
+                          // 2 x 2 inches (192 px) on a computer. Smaller on a phone, but not below 1.5 inches (144 px), so it stays easy to scan.
+                          className="h-auto w-36 rounded-md border bg-white sm:w-48"
                         />
                         <a
                           href={qr}

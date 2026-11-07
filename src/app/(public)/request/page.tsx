@@ -58,7 +58,11 @@ async function RequestStep1({
         </EmptyState>
       ) : (
         <RequestForm
-          services={services.map((s) => ({ slug: s.slug, name: s.name }))}
+          services={services.map((s) => ({
+            slug: s.slug,
+            name: s.name,
+            feeCentavos: s.feeCentavos,
+          }))}
           selectedSlug={services.some((s) => s.slug === selected) ? selected : undefined}
           account={{
             fullName: profile.fullName,

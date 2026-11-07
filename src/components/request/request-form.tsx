@@ -2,7 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { createDraftAction, type DraftFormState } from "@/app/(public)/request/actions";
 import { TurnstileWidget } from "@/components/request/turnstile-widget";
@@ -14,9 +14,10 @@ import { Input, InputWithPrefix } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { formatFee } from "@/lib/money";
 
 type Props = {
-  services: { slug: string; name: string }[];
+  services: { slug: string; name: string; feeCentavos: number | null }[];
   selectedSlug?: string;
   // From the signed-in account. The email is the account email and cannot be changed here.
   account: { fullName: string; email: string; phone: string };
@@ -37,6 +38,9 @@ export function RequestForm({ services, selectedSlug, account }: Props) {
   };
   const [state, action, pending] = useActionState(createDraftAction, initial);
   const { values, errors } = state;
+  // Shows the fee of the chosen service right under the list.
+  const [chosenSlug, setChosenSlug] = useState(selectedSlug ?? "");
+  const chosen = services.find((service) => service.slug === chosenSlug);
   const described = (field: string) => (errors[field] ? `rf-${field}-error` : undefined);
 
   return (
@@ -53,6 +57,7 @@ export function RequestForm({ services, selectedSlug, account }: Props) {
           id="rf-service"
           name="serviceSlug"
           defaultValue={values.serviceSlug}
+          onChange={(event) => setChosenSlug(event.target.value)}
           aria-invalid={errors.serviceSlug ? true : undefined}
           aria-describedby={described("serviceSlug")}
         >
@@ -65,6 +70,16 @@ export function RequestForm({ services, selectedSlug, account }: Props) {
             </option>
           ))}
         </NativeSelect>
+        {chosen ? (
+          <p className="text-base">
+            <span className="text-muted-foreground">Service fee: </span>
+            <strong className="font-bold">
+              {chosen.feeCentavos === null
+                ? "Fee will be confirmed"
+                : formatFee(chosen.feeCentavos)}
+            </strong>
+          </p>
+        ) : null}
         {errors.serviceSlug ? (
           <FieldError id="rf-serviceSlug-error">{errors.serviceSlug}</FieldError>
         ) : null}

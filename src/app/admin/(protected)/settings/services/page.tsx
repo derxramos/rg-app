@@ -11,6 +11,7 @@ import { Checkbox, CheckboxRow } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatFee } from "@/lib/money";
 import { guardAdminPage } from "@/server/auth/admin";
 import { getDb } from "@/server/db/client";
 import { listAllServices } from "@/server/services/admin-settings";
@@ -46,6 +47,9 @@ export default async function ServicesSettingsPage() {
                   >
                     {s.name}
                   </Link>
+                  <span className="text-base text-muted-foreground">
+                    {s.feeCentavos === null ? "No fee set" : formatFee(s.feeCentavos)}
+                  </span>
                   <Badge variant={s.isActive ? "success" : "neutral"}>
                     {s.isActive ? "On" : "Off"}
                   </Badge>
@@ -97,6 +101,16 @@ export default async function ServicesSettingsPage() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="svc-name">Name</Label>
               <Input id="svc-name" name="name" maxLength={120} required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="svc-fee">Service fee (Philippine pesos)</Label>
+              <Input
+                id="svc-fee"
+                name="fee"
+                inputMode="decimal"
+                placeholder="Example: 5000"
+                maxLength={14}
+              />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="svc-short">Short description (for the list)</Label>

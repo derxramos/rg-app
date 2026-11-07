@@ -61,6 +61,10 @@ export type PublicService = {
   slug: string;
   name: string;
   shortDescription: string;
+  // Whole centavos, or null when the owner has not set a fee yet.
+  feeCentavos: number | null;
+  // For the sitemap: when the service last changed.
+  updatedAt: Date;
 };
 
 export type PublicRequirement = {
@@ -86,6 +90,8 @@ export async function listActiveServices(): Promise<PublicService[]> {
       slug: services.slug,
       name: services.name,
       shortDescription: services.shortDescription,
+      feeCentavos: services.feeCentavos,
+      updatedAt: services.updatedAt,
     })
     .from(services)
     .where(eq(services.isActive, true))
@@ -106,6 +112,8 @@ export async function getActiveService(slug: string): Promise<PublicServiceDetai
       name: services.name,
       shortDescription: services.shortDescription,
       description: services.description,
+      feeCentavos: services.feeCentavos,
+      updatedAt: services.updatedAt,
     })
     .from(services)
     .where(and(eq(services.slug, slug), eq(services.isActive, true)))
@@ -127,6 +135,8 @@ export async function getActiveService(slug: string): Promise<PublicServiceDetai
     slug: service.slug,
     name: service.name,
     shortDescription: service.shortDescription,
+    feeCentavos: service.feeCentavos,
+    updatedAt: service.updatedAt,
     description: service.description,
     requirements,
   };

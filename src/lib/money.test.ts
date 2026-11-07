@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatPesos } from "./money";
+import { centavosToPesoInput, formatFee, formatPesos, parsePesosToCentavos } from "./money";
 
 describe("formatPesos", () => {
   it("formats centavos with the peso sign, commas and two decimals", () => {
@@ -30,5 +30,31 @@ describe("formatPesos", () => {
   it("refuses values that are not real numbers", () => {
     expect(() => formatPesos(Number.NaN)).toThrow(RangeError);
     expect(() => formatPesos(Number.POSITIVE_INFINITY)).toThrow(RangeError);
+  });
+});
+
+describe("parsePesosToCentavos", () => {
+  it("reads whole pesos, commas, the peso sign and centavos", () => {
+    expect(parsePesosToCentavos("5000")).toBe(500000);
+    expect(parsePesosToCentavos(" ₱5,000 ")).toBe(500000);
+    expect(parsePesosToCentavos("1250.5")).toBe(125050);
+    expect(parsePesosToCentavos("0.05")).toBe(5);
+  });
+
+  it("returns null for empty text and NaN for bad text", () => {
+    expect(parsePesosToCentavos("")).toBeNull();
+    expect(parsePesosToCentavos("  ")).toBeNull();
+    for (const bad of ["abc", "-5", "1.234", "5 000", "1e3", "999999999999"])
+      expect(parsePesosToCentavos(bad)).toBeNaN();
+  });
+});
+
+describe("centavosToPesoInput and formatFee", () => {
+  it("round-trips", () => {
+    expect(centavosToPesoInput(null)).toBe("");
+    expect(centavosToPesoInput(500000)).toBe("5000");
+    expect(centavosToPesoInput(125005)).toBe("1250.05");
+    expect(formatFee(500000)).toBe("₱5,000");
+    expect(formatFee(125050)).toBe("₱1,250.50");
   });
 });

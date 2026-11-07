@@ -7,11 +7,15 @@ import { Suspense } from "react";
 import { BackupContactBlock } from "@/components/shared/backup-contact-block";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Markdown } from "@/components/shared/markdown";
+import { JsonLd } from "@/components/shared/json-ld";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeading } from "@/components/shared/page-heading";
 import { WarningBox } from "@/components/shared/warning-box";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { formatFee } from "@/lib/money";
+import { breadcrumbJsonLd, serviceJsonLd, trimDescription } from "@/lib/seo";
+import { getBaseUrl } from "@/lib/site-url";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getActiveService,
@@ -36,10 +40,17 @@ export async function generateMetadata({
   const { slug } = await params;
   const service = await getActiveService(slug);
   if (!service) return { title: "Service not found", robots: { index: false } };
+  const description = trimDescription(
+    service.shortDescription ||
+      `${service.name}: what to prepare and how to send your request online.`,
+  );
+  const path = `/services/${service.slug}`;
   return {
     title: service.name,
-    description: service.shortDescription || undefined,
-    alternates: { canonical: `/services/${service.slug}` },
+    description,
+    alternates: { canonical: path },
+    openGraph: { type: "website", url: path, title: service.name, description },
+    twitter: { card: "summary_large_image", title: service.name, description },
   };
 }
 
@@ -57,8 +68,24 @@ async function ServiceDetail({ params }: { params: PageProps<"/services/[slug]">
   const [service, settings] = await Promise.all([getActiveService(slug), getPublicSettings()]);
   if (!service) notFound();
 
+  const base = getBaseUrl();
   return (
     <>
+      <JsonLd
+        data={[
+          serviceJsonLd(base, {
+            slug: service.slug,
+            name: service.name,
+            description: trimDescription(service.shortDescription || service.name, 300),
+            feeCentavos: service.feeCentavos,
+          }),
+          breadcrumbJsonLd(base, [
+            { name: "Home", path: "/" },
+            { name: "Services", path: "/services" },
+            { name: service.name, path: `/services/${service.slug}` },
+          ]),
+        ]}
+      />
       <PageHeading title={service.name} intro={service.shortDescription || undefined} />
       <PageContainer className="grid gap-10 py-10 md:py-14 lg:grid-cols-3">
         <div className="flex flex-col gap-8 lg:col-span-2">
@@ -108,6 +135,17 @@ async function ServiceDetail({ params }: { params: PageProps<"/services/[slug]">
         </div>
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
+          <div className="flex flex-col gap-1 rounded-lg border bg-card p-4">
+            <span className="text-sm text-muted-foreground">Service fee</span>
+            <span className="text-2xl font-bold">
+              {service.feeCentavos === null
+                ? "Fee will be confirmed"
+                : formatFee(service.feeCentavos)}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              Our service fee only. Government fees are not included.
+            </span>
+          </div>
           <h2 className="text-xl font-bold">Ready to start?</h2>
           <p className="text-base text-muted-foreground">
             Send your details and documents online. You do not need to pay to start.
