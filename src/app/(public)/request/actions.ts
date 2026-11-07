@@ -3,9 +3,15 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { eq } from "drizzle-orm";
+
 import { requestDetailsSchema, requestFieldErrors } from "@/lib/validation/request";
+import { loginUrlFor } from "@/lib/safe-next";
 import { AccessError } from "@/server/auth/request-access-core";
-import { DONE_COOKIE, requireRequestAccess, setDraftCookie } from "@/server/auth/request-access";
+import { DONE_COOKIE, requireRequestAccess } from "@/server/auth/request-access";
+import { requireUser, requireVerifiedUser } from "@/server/auth/session";
+import { UserAuthError } from "@/server/auth/session-core";
+import { profiles } from "@/server/db/schema";
 import { getDb } from "@/server/db/client";
 import { getTokenSecret, isProduction } from "@/server/env";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
@@ -30,15 +36,27 @@ export type DraftFormState = {
 
 const text = (formData: FormData, name: string) => String(formData.get(name) ?? "");
 
-// Step 1: saves a Draft, makes the tracking code, sets the draft cookie, and goes to the code page.
+// Step 1: saves a Draft for the signed-in user, makes the tracking code, and goes to the code page.
+// The request belongs to the account (requests.user_id). No draft cookie is needed any more.
 export async function createDraftAction(
   _previous: DraftFormState,
   formData: FormData,
 ): Promise<DraftFormState> {
+  // A request needs a signed-in user. This check is in the action itself, because a Server Action can be
+  // called without opening the page first.
+  let account;
+  try {
+    account = await requireUser();
+  } catch (error) {
+    if (error instanceof UserAuthError) redirect(loginUrlFor("/request", { expired: true }));
+    throw error;
+  }
+
   const values = {
     serviceSlug: text(formData, "serviceSlug"),
     fullName: text(formData, "fullName"),
-    email: text(formData, "email"),
+    // Always the account email. What the browser sends for it is ignored.
+    email: account.session.email || account.profile.email,
     phone: text(formData, "phone"),
     businessName: text(formData, "businessName"),
     message: text(formData, "message"),
@@ -55,12 +73,19 @@ export async function createDraftAction(
   const db = getDb();
   const ip = readClientIp(await headers());
 
-  // 5 new drafts per hour per visitor (docs/FEATURES.md P7).
-  const limit = await rateLimit(db, {
+  // 5 new drafts per hour per account (docs/FEATURES.md P7), and a wider limit per place.
+  const byIp = await rateLimit(db, {
     key: `draft:ip:${hashIp(ip)}`,
-    limit: 5,
+    limit: 20,
     windowSeconds: 3600,
   });
+  const limit = byIp.allowed
+    ? await rateLimit(db, {
+        key: `draft:user:${account.session.userId}`,
+        limit: 5,
+        windowSeconds: 3600,
+      })
+    : byIp;
   if (!limit.allowed) {
     const minutes = Math.ceil(limit.retryAfterSeconds / 60);
     return fail(
@@ -84,7 +109,11 @@ export async function createDraftAction(
   let created;
   try {
     const consentVersion = await readSetting(db, "privacy_notice_version");
-    created = await createDraft(db, parsed.data, { consentVersion, secret: getTokenSecret() });
+    created = await createDraft(db, parsed.data, {
+      consentVersion,
+      secret: getTokenSecret(),
+      userId: account.profile.id,
+    });
   } catch (error) {
     if (error instanceof RequestError && error.code === "service-not-found") {
       return fail("Please check the fields marked below.", {
@@ -95,7 +124,15 @@ export async function createDraftAction(
     return fail("We could not save your request. Please try again, or contact us.");
   }
 
-  await setDraftCookie(created.requestId, created.token, created.draftExpiresAt);
+  // Remember the name and phone on the account for next time (only fills what is empty).
+  const missing = {
+    ...(account.profile.fullName ? {} : { fullName: parsed.data.fullName }),
+    ...(account.profile.phone ? {} : { phone: parsed.data.phone }),
+  };
+  if (Object.keys(missing).length > 0) {
+    await db.update(profiles).set(missing).where(eq(profiles.id, account.profile.id));
+  }
+
   redirect(`/request/${created.requestId}/code`);
 }
 
@@ -121,9 +158,14 @@ export async function removeFileAction(
 export async function submitRequestAction(requestId: string): Promise<void> {
   let request;
   try {
-    ({ request } = await requireRequestAccess(requestId, "submit"));
+    let via;
+    ({ request, via } = await requireRequestAccess(requestId, "submit"));
+    // Sending a request needs a VERIFIED email. (Old guest drafts have no account.)
+    if (via === "owner") await requireVerifiedUser();
   } catch (error) {
     if (error instanceof AccessError) redirect("/request/expired");
+    if (error instanceof UserAuthError)
+      redirect(error.code === "not-verified" ? "/register/check-email" : loginUrlFor("/request"));
     throw error;
   }
 

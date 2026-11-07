@@ -63,4 +63,7 @@ function withNoStore(response: NextResponse) {
   return response;
 }
 
-export const config = { matcher: ["/account/:path*", "/admin/:path*"] };
+// "/request" is step 1 and needs a sign in. The pages under /request/[id]/... are NOT matched on purpose:
+// a person who only has a tracking code reaches them with the tracking session, and each page and action
+// checks access itself (requireRequestAccess).
+export const config = { matcher: ["/account/:path*", "/admin/:path*", "/request"] };

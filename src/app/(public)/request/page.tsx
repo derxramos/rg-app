@@ -5,6 +5,7 @@ import { FlowFrame, FlowSkeleton } from "@/components/request/flow-frame";
 import { RequestForm } from "@/components/request/request-form";
 import { EmptyState } from "@/components/shared/empty-state";
 import { BackupContactBlock } from "@/components/shared/backup-contact-block";
+import { guardUserPage } from "@/server/auth/session";
 import { getPublicSettings, listActiveServices } from "@/server/services/site-content";
 import { Briefcase } from "lucide-react";
 
@@ -33,6 +34,10 @@ async function RequestStep1({
     getPublicSettings(),
   ]);
   const selected = typeof service === "string" ? service : undefined;
+  // A request needs an account. Anyone else goes to the sign in page and comes back here.
+  const { session, profile } = await guardUserPage({
+    path: selected ? `/request?service=${encodeURIComponent(selected)}` : "/request",
+  });
 
   return (
     <FlowFrame
@@ -55,6 +60,12 @@ async function RequestStep1({
         <RequestForm
           services={services.map((s) => ({ slug: s.slug, name: s.name }))}
           selectedSlug={services.some((s) => s.slug === selected) ? selected : undefined}
+          account={{
+            fullName: profile.fullName,
+            email: session.email || profile.email,
+            // The form shows the number after +63.
+            phone: profile.phone?.replace(/^\+63/, "") ?? "",
+          }}
         />
       )}
     </FlowFrame>

@@ -28,6 +28,8 @@ export function isUniqueViolation(error: unknown): boolean {
 }
 
 type CreateDraftOptions = {
+  // The signed-in owner of the request.
+  userId?: string | null;
   consentVersion: string;
   secret: string;
   now?: Date;
@@ -62,6 +64,7 @@ export async function createDraft(db: AppDb, details: RequestDetails, options: C
             trackingCode,
             serviceId: service.id,
             status: "draft",
+            userId: options.userId ?? null,
             clientFullName: details.fullName,
             clientEmail: details.email,
             clientPhone: details.phone,

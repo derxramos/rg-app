@@ -118,7 +118,7 @@ export async function uploadFile(db: AppDb, storage: StorageDriver, input: Uploa
   if (!type) throw new UploadError("bad-type");
 
   const [request] = await db
-    .select({ serviceId: requests.serviceId })
+    .select({ serviceId: requests.serviceId, userId: requests.userId })
     .from(requests)
     .where(eq(requests.id, input.requestId))
     .limit(1);
@@ -147,7 +147,11 @@ export async function uploadFile(db: AppDb, storage: StorageDriver, input: Uploa
   }
 
   // A random path. The original name is never part of it.
-  const storagePath = `requests/${input.requestId}/${randomUUID()}.${type.ext}`;
+  const storagePath = buildStoragePath({
+    userId: request.userId,
+    requestId: input.requestId,
+    ext: type.ext,
+  });
   await storage.put(input.bucket, storagePath, input.bytes, type.mime);
 
   try {
@@ -190,4 +194,14 @@ export async function removeFile(
   await storage.remove(input.bucket, [file.storagePath]);
   await db.delete(requestFiles).where(eq(requestFiles.id, file.id));
   return true;
+}
+
+// New files go under users/{userId}/requests/{requestId}/ so the storage rule can match the owner's folder.
+// Old guest requests (no owner) keep requests/{requestId}/. The name is random: the original file name
+// and anything the browser sends are never part of the path.
+export function buildStoragePath(input: { userId: string | null; requestId: string; ext: string }) {
+  const folder = input.userId
+    ? `users/${input.userId}/requests/${input.requestId}`
+    : `requests/${input.requestId}`;
+  return `${folder}/${randomUUID()}.${input.ext}`;
 }

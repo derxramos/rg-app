@@ -258,3 +258,11 @@ export async function waitForTurnstile(page: Page) {
     { timeout: 20_000 },
   );
 }
+
+// The development test user (see /api/dev-login). The site must run with DEV_USER_BYPASS_EMAILS containing it.
+export const E2E_USER_EMAIL = "zolb-test+usera@example.com";
+export const E2E_USER_B_EMAIL = "zolb-test+userb@example.com";
+
+export async function signInAsTestUser(page: Page, email = E2E_USER_EMAIL) {
+  await page.goto(`/api/dev-login?email=${encodeURIComponent(email)}&next=/`);
+}

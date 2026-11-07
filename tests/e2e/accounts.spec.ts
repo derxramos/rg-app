@@ -1,11 +1,23 @@
 // End-to-end checks for accounts: the header for a visitor, a user and an admin, sign out, and who may open /admin.
 // They use the DEVELOPMENT test login (/api/dev-login), so no Supabase account is needed.
-// The site must run with:  DEV_USER_BYPASS_EMAILS=zolb-test+usera@example.com  and  DEV_ADMIN_BYPASS_EMAIL=zolb-test+owner@example.com
+// The site must run with:  DEV_USER_BYPASS_EMAILS=zolb-test+usera@example.com,zolb-test+userb@example.com  and  DEV_ADMIN_BYPASS_EMAIL=zolb-test+owner@example.com
 // and a LOCAL database (pnpm dev:db). Real sign in, email and password reset are checked by hand
 // (docs/AUTH_AND_ROLES.md), because they need a Supabase project.
 import { expect, test, type Page } from "@playwright/test";
 
-import { ensureTestAdmin, removeTestAdmin, removeTestProfiles } from "./helpers";
+import {
+  E2E_USER_B_EMAIL,
+  E2E_USER_EMAIL,
+  TINY_PNG,
+  cleanTestData,
+  ensureTestAdmin,
+  ensureTestService,
+  removeTestAdmin,
+  removeTestProfiles,
+  signInAsTestUser,
+  testSql,
+  waitForTurnstile,
+} from "./helpers";
 
 const USER_A = "zolb-test+usera@example.com";
 
@@ -153,5 +165,98 @@ test.describe("sign in pages", () => {
     await asUser(page);
     await page.goto("/login");
     await expect(page).toHaveURL(/\/account/);
+  });
+});
+
+// ---------- Requests belong to accounts ----------
+test.describe("requests belong to the account", () => {
+  let requestId = "";
+
+  test.beforeAll(async () => {
+    await ensureTestService();
+  });
+  test.afterAll(async () => {
+    await cleanTestData();
+    await removeTestProfiles();
+  });
+
+  test("a visitor who opens Start a request is sent to sign in, and comes back after", async ({
+    page,
+  }) => {
+    await asVisitor(page);
+    await page.goto("/request?service=test-service-e2e");
+    await expect(page).toHaveURL(/\/login\?next=%2Frequest%3Fservice%3Dtest-service-e2e/);
+    // After signing in (the development test login) the same address works.
+    await signInAsTestUser(page);
+    await page.goto("/request?service=test-service-e2e");
+    await expect(page.getByRole("heading", { level: 1, name: "Start a request" })).toBeVisible();
+  });
+
+  test("user A starts a request, and it belongs to A", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_EMAIL);
+    await page.goto("/request?service=test-service-e2e");
+    await page.getByLabel("Full name").fill("Test Client A");
+    await page.getByLabel("Mobile number").fill("917 123 4567");
+    await page.getByRole("checkbox").check();
+    await waitForTurnstile(page);
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByRole("heading", { name: "Your request is started" })).toBeVisible();
+    requestId = page.url().split("/request/")[1].split("/")[0];
+    // A can open the next step.
+    await page.goto(`/request/${requestId}/documents`);
+    await expect(page.getByRole("heading", { name: "Upload your documents" })).toBeVisible();
+  });
+
+  test("user B cannot open A's request pages by changing the address", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_B_EMAIL);
+    for (const step of ["documents", "payment", "receipt", "review"]) {
+      await page.goto(`/request/${requestId}/${step}`);
+      await expect(page, step).toHaveURL(/\/request\/expired/);
+    }
+    // The "sent" page shows the code only with the short signed cookie of the person who just sent it.
+    await page.goto(`/request/${requestId}/done`);
+    await expect(page).toHaveURL(/\/track$/);
+  });
+
+  test("user B cannot upload a file to A's request", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_B_EMAIL);
+    const response = await page.request.post("/api/upload", {
+      multipart: {
+        requestId,
+        file: { name: "a.png", mimeType: "image/png", buffer: TINY_PNG },
+      },
+    });
+    expect(response.status()).toBe(403);
+  });
+
+  test("a visitor cannot upload a file either", async ({ page }) => {
+    await asVisitor(page);
+    const response = await page.request.post("/api/upload", {
+      multipart: {
+        requestId,
+        file: { name: "a.png", mimeType: "image/png", buffer: TINY_PNG },
+      },
+    });
+    expect(response.status()).toBe(403);
+  });
+
+  test("A can upload to their own request", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_EMAIL);
+    const response = await page.request.post("/api/upload", {
+      multipart: {
+        requestId,
+        file: { name: "a.png", mimeType: "image/png", buffer: TINY_PNG },
+      },
+    });
+    expect(response.status()).toBe(200);
+    // The file is saved under the owner's folder.
+    const sql = testSql();
+    try {
+      const [file] =
+        await sql`select storage_path from request_files where request_id = ${requestId}`;
+      expect(file.storage_path).toMatch(new RegExp(`^users/[0-9a-f-]{36}/requests/${requestId}/`));
+    } finally {
+      await sql.end();
+    }
   });
 });

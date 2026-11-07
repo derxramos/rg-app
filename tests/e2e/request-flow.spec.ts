@@ -1,12 +1,21 @@
 import { expect, test } from "@playwright/test";
 
-import { cleanTestData, emailTemplatesFor, TINY_PNG, waitForTurnstile } from "./helpers";
+import {
+  E2E_USER_EMAIL,
+  cleanTestData,
+  emailTemplatesFor,
+  removeTestProfiles,
+  signInAsTestUser,
+  TINY_PNG,
+  waitForTurnstile,
+} from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
 // The test service is made by scripts/e2e-seed.ts before the site starts (see package.json).
 test.afterAll(async () => {
   await cleanTestData();
+  await removeTestProfiles();
 });
 
 test("a client can start a request, upload files, and send it", async ({
@@ -14,6 +23,8 @@ test("a client can start a request, upload files, and send it", async ({
   browser,
   baseURL,
 }) => {
+  // A request needs an account. The development test login stands in for a signed-in user.
+  await signInAsTestUser(page);
   await page.goto("/request?service=test-service-e2e");
   await expect(page.getByRole("heading", { level: 1, name: "Start a request" })).toBeVisible();
   await expect(page.getByLabel("Service", { exact: true })).toHaveValue("test-service-e2e");
@@ -21,7 +32,9 @@ test("a client can start a request, upload files, and send it", async ({
   // The consent box is never ticked at the start, and the form needs it.
   await expect(page.getByRole("checkbox")).not.toBeChecked();
   await page.getByLabel("Full name").fill("Test Client");
-  await page.getByLabel("Email").fill("zolb-test+e2e@example.com");
+  // The email is the account email and cannot be typed over.
+  await expect(page.getByLabel("Email")).toHaveValue(E2E_USER_EMAIL);
+  await expect(page.getByLabel("Email")).toHaveAttribute("readonly", "");
   await page.getByLabel("Mobile number").fill("917 123 4567");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByText("Please tick the box to agree to the privacy notice.")).toBeVisible();

@@ -18,16 +18,18 @@ import { Textarea } from "@/components/ui/textarea";
 type Props = {
   services: { slug: string; name: string }[];
   selectedSlug?: string;
+  // From the signed-in account. The email is the account email and cannot be changed here.
+  account: { fullName: string; email: string; phone: string };
 };
 
 // Step 1: service and contact details. All checks run again on the server.
-export function RequestForm({ services, selectedSlug }: Props) {
+export function RequestForm({ services, selectedSlug, account }: Props) {
   const initial: DraftFormState = {
     values: {
       serviceSlug: selectedSlug ?? "",
-      fullName: "",
-      email: "",
-      phone: "",
+      fullName: account.fullName,
+      email: account.email,
+      phone: account.phone,
       businessName: "",
       message: "",
     },
@@ -92,10 +94,15 @@ export function RequestForm({ services, selectedSlug }: Props) {
           autoComplete="email"
           defaultValue={values.email}
           maxLength={200}
+          readOnly
           aria-invalid={errors.email ? true : undefined}
-          aria-describedby={described("email")}
+          aria-describedby={errors.email ? "rf-email-error" : "rf-email-hint"}
         />
-        {errors.email ? <FieldError id="rf-email-error">{errors.email}</FieldError> : null}
+        {errors.email ? (
+          <FieldError id="rf-email-error">{errors.email}</FieldError>
+        ) : (
+          <FieldHint id="rf-email-hint">This is the email of your account.</FieldHint>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

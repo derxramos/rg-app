@@ -2,21 +2,30 @@ import { writeFileSync } from "node:fs";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { cleanTestData, getCspViolations, testSql, waitForTurnstile, watchCsp } from "./helpers";
+import {
+  cleanTestData,
+  getCspViolations,
+  removeTestProfiles,
+  signInAsTestUser,
+  testSql,
+  waitForTurnstile,
+  watchCsp,
+} from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 test.afterAll(async () => {
   await cleanTestData();
+  await removeTestProfiles();
 });
 
 const manilaToday = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
 
-// Starts a request in the browser and returns its id (step 1 only).
-async function startRequest(page: Page, email: string) {
+// Signs in as the test user, starts a request in the browser, and returns its id (step 1 only).
+async function startRequest(page: Page) {
+  await signInAsTestUser(page);
   await page.goto("/request?service=test-service-e2e");
   await page.getByLabel("Full name").fill("Test Client");
-  await page.getByLabel("Email").fill(email);
   await page.getByLabel("Mobile number").fill("917 123 4567");
   await page.getByRole("checkbox").check();
   await waitForTurnstile(page);
@@ -31,7 +40,7 @@ test("payment page shows the QR, the account name and a warning, then manual ent
   const requests: { url: string; body: Buffer | null }[] = [];
   page.on("request", (r) => requests.push({ url: r.url(), body: r.postDataBuffer() }));
 
-  const id = await startRequest(page, "zolb-test+pay1@example.com");
+  const id = await startRequest(page);
   await page.goto(`/request/${id}/payment`);
   await expect(page.getByRole("heading", { name: "Pay with a QR code" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Test GCash (e2e) QR code" })).toBeVisible();
@@ -101,7 +110,7 @@ test("payment page shows the QR, the account name and a warning, then manual ent
 });
 
 test("a reference number used before is refused with a clear message", async ({ page }) => {
-  const id = await startRequest(page, "zolb-test+pay2@example.com");
+  const id = await startRequest(page);
   await page.goto(`/request/${id}/receipt`);
   await page.getByLabel("Reference number").fill("123456789012");
   await page.getByLabel("Amount you paid").fill("500");
@@ -116,7 +125,7 @@ test("a reference number used before is refused with a clear message", async ({ 
 });
 
 test("a future date and an old date are refused", async ({ page }) => {
-  const id = await startRequest(page, "zolb-test+pay3@example.com");
+  const id = await startRequest(page);
   await page.goto(`/request/${id}/receipt`);
   await page.getByLabel("Reference number").fill("FUTURE-0001");
   await page.getByLabel("Amount you paid").fill("100");
@@ -137,7 +146,7 @@ test("reading a receipt in the browser (OCR) fills the fields and measures the d
 }, testInfo) => {
   test.setTimeout(150_000);
   await watchCsp(page);
-  const id = await startRequest(page, "zolb-test+pay4@example.com");
+  const id = await startRequest(page);
   await page.goto(`/request/${id}/receipt`);
 
   // Draw a fake receipt picture in the page and use it as the chosen file.

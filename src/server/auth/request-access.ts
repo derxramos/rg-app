@@ -6,6 +6,8 @@ import { connection } from "next/server";
 import { getDb } from "@/server/db/client";
 import { getTokenSecret, isProduction } from "@/server/env";
 
+import { getSession } from "./session";
+
 import {
   AccessError,
   checkRequestAccess,
@@ -36,9 +38,12 @@ export async function requireRequestAccess(requestId: string, action: RequestAct
   // An id that is not a UUID can never match. Answer like "not found" (and do not ask the database).
   if (!UUID.test(requestId)) throw new AccessError("not-found");
   const jar = await cookies();
+  // The signed-in person (if any). Only the server session is used, never an id from the browser.
+  const session = await getSession();
   return checkRequestAccess(getDb(), {
     requestId,
     action,
+    userId: session?.userId ?? null,
     draftCookie: jar.get(DRAFT_COOKIE)?.value ?? null,
     trackingCookie: jar.get(TRACKING_COOKIE)?.value ?? null,
     secret: getTokenSecret(),

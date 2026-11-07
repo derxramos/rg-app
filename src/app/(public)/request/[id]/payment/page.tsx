@@ -13,6 +13,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { qrImageUrl } from "@/lib/qr-url";
 import { cn } from "@/lib/utils";
+import { flowMode } from "@/server/auth/request-access-core";
 import { guardRequestAccess } from "@/server/auth/request-page-guard";
 import { getDb } from "@/server/db/client";
 import { listActivePaymentMethods } from "@/server/services/payments";
@@ -30,8 +31,9 @@ export default function PaymentPage({ params }: PageProps<"/request/[id]/payment
 
 async function Payment({ params }: { params: PageProps<"/request/[id]/payment">["params"] }) {
   const { id } = await params;
-  const { via } = await guardRequestAccess(id, "pay");
-  const fromTracking = via === "tracking";
+  const access = await guardRequestAccess(id, "pay");
+  const mode = flowMode(access);
+  const fromTracking = mode.afterSend;
   const [methods, settings] = await Promise.all([
     listActivePaymentMethods(getDb()),
     getPublicSettings(),
@@ -122,7 +124,7 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
       )}
       <div className="flex flex-col items-start gap-2 border-t pt-6">
         <Link
-          href={fromTracking ? "/track/result" : `/request/${id}/review`}
+          href={fromTracking ? mode.backHref : `/request/${id}/review`}
           className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           {fromTracking ? "Back to my request" : "Skip for now. I will pay later"}

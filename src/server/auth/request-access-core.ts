@@ -1,9 +1,10 @@
 import "server-only";
 
 // The core of requireRequestAccess. It has no cookie or Next.js code, so it is easy to test.
-// A client has no login. They reach ONE request in two ways (docs/ARCHITECTURE.md section 5):
-//   1. the draft cookie (7 days): upload files, pay, and submit while the request is a Draft
-//   2. the tracking session (1 hour): see the status, pay, and upload more when allowed
+// A person reaches ONE request in three ways (docs/ARCHITECTURE.md section 5):
+//   0. owner: they are signed in and requests.user_id is their id (all new requests)
+//   1. the draft cookie (7 days): only for old guest requests made before accounts existed
+//   2. the tracking session (1 hour): code + last 4 digits, for people who only have the code
 
 import { eq } from "drizzle-orm";
 
@@ -37,9 +38,21 @@ const RULES: Record<
   submit: { draft: ["draft"], tracking: [] },
 };
 
+// For the signed-in owner. Same actions as the draft way, plus more after the request was sent:
+// they can look at it at any time, pay while it is open, and add files when we ask for them.
+const OWNER_RULES: Record<RequestAction, readonly RequestStatus[]> = {
+  view: [], // any status (checked below)
+  upload: ["draft", "waiting_for_client"],
+  removeFile: ["draft"],
+  pay: ["draft", "submitted", "under_review", "waiting_for_client"],
+  submit: ["draft"],
+};
+
 export type AccessInput = {
   requestId: string;
   action: RequestAction;
+  // The signed-in user (from the server session), or null/undefined for a visitor.
+  userId?: string | null;
   // Cookie values, as read from the request.
   draftCookie?: string | null;
   trackingCookie?: string | null;
@@ -82,6 +95,20 @@ export async function checkRequestAccess(db: AppDb, input: AccessInput) {
 
   const rule = RULES[input.action];
 
+  // 0. The owner. Another signed-in user gets nothing here and falls through to the cookies, which they
+  // do not have. The answer is then the same as for a visitor.
+  if (input.userId && request.userId === input.userId) {
+    if (request.status === "draft") {
+      if (!request.draftExpiresAt || request.draftExpiresAt.getTime() <= now.getTime()) {
+        throw new AccessError("expired");
+      }
+    }
+    const allowed =
+      input.action === "view" ? true : OWNER_RULES[input.action].includes(request.status);
+    if (!allowed) throw new AccessError("wrong-status");
+    return { request, via: "owner" as const };
+  }
+
   // 1. The draft cookie.
   if (input.draftCookie) {
     const separator = input.draftCookie.indexOf(":");
@@ -110,4 +137,17 @@ export async function checkRequestAccess(db: AppDb, input: AccessInput) {
   }
 
   throw new AccessError("no-cookie");
+}
+
+// How the request pages should behave. "After send" means the request was already sent, so there is no
+// numbered stepper and the way back goes to the person's request page instead of the next step.
+export function flowMode(access: {
+  via: "owner" | "draft" | "tracking";
+  request: { id: string; status: RequestStatus };
+}) {
+  const afterSend =
+    access.via === "tracking" || (access.via === "owner" && access.request.status !== "draft");
+  const backHref =
+    access.via === "tracking" ? "/track/result" : `/account/requests/${access.request.id}`;
+  return { afterSend, backHref, showEarlierFiles: access.via !== "tracking" };
 }

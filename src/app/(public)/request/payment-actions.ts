@@ -38,9 +38,12 @@ export async function savePaymentAction(
   });
 
   // 1. access (the draft cookie, or the tracking session when the status allows paying)
-  let via: "draft" | "tracking";
+  let via: "draft" | "tracking" | "owner";
+  let status: string;
   try {
-    ({ via } = await requireRequestAccess(requestId, "pay"));
+    const access = await requireRequestAccess(requestId, "pay");
+    via = access.via;
+    status = access.request.status;
   } catch (error) {
     if (error instanceof AccessError) redirect("/request/expired");
     throw error;
@@ -80,6 +83,11 @@ export async function savePaymentAction(
   if (via === "tracking") {
     await notifyPaymentSubmitted(requestId);
     redirect("/track/result");
+  }
+  // The same for an account owner whose request was already sent: tell the admin, go back to My requests.
+  if (via === "owner" && status !== "draft") {
+    await notifyPaymentSubmitted(requestId);
+    redirect(`/account/requests/${requestId}`);
   }
   redirect(`/request/${requestId}/review`);
 }

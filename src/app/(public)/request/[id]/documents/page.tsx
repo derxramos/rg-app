@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { DocumentsUploader } from "@/components/request/documents-uploader";
 import { FlowFrame, FlowSkeleton } from "@/components/request/flow-frame";
 import { buttonVariants } from "@/components/ui/button";
+import { flowMode } from "@/server/auth/request-access-core";
 import { guardRequestAccess } from "@/server/auth/request-page-guard";
 import { getDb } from "@/server/db/client";
 import { getUploadLimits, listFiles, listRequirementsForRequest } from "@/server/services/files";
@@ -23,13 +24,15 @@ export default function DocumentsPage({ params }: PageProps<"/request/[id]/docum
 
 async function Documents({ params }: { params: PageProps<"/request/[id]/documents">["params"] }) {
   const { id } = await params;
-  const { request, via } = await guardRequestAccess(id, "upload");
-  const fromTracking = via === "tracking";
+  const access = await guardRequestAccess(id, "upload");
+  const { request } = access;
+  const mode = flowMode(access);
+  const fromTracking = mode.afterSend;
   const db = getDb();
   const [requirements, files, limits] = await Promise.all([
     listRequirementsForRequest(db, request.serviceId),
     // A client who came from the tracking page never sees earlier files (privacy).
-    fromTracking ? Promise.resolve([]) : listFiles(db, id),
+    mode.showEarlierFiles ? listFiles(db, id) : Promise.resolve([]),
     getUploadLimits(db),
   ]);
 
@@ -43,13 +46,13 @@ async function Documents({ params }: { params: PageProps<"/request/[id]/document
         requestId={id}
         requirements={requirements}
         initialFiles={files}
-        canRemove={!fromTracking}
+        canRemove={request.status === "draft"}
         maxFiles={limits.maxFiles}
         maxBytes={limits.maxBytes}
       />
       <div>
         <Link
-          href={fromTracking ? "/track/result" : nextStepAfterDocuments(id)}
+          href={fromTracking ? mode.backHref : nextStepAfterDocuments(id)}
           className={buttonVariants({ size: "lg" })}
         >
           {fromTracking ? "Done. Back to my request" : "Continue"}
