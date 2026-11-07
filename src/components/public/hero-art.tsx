@@ -1,6 +1,7 @@
-import { Check } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
 
-import { StatusBadge } from "@/components/shared/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { STATUS_LABELS } from "@/lib/status";
 
 // Decoration for the home page. Made only from CSS shapes and simple UI cards: no photos, no
 // download. It shows no real data, so screen readers skip it (aria-hidden).
@@ -16,8 +17,12 @@ export function HeroArt() {
       <span className="absolute top-0 left-12 size-6 rounded-full bg-highlight [--dy:6px] motion-safe:animate-hero-dot" />
       <span className="absolute right-0 bottom-10 h-3 w-24 rounded-full bg-brand-accent" />
 
-      <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border bg-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a motion-safe:[&_svg]:animate-hero-spin md:w-64">
-        <StatusBadge status="in_progress" />
+      <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border bg-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a md:w-64">
+        {/* Same look as StatusBadge "in_progress". The text and the icon are split so they can appear one after the other, like "Verified" and the check. */}
+        <Badge className="bg-status-in-progress-bg text-status-in-progress-fg">
+          <LoaderCircle aria-hidden="true" className="motion-safe:animate-hero-icon" />
+          <span className="motion-safe:animate-hero-verified">{STATUS_LABELS.in_progress}</span>
+        </Badge>
         <span className="h-3 w-3/4 rounded-full bg-muted" />
         <span className="h-3 w-1/2 rounded-full bg-muted" />
       </div>

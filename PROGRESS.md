@@ -505,3 +505,8 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Still pure CSS, `motion-safe:` only (reduced motion shows "Verified" and the check fully, with no animation). Lint, type check and build pass.
 - Lighthouse (local production build, 1 good run): 100 / LCP 1.0 s / CLS 0 / TBT 40 ms. Same as before part 2.
 - Not checked by eye at 390, 768 and 1440 px.
+
+### 2026-11-07 — Hero animation, part 3 (branch `feat/hero-animation-3`)
+- The "In progress" badge now follows the same 8 s cycle as "Verified": the text fades in first, then the icon pops in and keeps spinning. Both fade out at the end, then repeat.
+- The hero uses its own badge markup (same classes as `StatusBadge`) so the text and the icon can be animated apart. The shared `StatusBadge` is not changed.
+- Lint, type check and build pass. Not checked by eye.
