@@ -131,27 +131,29 @@ GitHub Actions ──► scripts/*.ts ──► Supabase (direct, with secret ke
 
 ---
 
-## 5. Auth (admin login)
+## 5. Auth (accounts and roles)
 
-- **Supabase Auth**, email + password. Public sign-up is **turned off**. The owner invites staff from the admin area (or the first owner is created by the seed script).
-- **2FA is required** for every admin. After password login, if the user has no TOTP device, they must add one before they can see anything. Every protected page and action checks that the session is at level **AAL2** (password + 2FA code).
-- Password rules: at least 12 characters. Supabase "leaked password protection" is turned on if the free plan allows it (check in Phase 1).
-- Roles live in our own table `admin_profiles` (`owner` or `staff`). `requireAdmin({ role })` checks:
-  1. a valid Supabase session,
-  2. AAL2,
-  3. an active `admin_profiles` row,
-  4. the needed role.
-- `proxy.ts` only refreshes the login cookie and sends non-logged-in users from `/admin/*` to `/admin/login`. **It is not the real security check.** Every Server Action and Route Handler calls `requireAdmin()` again.
-- **Fresh 2FA for risky actions:** changing a payment QR, account number, or adding an admin needs a new 6-digit code typed in the last 5 minutes.
+Full detail: `docs/AUTH_AND_ROLES.md`. Short version:
 
-### Client access (no login)
+- **Supabase Auth**, email + password, **one** sign-in page (`/login`) for users and admins. Sign-up is on and **email verification is required**. Password rule: 12 to 72 characters, not the email, not a common password (`src/lib/validation/auth.ts`).
+- **Two roles** in the `profiles` table: `user` (default, set by a database trigger) and `admin`. Nobody can change their own role. Admins also have an `admin_profiles` row (`owner` or `staff`, on/off).
+- **Access is checked in three places:** (1) `src/proxy.ts` (early redirect to `/login?next=...`, `Cache-Control: no-store`), (2) every page, Server Action and Route Handler, (3) database Row Level Security. The proxy is **not** the real check.
+- The guards, all in `src/server/auth/`: `requireUser()`, `requireVerifiedUser()` (`session.ts`), `requireAdmin()` (`admin.ts`), `requireRequestAccess()` (`request-access.ts`). They read the login with Supabase `getClaims()` / `getUser()` on the server, never from a cookie value alone.
+- `requireAdmin({ roles })` checks: a valid session, **2FA level (only while `ADMIN_REQUIRE_2FA` is not "false")**, an active `admin_profiles` row, `profiles.role = 'admin'`, then the needed owner/staff level.
+- **Admin 2FA (TOTP)** is behind the server-only variable `ADMIN_REQUIRE_2FA`. Only the exact word `false` turns it off; anything else means required. While it is off, a red banner shows on every admin page and the server log warns at start. It skips **only** the 2FA code check; all other checks still run.
+- **Fresh 2FA for risky actions:** changing a payment QR, account number, or admin users needs a new 6-digit code typed in the last 5 minutes (not asked while 2FA is off).
+- Pages for users read their data through `withUserRls()`: one transaction with `set local role authenticated` and the user's id, so the database filters the rows as well.
+- Sign out is a plain `<form method="post" action="/auth/sign-out">` with a full page redirect, so the Back button cannot show private pages.
 
-Clients do not have accounts. They get access to **one request** in two ways:
+### Who can reach one request
 
-1. **Draft cookie.** When the draft is created, the server sets an `httpOnly` cookie with a long random token. The database stores only a hash of the token. It lasts 7 days and lets the client upload files and pay for that request only.
-2. **Tracking access.** On the tracking page, the client enters the tracking code + last 4 phone digits. If correct, the server sets a short cookie (1 hour) for that request. It allows: see status, add payment, upload more files only when status is "Waiting for client". It **never** allows viewing files.
+A person reaches ONE request in three ways (`requireRequestAccess(requestId, action)` checks them in this order):
 
-`requireRequestAccess(requestId, action)` checks the cookie, the hash, the expiry, and whether the action is allowed for the current status.
+1. **Owner.** They are signed in and `requests.user_id` is their id. This is how every new request works. They can view it at any time, upload while it is a Draft or "Waiting for client", and pay while it is open.
+2. **Draft cookie** (old guest requests only). A 7 day `httpOnly` cookie with a random token; the database stores only its hash.
+3. **Tracking access.** On `/track` a person with only the code + last 4 phone digits gets a 1 hour cookie for that request: see status, pay, and upload more only when "Waiting for client". It **never** shows files.
+
+Another signed-in user gets the same answer as for a request that does not exist.
 
 ---
 

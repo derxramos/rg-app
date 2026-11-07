@@ -6,7 +6,12 @@ import { createAuthAdminApi } from "@/server/auth/supabase-admin";
 import { OWNER_ONLY } from "@/server/auth/admin-core";
 import { withAdmin, type ActionResult } from "@/server/auth/admin";
 import { getDb } from "@/server/db/client";
-import { inviteAdmin, updateAdmin } from "@/server/services/admin-users";
+import {
+  inviteAdmin,
+  promoteToAdmin,
+  removeAdmin,
+  updateAdmin,
+} from "@/server/services/admin-users";
 
 const text = (formData: FormData, name: string) => String(formData.get(name) ?? "");
 
@@ -51,5 +56,37 @@ export async function updateAdminAction(
     );
     revalidatePath("/admin/settings/users");
     return { ok: true, message: "Saved." };
+  });
+}
+
+// Make an existing account an admin. OWNER ONLY and a fresh 2FA code.
+export async function promoteAdminAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
+    await promoteToAdmin(
+      getDb(),
+      admin,
+      {
+        email: text(formData, "email"),
+        role: text(formData, "role") === "owner" ? "owner" : "staff",
+      },
+      { fresh2fa, ipHash },
+    );
+    revalidatePath("/admin/settings/users");
+    return { ok: true, message: "That person is now an admin." };
+  });
+}
+
+// Take the admin role away. OWNER ONLY and a fresh 2FA code.
+export async function removeAdminAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
+    await removeAdmin(getDb(), admin, { adminId: text(formData, "id") }, { fresh2fa, ipHash });
+    revalidatePath("/admin/settings/users");
+    return { ok: true, message: "The admin role was removed." };
   });
 }

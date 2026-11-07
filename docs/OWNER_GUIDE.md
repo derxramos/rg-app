@@ -140,3 +140,5 @@ Open the request. Use **Delete client data (privacy request)**. Type **DELETE** 
 - **Tracking code**: the `RG-XXXXXXXX` code the client gets.
 - **Draft**: a request the client started but did not send. It is deleted after 7 days.
 - **OCR**: the computer reading text from a picture. It only saves typing. It does not prove a payment.
+
+**Make an existing account an admin.** The person first creates an account on the website (Sign in > Create an account) and opens the email link. Then go to Settings > Admin users > "Make an existing account an admin", type their email and choose Staff or Owner. To take the role away, press "Remove admin" next to their name: they become a normal user again.

@@ -13,7 +13,12 @@ import { OWNER_ONLY } from "@/server/auth/admin-core";
 import { getDb } from "@/server/db/client";
 import { listAdmins } from "@/server/services/admin-users";
 
-import { inviteAdminAction, updateAdminAction } from "./actions";
+import {
+  inviteAdminAction,
+  promoteAdminAction,
+  removeAdminAction,
+  updateAdminAction,
+} from "./actions";
 
 export const metadata: Metadata = { title: "Admin users" };
 
@@ -67,6 +72,18 @@ export default async function AdminUsersPage() {
                   >
                     <span />
                   </ActionForm>
+                  {a.isActive ? (
+                    <ActionForm
+                      action={removeAdminAction}
+                      fresh
+                      hidden={{ id: a.id }}
+                      submitLabel="Remove admin"
+                      variant="destructive"
+                      size="sm"
+                    >
+                      <span />
+                    </ActionForm>
+                  ) : null}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">This is you.</p>
@@ -75,6 +92,30 @@ export default async function AdminUsersPage() {
           </li>
         ))}
       </ul>
+      <Card>
+        <CardHeader>
+          <CardTitle>Make an existing account an admin</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-base">
+            The person must already have an account on this website. Type the email they used.
+            &ldquo;Remove admin&rdquo; above turns them back into a normal user.
+          </p>
+          <ActionForm action={promoteAdminAction} fresh submitLabel="Make admin" resetOnSuccess>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="p-email">Account email</Label>
+              <Input id="p-email" name="email" type="email" maxLength={200} required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="p-role">Level</Label>
+              <NativeSelect id="p-role" name="role" defaultValue="staff">
+                <option value="staff">Staff</option>
+                <option value="owner">Owner</option>
+              </NativeSelect>
+            </div>
+          </ActionForm>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Invite someone</CardTitle>

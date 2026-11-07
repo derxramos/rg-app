@@ -83,6 +83,110 @@ export async function inviteAdmin(
   return id;
 }
 
+// Makes an EXISTING account (someone who already created an account) an admin. OWNER ONLY, fresh 2FA, logged.
+// The account role (profiles.role) and the admin record (admin_profiles) are both set in one transaction.
+export async function promoteToAdmin(
+  db: AppDb,
+  actor: AdminProfile,
+  input: { email: string; role: AdminRole },
+  context: { fresh2fa: boolean; ipHash?: string | null },
+) {
+  guard(actor, context.fresh2fa);
+  const email = input.email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200)
+    throw new UserAdminError("invalid", "Please enter a full email address.");
+  if (!["owner", "staff"].includes(input.role))
+    throw new UserAdminError("invalid", "Unknown role.");
+
+  const [account] = await db.select().from(profiles).where(eq(profiles.email, email)).limit(1);
+  if (!account)
+    throw new UserAdminError(
+      "not-found",
+      "There is no account with that email. The person must create an account first.",
+    );
+  const [existing] = await db
+    .select({ isActive: adminProfiles.isActive })
+    .from(adminProfiles)
+    .where(eq(adminProfiles.id, account.id))
+    .limit(1);
+  if (existing?.isActive && account.role === "admin")
+    throw new UserAdminError("exists", "That person is already an admin.");
+
+  await db.transaction(async (tx) => {
+    // Only the database owner (our server) may change a role. The database refuses it for users.
+    await tx.update(profiles).set({ role: "admin" }).where(eq(profiles.id, account.id));
+    await tx
+      .insert(adminProfiles)
+      .values({
+        id: account.id,
+        fullName: account.fullName || email,
+        email,
+        role: input.role,
+        isActive: true,
+      })
+      .onConflictDoUpdate({
+        target: adminProfiles.id,
+        set: { role: input.role, isActive: true },
+      });
+    await tx.insert(activityLog).values({
+      actorType: "admin",
+      actorId: actor.id,
+      action: "role.changed",
+      entityType: "admin",
+      entityId: account.id,
+      details: { from: account.role, to: "admin", level: input.role },
+      ipHash: context.ipHash ?? null,
+    });
+  });
+  return account.id;
+}
+
+// Takes the admin role away: the account becomes a normal user again, and the admin record is switched off
+// (it stays, because past notes and payment checks point to it). OWNER ONLY, fresh 2FA, logged.
+export async function removeAdmin(
+  db: AppDb,
+  actor: AdminProfile,
+  input: { adminId: string },
+  context: { fresh2fa: boolean; ipHash?: string | null },
+) {
+  guard(actor, context.fresh2fa);
+  if (input.adminId === actor.id)
+    throw new UserAdminError("self", "You cannot remove your own admin role. Ask another owner.");
+  try {
+    await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(adminProfiles)
+        .where(eq(adminProfiles.id, input.adminId))
+        .limit(1);
+      if (!before) throw new UserAdminError("not-found", "Admin not found.");
+      // The database refuses this when it would remove the last active owner.
+      await tx
+        .update(adminProfiles)
+        .set({ isActive: false })
+        .where(eq(adminProfiles.id, input.adminId));
+      await tx.update(profiles).set({ role: "user" }).where(eq(profiles.id, input.adminId));
+      await tx.insert(activityLog).values({
+        actorType: "admin",
+        actorId: actor.id,
+        action: "role.changed",
+        entityType: "admin",
+        entityId: input.adminId,
+        details: { from: "admin", to: "user", level: before.role },
+        ipHash: context.ipHash ?? null,
+      });
+    });
+  } catch (error) {
+    if (
+      (error as { code?: string; cause?: { code?: string } }).code === "23514" ||
+      (error as { cause?: { code?: string } }).cause?.code === "23514"
+    ) {
+      throw new UserAdminError("last-owner", "There must always be at least one active owner.");
+    }
+    throw error;
+  }
+}
+
 // Role change or turn on/off. The database also refuses to remove the last active owner.
 export async function updateAdmin(
   db: AppDb,
@@ -115,6 +219,10 @@ export async function updateAdmin(
           ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         })
         .where(eq(adminProfiles.id, input.adminId));
+      // Turning someone back on also gives the account role "admin" back (it may have been removed).
+      if (input.isActive === true) {
+        await tx.update(profiles).set({ role: "admin" }).where(eq(profiles.id, input.adminId));
+      }
       await tx.insert(activityLog).values({
         actorType: "admin",
         actorId: actor.id,

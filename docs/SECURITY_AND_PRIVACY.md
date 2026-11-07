@@ -60,12 +60,35 @@ Fixes:
 ### T6 — Admin account takeover
 Fixes:
 - Strong password (12+ chars), required TOTP 2FA, sessions at AAL2 for all admin pages.
-- No public sign-up. Owner invites staff.
+- Admins are made only by an owner ("Make admin" or invite). A new sign-up is always a normal user.
+- The 2-step login can be switched off for now with `ADMIN_REQUIRE_2FA=false`. This is shown by a red banner on every admin page and a log warning, and must be switched on before real clients use the site (PROGRESS.md "Before launch"). Role checks and database rules stay on either way.
 - Login rate limit and log of all logins.
 - Fresh 2FA code for the most risky actions (payment methods, admin users).
 - Owner can turn off a staff account at once.
 - Backup TOTP device instead of recovery codes (Supabase does not give recovery codes).
 - Short admin session (for example 8 hours, then log in again).
+
+### T11 — Account takeover (a client account)
+Fixes:
+- Strong password rule, email verification, Turnstile and rate limits on sign in, sign up, resend and reset.
+- One message for a wrong email and a wrong password. Sign up, resend and forgot password never say whether an email has an account.
+- Reset links work once; a new password ends the other sessions.
+- Risky account actions (delete) ask for the password again. Everything is logged in `activity_log`.
+
+### T12 — A user opens another user's data (IDOR)
+How it could happen: changing an id in the address, calling an API or Server Action directly, guessing a file path.
+Fixes:
+- Every page, Server Action and route checks the login itself; ownership is checked on the server (`requests.user_id`) and again by database Row Level Security.
+- The same "not found" answer for a request that is not yours and one that does not exist.
+- Files are in a private bucket under `users/{userId}/requests/{requestId}/`; the browser never gets a file link; storage rules match the folder.
+- Private columns (draft token, storage paths, internal notes) are hidden from the user role by column rights.
+
+### T13 — A user makes themselves an admin
+Fixes:
+- The user role has no right to write the role column, a trigger refuses any role change that does not come from our server or the database owner, and the profile form has no role field.
+- `requireAdmin` needs BOTH `profiles.role = 'admin'` and an active `admin_profiles` row.
+- Only an owner can make or remove an admin (fresh 2FA while 2FA is on); each change is logged.
+- Tests: `tests/unit/accounts-rls.test.ts`, `tests/unit/admin-roles.test.ts`.
 
 ### T7 — Fake payment receipts
 Fixes:
@@ -104,10 +127,10 @@ Fixes:
 | **Transparency** | Privacy notice page: what, why, how long, who sees it, rights, contact person. |
 | **Collect only what is needed** | Name, email, mobile, optional business name, documents for the service, payment text values. No receipt images, no birthdays, no ID numbers as fields. |
 | **Limited keeping** | Files auto-deleted N days after Completed/Cancelled. Drafts deleted after 7 days. Request text kept for business records (period to confirm with owner, for example 5 years for tax records — owner decides). |
-| **Access control** | Every request and file is checked on the server. Only admins see client data. Tracking shows minimal data. |
-| **Audit log** | `activity_log` for logins, file opens, status changes, settings, exports. |
+| **Access control** | Every request and file is checked on the server and by database Row Level Security. A user sees only their own data. Only admins see all client data. Tracking shows minimal data. |
+| **Audit log** | `activity_log` for sign up, logins, logouts, password resets, role changes, account deletion and downloads (no passwords, tokens or emails), file opens, status changes, settings, exports. |
 | **Security** | Encryption in transit (HTTPS), private storage, 2FA, rate limits. Supabase encrypts data at rest. |
-| **Data subject rights** | Client can email the business to ask for a copy, a fix, or deletion. Admin has a "Delete client data" action (deletes files, clears personal fields, keeps a minimal record for payments if needed). |
+| **Data subject rights** | A signed-in user can see and fix their details, **download** their data and **delete their account** themselves (My requests page). Others can email the business; the owner has a "Delete client data" action. Both erase files and personal fields and keep a minimal record (code, service, dates, payment values). |
 | **Breach response** | Simple steps in this doc: find, contain (turn off accounts, rotate keys), check activity log, tell affected clients and the NPC when the law requires it (the owner should confirm the rules and time limit). |
 | **Data location** | Supabase region chosen close to the Philippines (for example Singapore). Written in the privacy notice. |
 

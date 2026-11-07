@@ -107,12 +107,50 @@ As a client, I want to check my request status so that I know what is happening.
 
 ---
 
+## Accounts (users)
+
+### U1 — Create an account
+As a client, I want an account so I can send requests and follow them.
+- [ ] Full name, email, password (12+ characters), consent checkbox with Privacy notice and Terms links, Turnstile.
+- [ ] Same answer whether or not the email is already used ("Check your email").
+- [ ] I cannot sign in or send a request before I open the link in the email. "Send the link again" has a rate limit.
+
+### U2 — Sign in, forgot and reset password
+- [ ] One message for a wrong email and a wrong password. 5 tries per 15 minutes per place, 10 per email. Turnstile.
+- [ ] After sign in I go back to the page I wanted (safe paths on this site only), or to `/account` (users) or `/admin` (admins).
+- [ ] If my session ended I see "Your session ended" and come back to where I was.
+- [ ] "Forgot your password?" always shows the same message. The email link opens `/reset-password`. A new password ends my other sessions.
+
+### U3 — Header
+- [ ] Visitor: "Sign in" (outline) next to the orange "Start a request". User: "My requests" and "Sign out". Admin: "Admin" and "Sign out". Same in the phone menu. No wrong state on the first page load.
+- [ ] "Sign out" is a form button. After it I am on the home page with "You have been signed out." and the Back button does not show private pages.
+
+### U4 — Start a request needs an account
+- [ ] A visitor who clicks "Start a request" goes to sign in and comes back.
+- [ ] The email on the request is my account email. Name and phone are filled from my profile.
+- [ ] Sending the request needs a verified email.
+
+### U5 — My requests
+- [ ] A list of only my requests with status, code and date. Empty state with "Start a request". It refreshes by itself every minute.
+- [ ] Another person's request, a made-up id and a missing request all show the same "not found" page.
+
+### U6 — One request
+- [ ] Status, timeline, the latest message from us, payment state, "Pay now" / "Upload more" only when the status allows.
+- [ ] Documents: **names and dates only**, no way to open them.
+
+### U7 — My details
+- [ ] I can change my name and phone. I cannot change my email or my role.
+
+### U8 — My data (Data Privacy Act)
+- [ ] "Download my data" gives a JSON file with only my data (no internal notes, no files).
+- [ ] "Delete my account": type DELETE, enter the password again. Refused while a request is open, and for admins. It erases my documents and personal fields, keeps a minimal record, and removes my login. Logged.
+
 ## Admin side
 
 ### A1 — Login with 2FA
 As an admin, I want a safe login so that only we can see client data.
-- [ ] Email + password. No public sign-up page.
-- [ ] After password, asks for 6-digit TOTP code. First login forces 2FA setup (QR code for the authenticator app) and asks to add a backup device.
+- [ ] Email + password on the shared `/login` page (users and admins). Admins are made by an owner ("Make admin" or invite), never by sign-up.
+- [ ] While `ADMIN_REQUIRE_2FA` is "false": password only, and a red banner shows on every admin page. Otherwise: after password, asks for 6-digit TOTP code. First login forces 2FA setup (QR code for the authenticator app) and asks to add a backup device.
 - [ ] 5 wrong logins from one IP in 15 min → slowed down/blocked for 15 min.
 - [ ] Login success and failure are logged.
 - [ ] Inactive admins cannot log in.
@@ -163,7 +201,10 @@ As an admin, I want a safe login so that only we can see client data.
 - [ ] File settings: retention days, max files per request, max file size, storage warning %.
 - [ ] Every change logged.
 
-### A9 — Admin users (owner only)
+### A9 — Admin users (also: Make admin, Remove admin)
+- [ ] Owner only, fresh 2FA code (while 2FA is on). "Make admin" turns an existing account into an admin (staff or owner). "Remove admin" turns the person back into a normal user. Both are logged as `role.changed`. The last active owner can never be removed.
+
+### A9a — Admin users (invite) (owner only)
 - [ ] Invite staff by email, set role, turn off access.
 - [ ] Cannot turn off the last active owner.
 - [ ] Needs a fresh 2FA code.

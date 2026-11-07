@@ -51,7 +51,7 @@ every time. Do these once:
    - Plan: **Free**.
 3. Wait 1 to 2 minutes until the project is ready.
 4. Lock the doors (very important for "nobody can read all the data"):
-   - **Authentication** > **Sign In / Providers** (or **Providers**): turn **OFF** "Allow new users to sign up". Only invited admins should exist. Keep **Email** provider ON.
+   - **Authentication** > **Sign In / Providers** (or **Providers**): turn **ON** "Allow new users to sign up" and turn **ON** "Confirm email". Clients now create accounts, and they must open the email link before they can sign in. Keep **Email** provider ON. Set the minimum password length to **12**. The other sign-in settings (email templates, Brevo SMTP, redirect addresses) are in `docs/AUTH_AND_ROLES.md` section 2: do them before you let anyone sign up.
    - **Authentication** > **Multi-Factor** (or **Sign In / Providers**): make sure **TOTP** is enabled.
    - **Project Settings** > **API** (or **Data API**): keep **Enable Data API** turned **OFF**. If Supabase shows "Database access requires the Data API / Client library database queries will not work", ignore it. This app does not use that feature: the server talks to the database directly, and login and files use their own Supabase services. Turning it ON would only add a door that nobody needs.
    - **Storage**: the buckets are made later by a command (step 5). They must be **private**.

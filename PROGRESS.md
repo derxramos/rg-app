@@ -27,7 +27,7 @@ Plan: user accounts (role `user`) and admin accounts (role `admin`). Phases:
 - [x] Phase 5 — Header and layouts (browser checks pass on phone and desktop with the dev test login)
 - [x] Phase 6 — Requests belong to users (the old guest draft cookie code stays only for old guest drafts; they expire within 7 days)
 - [x] Phase 7 — Account area (My requests, request page, profile, download my data, delete my account, privacy notice 2.0)
-- [ ] Phase 8 — Admin role management, docs and checklist
+- [x] Phase 8 — Admin role management, docs and checklist (Make admin, Remove admin, docs/AUTH_AND_ROLES.md, manual test list)
 - [ ] Phase 9 — 2FA ON path (last)
 
 Note: for this run the owner asked me to go on without stopping after each phase, and to stop only if blocked.

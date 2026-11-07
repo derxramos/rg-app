@@ -79,7 +79,9 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 |---|---|---|
 | Sessions need **AAL2** (password and 2FA code) on every admin page, action and route | ✅ | Unit: `admin-auth.test.ts` (logged out, password only, not an admin, turned off), source test that every admin action calls `withAdmin` or `requireAdmin`. The real Supabase login: 🟡 |
 | Password of 12 or more characters, leaked password protection | ⬜ | Supabase dashboard > Authentication. The app cannot set this |
-| **No public sign-up** | ⬜ | Supabase dashboard > Authentication > turn **off** sign-ups. Admins are invited |
+| **Sign-up is ON but safe** | ⬜ | Supabase dashboard > Authentication: sign-ups ON, **Confirm email ON**, minimum password 12. Steps in `docs/AUTH_AND_ROLES.md` section 2. Admins are only made by an owner |
+| A user cannot read another user's data or become admin | ✅ | Unit: `accounts-rls.test.ts`, `account-service.test.ts`, `admin-roles.test.ts`. Browser: `accounts.spec.ts`. The real Supabase: 🟡 (manual list in `docs/AUTH_AND_ROLES.md`) |
+| **2-step login is ON on the live site** | ⬜ | Set `ADMIN_REQUIRE_2FA=true` (or remove it) in Vercel, then test the admin login |
 | Login rate limit and log of all logins | ✅ | Code in `(auth)/actions.ts` (5 per 15 minutes, logged). Real login: 🟡 |
 | Fresh 2FA for the riskiest actions | ✅ | See T1. Also for admin users and "delete client data" |
 | Owner can turn off a staff account at once | ✅ | Unit: an inactive profile is refused on the next request |

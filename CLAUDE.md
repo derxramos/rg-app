@@ -25,7 +25,7 @@ Target cost: **$0 per month.**
 | Validation | Zod (same schemas on client and server) |
 | Database | PostgreSQL on Supabase (free plan), pooled connection |
 | ORM | Drizzle ORM with the `postgres` driver (`prepare: false`) |
-| Admin login | Supabase Auth (email + password + required TOTP 2FA) |
+| Login | Supabase Auth: email + password, verified email. Roles `user` and `admin` in the `profiles` table. Admin TOTP 2FA is behind the server-only variable `ADMIN_REQUIRE_2FA` (only the word `false` turns it off) |
 | Files | Private Supabase Storage bucket, signed links for admin |
 | OCR | Tesseract.js 7 in the browser only |
 | Email | Brevo transactional REST API |
@@ -43,11 +43,11 @@ Exact versions and the date we checked them are in `docs/ARCHITECTURE.md` → "V
 2. **Update `PROGRESS.md`** at the end of every work session.
 3. **Never put secrets in code.** Every environment variable is listed in `.env.example` with a short comment.
 4. **Server checks everything.** Never trust values from the browser, including OCR values. Validate with Zod on the server.
-5. **Every server action and route checks access first.** Use `requireAdmin()` or `requireRequestAccess()` before any read or write.
+5. **Every server action and route checks access first.** Use `requireAdmin()`, `requireUser()` / `requireVerifiedUser()` or `requireRequestAccess()` before any read or write. A page check does not protect a Server Action. The role always comes from the `profiles` table, never from the browser. `ADMIN_REQUIRE_2FA=false` skips only the 2FA code step, never a role check. Details: `docs/AUTH_AND_ROLES.md`.
 6. **No host-only features.** Do not use Vercel-only or Netlify-only features (forms, blobs, KV, cron, edge config). Reading Vercel's built-in environment variables for the site address is the one allowed exception. Use plain Node.js and Web APIs.
 7. **Do not invent government requirements or fees.** Service checklists start empty. The owner fills them in.
 8. **Do not use government agency logos.** Text names only (SSS, Pag-IBIG, PhilHealth, BIR, etc.).
-9. **Client documents never appear on the tracking page.** Only status, timeline, and the admin's message.
+9. **Client documents never appear on the tracking page.** Only status, timeline, and the admin's message. In "My requests" a signed-in user sees file **names and dates** only, never a link to open a file.
 10. **The receipt image is never uploaded or stored.** Only the four text fields are saved.
 11. **Log sensitive admin changes** in `activity_log` (payment methods, status changes, settings, file opens, exports).
 12. **Keep functions small.** One job per function. Comments explain *why*, in plain English.
@@ -95,6 +95,7 @@ pnpm lint && pnpm typecheck
 - `docs/DATABASE.md` — tables, fields, indexes, access rules
 - `docs/FEATURES.md` — user stories with acceptance checks
 - `docs/SECURITY_AND_PRIVACY.md` — threats and fixes, Data Privacy Act basics
+- `docs/AUTH_AND_ROLES.md` — accounts, roles, guards, Supabase sign-in setup, first admin, manual test list
 - `docs/OCR_PAYMENTS.md` — receipt OCR and parser design, tests, edge cases
 - `docs/PHASES.md` — build order and "done when" checks
 - `docs/DESIGN_HANDOFF.md` — screens, components, states, design tokens

@@ -7,8 +7,8 @@ import type { AuthAdminApi } from "@/server/services/admin-users";
 
 import { getBaseUrl } from "@/lib/site-url";
 
-// Supabase Auth admin calls (needs the SECRET key, so server only). Public sign-up is OFF in Supabase,
-// so this invite is the only way a new admin login is created (docs/ARCHITECTURE.md section 5).
+// Supabase Auth admin calls (needs the SECRET key, so server only). Anyone can sign up as a normal user;
+// an invite or "Make admin" (owner only) is the only way to become an admin (docs/AUTH_AND_ROLES.md).
 export function createAuthAdminApi(): AuthAdminApi {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const secret = process.env.SUPABASE_SECRET_KEY?.trim();
@@ -24,7 +24,7 @@ export function createAuthAdminApi(): AuthAdminApi {
   return {
     async invite(email) {
       const { data, error } = await client.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${getBaseUrl()}/admin/login`,
+        redirectTo: `${getBaseUrl()}/login`,
       });
       if (error || !data.user)
         throw Object.assign(new Error(`Could not invite: ${error?.message ?? "unknown error"}`), {

@@ -20,8 +20,8 @@ export const METRICS = {
 export const DECISIONS: { decision: string; why: string; tradeOff: string }[] = [
   {
     decision:
-      "Only the server talks to the database. Row Level Security is ON for every table with no policies.",
-    why: "Clients have no login, so per-user rules do not fit. One place for all checks is easier to read, test and explain. If a public key ever leaks, it can read nothing.",
+      "Only the server talks to the database. Row Level Security is ON for every table. The public key can read nothing, and a signed-in user can read only their own rows.",
+    why: "One place for all checks is easier to read, test and explain. The database adds a second lock: a signed-in user can read only their own rows. If a public key ever leaks, it can read nothing.",
     tradeOff:
       "The server connects with a strong role, so every function must check access first. A source test fails if an admin action forgets to.",
   },

@@ -2,8 +2,8 @@
 
 How accounts, roles and sign-in work in this app. Plain English on purpose.
 
-> Status: written in steps while the accounts feature is built (branch `feat/auth-roles`).
-> Sections 1 and 2 are done. Sections 3 to 6 are added in later phases (see PROGRESS.md).
+> Status: the accounts feature is built (branch `feat/auth-roles`). Nothing here has been run on a live Supabase project yet.
+> Sections 3 to 6 are steps you do by hand. Section 8 is the last phase (2-step login on).
 
 ---
 
@@ -66,3 +66,128 @@ Do these on your **test** Supabase project first. Then repeat on the real one.
 7. Turn on TOTP 2FA later (Phase 9). It is free and already available on every Supabase project.
 
 Test it: create an account on `/register`, open the email, sign in, then try "Forgot your password?".
+
+---
+
+## 3. Apply the database migrations (you do this by hand)
+
+The migration files are in the repo. **Nobody has run them on a live database yet.** Do this on your TEST project first.
+
+| File | What it does |
+|---|---|
+| `drizzle/0002_accounts_and_roles.sql` | Adds the `profiles` table, the `app_role` type and `requests.user_id` |
+| `drizzle/0003_accounts_security.sql` | Sign-up trigger (every new account is a `user`), the lock on the role column, `is_admin()`, the read-only rules for signed-in users, the private-column rights, the storage rule, and fills in profiles for people who already exist |
+
+Steps:
+1. **Back up first.** In the admin area open **Export** and download both CSV files. Keep them.
+2. Put `DIRECT_DATABASE_URL` (the direct address, port 5432) in `.env.local`.
+3. Run `pnpm db:migrate`.
+4. Run `pnpm db:check`. It must say both addresses work.
+5. In the Supabase SQL Editor run: `select count(*) from profiles;` and `select count(*) from auth.users;`. The two numbers must be the same.
+6. In the SQL Editor run: `select policyname, roles from pg_policies where schemaname = 'public';`. Every row must show `{authenticated}` only.
+7. If the migration printed a notice "Could not add the storage policy", add it by hand in the SQL Editor:
+
+```sql
+create policy client_files_read_own on storage.objects for select to authenticated
+using (
+  bucket_id = 'client-files'
+  and (storage.foldername(name))[1] = 'users'
+  and (storage.foldername(name))[2] = (select auth.uid())::text
+);
+```
+
+**What happens to old guest requests?** They keep `user_id = null`. Admins see them as before. The tracking code + last 4 digits still works for them. They do **not** show in anyone's "My requests" (nobody can claim a request by email alone, because that would be unsafe). Old drafts expire after 7 days by the normal cleanup.
+
+**If something goes wrong:** restore from the CSV export is not a full restore. Run the migration on a copy (a new Supabase project) first.
+
+---
+
+## 4. Your first admin account (you do this by hand)
+
+1. On the live site open `/register`, create an account with the owner email, and open the email link.
+2. In the Supabase dashboard open **SQL Editor** and run this (change the two values):
+
+```sql
+begin;
+update public.profiles set role = 'admin'
+  where id = (select id from auth.users where email = 'OWNER@EMAIL');
+insert into public.admin_profiles (id, full_name, email, role)
+  select id, 'Owner Name', email, 'owner' from auth.users where email = 'OWNER@EMAIL'
+  on conflict (id) do update set role = 'owner', is_active = true;
+commit;
+```
+
+3. Sign out, sign in again at `/login`. You land on `/admin`.
+
+(`pnpm db:seed` can also make the first owner: it creates the login, the `admin_profiles` row and the admin profile together. Use a real owner email for production.)
+
+**Managing admins later:** only an **owner** can do this, in **Settings > Admin users**: "Make an existing account an admin", "Remove admin", "Turn off", "Make staff / Make owner", or invite by email. Each change is written to the activity log (`role.changed`, `admin.invited`, `admin.updated`). While 2FA is on, each one also needs a fresh 6-digit code. The last active owner can never be removed.
+
+Note: an invited admin gets Supabase's invite email. They set their password with "Forgot your password?" on `/login`.
+
+---
+
+## 5. Test it on your computer (no Supabase needed)
+
+Run the local test database and the site (`pnpm dev:db` in one terminal, `pnpm dev` in another, see the README). In `.env.local` use the local database address and add:
+
+```
+DEV_USER_BYPASS_EMAILS=zolb-test+usera@example.com
+DEV_ADMIN_BYPASS_EMAIL=zolb-test+owner@example.com
+```
+
+- Open `/login`. A yellow box lists the test users; click one to sign in as that user without a password.
+- `/api/dev-login?as=admin` uses the development admin. `/api/dev-login?logout=1` is a signed-out visitor.
+- These switches work **only** when `NODE_ENV` is `development` (never in a build or on Vercel). The route answers 404 anywhere else, and only emails like `zolb-test+...@example.com` are accepted. Tests prove it.
+- Browser tests: `pnpm test:e2e` (needs the local database; the tests refuse to run on any other database).
+
+---
+
+## 6. Manual test list (on your Supabase TEST project)
+
+Do these once before real clients use the site. Tick them in `docs/SECURITY_CHECKLIST.md`.
+
+Accounts and email
+- [ ] Create an account. The email arrives (Brevo). You cannot sign in before opening the link. After the link you are signed in.
+- [ ] "Send the link again" works, and stops after 3 tries in an hour.
+- [ ] Forgot password: the email arrives, the link opens "Choose a new password", the new password works, the old one does not. Using the same link twice shows "This link has ended".
+- [ ] A wrong password and a wrong email show the same message.
+
+Access control
+- [ ] **User A opens user B's request by changing the address** (`/account/requests/<B's id>` and `/request/<B's id>/documents`): "not found" / "expired" page, no data.
+- [ ] **Direct access to a private file path:** try `https://<project>.supabase.co/storage/v1/object/public/client-files/users/<id>/requests/<id>/<file>` (public URL) with no login. It must fail. With a signed-in user's token for another folder it must fail too.
+- [ ] **A user reaches `/admin`:** "Not allowed" page.
+- [ ] **A user tries to make themselves admin:** (a) use the browser tools to send `update profiles set role='admin'` with the public key and your own login token through the Supabase API: it must be refused; (b) the profile form has no role field. In SQL Editor `select role from profiles where email = '<user>'` must still say `user`.
+- [ ] A visitor who opens `/account` goes to `/login?next=/account` and comes back after sign in.
+- [ ] An expired session shows "Your session ended" and returns to the same page after sign in.
+
+Admin and the header
+- [ ] **Admin sign in works without 2FA while the flag is "false"**, and the red banner "2-step login is OFF..." shows on every admin page.
+- [ ] Header buttons: visitor = Sign in; user = My requests + Sign out; admin = Admin + Sign out. Check desktop and a 390 px wide phone.
+- [ ] "Sign out" from a public page, from `/account` and from `/admin`: you land on the home page with "You have been signed out."
+- [ ] **Press the browser Back button after sign out** from each of those: private pages and data must not show again (you are sent to the login page).
+- [ ] Owner: "Make admin" and "Remove admin" work and appear in the activity log.
+
+Privacy
+- [ ] "Download my data" gives only your own data.
+- [ ] "Delete my account" is refused while a request is open. After the request is completed it deletes the account, the documents disappear from storage, and the old request shows "Deleted client" to the admin.
+
+---
+
+## 7. Environment variables for accounts
+
+| Variable | Where | What |
+|---|---|---|
+| `ADMIN_REQUIRE_2FA` | server only | Only the exact word `false` turns admin 2-step login off. Missing, empty, `true`, `0`, `no`, `off` or anything else = required. **Set it to `true` (or remove it) on the live site.** |
+| `DEV_USER_BYPASS_EMAILS` | local `.env.local` only | Comma list of test emails (`zolb-test+...@example.com`) for the development test login. Leave empty on every real server. |
+| `DEV_ADMIN_BYPASS_EMAIL` | local `.env.local` only | The development admin (already existed). |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` | server (the first two also browser) | Needed for sign in. The secret key is also used to delete an account's login. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | browser / server | Spam check on sign in, sign up, resend and reset. |
+
+The email settings (Brevo SMTP host, login and key) go **into the Supabase dashboard**, not into our variables.
+
+---
+
+## 8. Turning on admin 2-step login (Phase 9)
+
+When you are ready: set `ADMIN_REQUIRE_2FA=true` in Vercel (or remove the line), redeploy, and sign in as an admin. You are sent to `/admin/mfa/setup` to scan a QR code with an authenticator app, then asked for a code at every sign in. Fresh codes are asked again for risky actions. TOTP is free on Supabase. The red banner disappears. If you lose the phone, another owner can use "Turn off" / "Remove admin" and you can be invited again, or an owner can remove the factor in the Supabase dashboard (Authentication > Users).
