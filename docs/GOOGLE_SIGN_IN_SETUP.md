@@ -78,8 +78,13 @@ This is the Google screen that says "RG'S Bookkeeping wants to access your Googl
 4. **Contact information**: enter `rgservices.ph@gmail.com`.
 5. Accept the policy and click **Create** (or **Save and continue**).
 6. **Branding** (if you see it): you may add a logo. It is optional. Skip it for now.
-   - **Authorized domains**: add your Supabase domain `supabase.co`.
-     If you have your own website domain later, add it too.
+   - **Authorized domains**: **leave this empty.** Sign in works without it. The box is only for
+     links to a home page or a privacy page on the consent screen, and we do not add those.
+     - If you see the error **"Invalid domain: must be a top private domain"**, it means you typed a shared
+       domain such as `supabase.co` or `vercel.app`. Google wants a domain that belongs to one owner.
+       Just clear the box and continue.
+     - If you later add links to the consent screen, use your own domain (for example `rgservices.ph`) or the
+       full address with your name in front (for example `abcdefghijklmno.supabase.co`).
 7. **Data access / Scopes**: do **not** add extra scopes. The three basic ones (`openid`, `email`, `profile`)
    are included by default. These need no review from Google. Keep it that way.
 
@@ -200,6 +205,7 @@ Test with a Google account that is **not** an admin account on the website.
 | What you see | Likely cause | Fix |
 |---|---|---|
 | Google says **Error 400: redirect_uri_mismatch** | The redirect URI in Google is not exactly the Supabase callback URL | Part A4 step 6: copy the callback URL from Supabase and paste it in Google. Check for a typo, `http` vs `https`, and a slash at the end. |
+| "Invalid domain: must be a top private domain" in Authorized domains | You typed `supabase.co` or `vercel.app` (shared domains) | Leave Authorized domains empty (Part A2 step 6). It is not needed for sign in. |
 | Google says **Access blocked: app has not completed verification** or "only test users" | The app is still in **Testing** | Part A3: publish the app so it says **In production**. |
 | The button does not show | `GOOGLE_SIGNIN_ENABLED` is not `true`, or you did not redeploy | Part C2. |
 | After Google, you come back to the Sign in page with "We could not sign you in with Google" | Client ID or Secret pasted wrong in Supabase, or the provider is off | Part B1: paste them again and Save. |

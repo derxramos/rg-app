@@ -544,3 +544,6 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Checks: lint, type check and 514 tests pass (new: `tests/unit/admin-accounts.test.ts`).
 - **Run `pnpm db:migrate` on Supabase before you deploy** (migrations 0004 and 0005 are both waiting). Making an admin needs `SUPABASE_SECRET_KEY`, like the invitation.
 - Not checked by eye: the new page and the change password page in a browser, and a real temporary-password sign in on Supabase.
+
+### 2026-11-07 — Google guide fix (branch `fix/google-guide-authorized-domains`)
+- The owner got "Invalid domain: must be a top private domain" when adding `supabase.co` under Authorized domains. The guide was wrong. It now says to leave that box empty (not needed for sign in) and explains the error. Docs only.
