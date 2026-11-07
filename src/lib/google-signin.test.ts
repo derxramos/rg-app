@@ -52,6 +52,14 @@ describe("classifyGoogleReturn", () => {
     });
   });
 
+  it("does not call a Supabase refusal cancelled (signup_disabled uses access_denied too)", () => {
+    expect(
+      classify(
+        "error=access_denied&error_code=signup_disabled&error_description=Signups+not+allowed",
+      ),
+    ).toEqual({ reason: "google-failed", detail: "signup_disabled" });
+  });
+
   it("keeps the reason code for every other error", () => {
     expect(
       classify("error=server_error&error_code=unexpected_failure&error_description=x"),

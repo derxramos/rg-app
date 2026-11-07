@@ -40,7 +40,9 @@ const safeDetail = (value: string | null | undefined) =>
 export function classifyGoogleReturn(params: URLSearchParams): GoogleReturn {
   const error = params.get("error");
   const errorCode = params.get("error_code");
-  if (error === "access_denied" && errorCode !== "provider_email_needs_verification")
+  // A real "No" on the Google screen has no error_code. Supabase refusals (for example "signup_disabled")
+  // also use error=access_denied, but they DO have an error_code, so they are failures.
+  if (error === "access_denied" && !errorCode)
     return { reason: "google-cancelled", detail: "access_denied" };
   if (error) return { reason: "google-failed", detail: safeDetail(errorCode) || safeDetail(error) };
   // No error and no code: the page was opened by hand, or the redirect lost its code.

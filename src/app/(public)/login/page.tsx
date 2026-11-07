@@ -47,6 +47,8 @@ function googleHint(detail: string): string {
     return "Supabase could not finish with Google. Most often the Client ID or Client Secret in Supabase is wrong, or the redirect address in Google does not match the one Supabase shows.";
   if (/^(bad_oauth_state|bad_code_verifier|flow_state_not_found|flow_state_expired)$/.test(detail))
     return "The sign in took too long, or this browser blocked cookies. Try again in the same browser.";
+  if (detail === "signup_disabled")
+    return "New sign ups are turned off in Supabase. In Supabase go to Authentication > Sign In / Providers and turn ON Allow new users to sign up.";
   if (detail === "no_code")
     return "The return page opened without a code. Check Site URL and Redirect URLs in Supabase.";
   return "Tell the website owner this code.";

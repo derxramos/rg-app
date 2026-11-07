@@ -174,6 +174,17 @@ What to expect after publishing (from Google's help pages, checked on 2026-11-07
 7. Leave **Skip nonce checks** off.
 8. Click **Save**.
 
+### B1b. Allow new users to sign up (very important)
+
+Google sign in makes a new account the first time a person uses it. If Supabase has sign ups turned off, it refuses with
+**"Signups not allowed for this instance"** (reason code `signup_disabled`).
+
+1. Supabase dashboard → **Authentication** → **Sign In / Providers** (the page with the list of providers).
+2. Find the switch **Allow new users to sign up** (it may be in a box called **User Signups** at the top of the page).
+3. Turn it **ON** and click **Save**.
+
+This same switch also lets clients register with email. The website needs it ON (see `docs/SETUP_GUIDE.md`).
+
 ### B2. Allow our website address
 
 Supabase only sends people back to addresses you allow.
@@ -244,6 +255,7 @@ Test with a Google account that is **not** an admin account on the website.
 | **"To publish your app, you must complete your configuration on the Branding page"**, or **Publish app** is grey | The Branding page is not complete | Part A2 step 6: fill in the home page, privacy policy and terms links, the authorized domain and the developer contact, then **Save**. Then try **Publish app** again. |
 | Google refuses `your-site.vercel.app` as an authorized domain, or Publish stays grey after you filled everything | A Vercel address may not be accepted for the consent screen links | Get your own domain (for example `rgservices.ph` from a domain seller), add it to the Vercel project (Vercel > Settings > Domains), set `APP_BASE_URL` to it, then use it in A2 step 6 and A4. Verify it in Google Search Console if Google asks. |
 | After Google you see **"We could not sign you in with Google"** and a **Reason code** | The code says what failed | `unexpected_failure` or `server_error`: Client ID or Client Secret in Supabase is wrong (paste again, no spaces), or the redirect address in Google is not exactly the Supabase callback URL. `bad_oauth_state` or `bad_code_verifier`: try again in the same browser with cookies allowed. `no_code`: check Site URL and Redirect URLs in Supabase (Part B2). |
+| After Google you see the Reason code **`signup_disabled`** (or "Signups not allowed for this instance") | **Allow new users to sign up** is OFF in Supabase | Part B1b: turn it ON and Save. |
 | Google says **Access blocked: app has not completed verification** or "only test users" | The app is still in **Testing** | Part A3: publish the app so it says **In production**. |
 | The button does not show | `GOOGLE_SIGNIN_ENABLED` is not `true`, or you did not redeploy | Part C2. |
 | After Google, you come back to the Sign in page with "We could not sign you in with Google" | Client ID or Secret pasted wrong in Supabase, or the provider is off | Part B1: paste them again and Save. |

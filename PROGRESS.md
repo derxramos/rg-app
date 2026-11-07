@@ -559,3 +559,9 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - The owner saw "Google sign in was cancelled" after a real try. Cause in our code: `/auth/callback` used the "cancelled" message for **every** return with an `error` (or no code), so the real reason was hidden. Now only `error=access_denied` (a real No on the Google screen) says cancelled. Other errors say "We could not sign you in with Google" and show a safe **Reason code** with a plain hint on the Sign in page. The full error is also written to the server log.
 - Likely real cause for the owner: Supabase could not finish with Google (wrong Client ID or Secret in Supabase, or the redirect address in Google not matching). Not confirmed until the owner redeploys and reads the reason code.
 - The guide has a new section "How to find the real reason" and a new row in "Problems and fixes". 518 tests pass.
+
+### 2026-11-07 — Google sign in: root cause found (branch `fix/google-signup-disabled`)
+- Tested on the live site (rg-app-tau.vercel.app) in the owner's browser with the owner's test Google account. The Google account screen worked and the redirect addresses were right. Supabase then refused with `error_code=signup_disabled`, "Signups not allowed for this instance". Cause: **"Allow new users to sign up" is OFF in the Supabase project** (docs/AUTH_AND_ROLES.md says it must be ON). This blocks Google sign in and also email sign up. Not a code bug.
+- Code bug found on the way: Supabase uses `error=access_denied` for this refusal too, so our page still said "cancelled". Now "cancelled" is only when there is no `error_code`. The Sign in page shows the reason code and a hint for `signup_disabled`.
+- Guide: new step B1b (turn the switch ON) and a new row in "Problems and fixes". 519 tests pass.
+- The sign-in attempt did not create an account (Supabase refused it).
