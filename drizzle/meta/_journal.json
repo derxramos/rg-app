@@ -36,6 +36,13 @@
       "when": 1794043159258,
       "tag": "0004_service_fee_and_qr",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794046650026,
+      "tag": "0005_admin_temp_password",
+      "breakpoints": true
     }
   ]
 }

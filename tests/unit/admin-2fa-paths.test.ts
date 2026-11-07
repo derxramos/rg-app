@@ -134,6 +134,7 @@ describe("where people are sent", () => {
       "wrong-role": "/admin?denied=1",
       "not-admin": "/admin/not-allowed",
       inactive: "/admin/not-allowed",
+      "must-change-password": "/account/change-password",
     };
     for (const [code, path] of Object.entries(expected)) {
       expect(adminFailureRedirect(code as AdminAuthCode), code).toBe(path);

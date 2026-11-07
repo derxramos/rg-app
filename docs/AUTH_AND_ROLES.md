@@ -205,3 +205,14 @@ Clients can sign in or sign up with a Google account (Supabase Auth, Google prov
   and Google would skip them.
 - Same email as an existing account: Supabase joins the Google login to that account (Google verifies the email).
 - Rules in code: `src/lib/google-signin.ts` (tested in `src/lib/google-signin.test.ts`).
+
+## 10. Admin users page: existing accounts and new admins (owner only, fresh 2FA code)
+
+`Settings > Admin users` has these parts:
+
+- **Admin list:** turn an admin on or off, change Staff or Owner, remove the admin role.
+- **Existing accounts:** every account (users and admins), with a search box (the first 50 are shown). The **Role** dropdown has **User** and **Admin**. **Save** changes it, **Cancel** puts the page back. User to Admin makes a Staff admin (or gives back the old level). Admin to User removes the admin role. You cannot change your own role, and the database never removes the last active owner.
+- **New admin account:** full name, email, level (Staff or Owner) and a **temporary password** (same strength rules as sign up). It makes a verified login and an admin at once. The role is fixed to Admin on this form. The temporary password is never saved or logged. Tell the person the password in person or by phone.
+- **Must change password:** the new account has `profiles.must_change_password = true`. At the first sign in the person is sent to `/account/change-password`. The admin area (`checkAdmin`, code `must-change-password`) refuses the account until the password is changed. After that the 2-step setup works as for every admin.
+- **Or invite by email:** the older way (Supabase invitation email). It still works.
+- Tests: `tests/unit/admin-accounts.test.ts`.

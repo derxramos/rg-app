@@ -128,6 +128,10 @@ export async function loginAction(_previous: AuthState, formData: FormData): Pro
   }
   await logAuthEvent(db, { action: "auth.login.success", userId: profile.id, isAdmin, ipHash });
 
+  // An account made by an admin with a temporary password must choose its own password first.
+  // (The admin area also refuses this account until the password is changed.)
+  if (profile.mustChangePassword) redirect("/account/change-password");
+
   // Admins: with 2FA required they must pass the code step first. With the flag "false" they go straight in.
   // Users are never asked for a code.
   const twoFactorRequired = isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA);

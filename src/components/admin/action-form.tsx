@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useTransition } from "react";
 
 import { WarningBox } from "@/components/shared/warning-box";
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button, buttonVariants, type ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { notify } from "@/components/ui/sonner";
@@ -26,6 +26,9 @@ type Props = {
   hidden?: Record<string, string>;
   // Put the button inline with the fields (small forms).
   inline?: boolean;
+  // Adds a "Cancel" link next to the button. It loads this address again (a full page load), which also
+  // puts every field back to its saved value.
+  cancelHref?: string;
 };
 
 // A form for admin Server Actions. It uses onSubmit (not the form "action" attribute), so React does
@@ -41,6 +44,7 @@ export function ActionForm({
   className,
   hidden,
   inline,
+  cancelHref,
 }: Props) {
   const [state, run, pending] = useActionState(action, null);
   const [, startTransition] = useTransition();
@@ -113,10 +117,16 @@ export function ActionForm({
           {state.message ?? "Saved."}
         </p>
       ) : null}
-      <div>
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" variant={variant} size={size} loading={pending}>
           {submitLabel}
         </Button>
+        {cancelHref ? (
+          // A normal link on purpose: a full page load puts the fields back to their saved values.
+          <a href={cancelHref} className={buttonVariants({ variant: "outline", size })}>
+            Cancel
+          </a>
+        ) : null}
       </div>
     </form>
   );

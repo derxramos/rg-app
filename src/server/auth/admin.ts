@@ -177,6 +177,7 @@ const MESSAGES: Record<AdminAuthCode, string> = {
   "wrong-role": "Only the owner can do this.",
   "needs-fresh-2fa":
     "Please type a fresh 6-digit code from your authenticator app, then try again.",
+  "must-change-password": "Please choose your own password first (My account > Change password).",
 };
 
 // Wraps an admin Server Action: checks access FIRST (not just the page), reads the fresh 2FA state, turns

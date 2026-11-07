@@ -67,6 +67,7 @@ One row for every login. Same id as `auth.users.id`. A trigger (`handle_new_user
 | full_name | text | |
 | phone | text, nullable | `+63…` |
 | role | app_role, default `user` | `admin` people also have an `admin_profiles` row. Nobody can change their own role |
+| must_change_password | boolean, default false | true for an admin made with a temporary password. The admin area refuses the account until the person chooses a new password. Only the server changes it (users have no rights on this column) |
 | created_at, updated_at | timestamptz | |
 
 ### services

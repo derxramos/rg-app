@@ -81,6 +81,9 @@ export const profiles = pgTable("profiles", {
   // Format: +63XXXXXXXXXX
   phone: text("phone"),
   role: appRole("role").notNull().default("user"),
+  // True when an admin made this account with a temporary password. The person must choose their own
+  // password before they can use the admin area. Only our server changes this (users cannot).
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }).enableRLS();

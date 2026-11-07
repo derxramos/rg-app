@@ -535,3 +535,12 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 ### 2026-11-07 — Hero yellow dot (branch `feat/hero-dot-animation`)
 - The small yellow dot now glides to the right along the top (about 110 px, 60% on phones) and comes back, 12 s, slow. Before it only bobbed up and down. It moves right and not to the middle, because the first card is in the middle and the orange circle comes in from the right. The path stays in the free space, so it does not cover the card, the circle or the heading.
 - Still only `translate` (CSS, `motion-safe:` only). Not checked by eye at 390, 768 and 1440 px.
+
+### 2026-11-07 — Admin accounts page (branch `feat/admin-accounts`)
+- **Existing accounts:** Settings > Admin users now lists all accounts (users and admins) with a search box and a **Role** dropdown (User / Admin) with **Save** and **Cancel**. Owner only, fresh 2FA code, logged. User to Admin makes a Staff admin (or gives back the old level). Admin to User removes the admin role. Your own role cannot be changed.
+- **New admin account:** full name, email, role (fixed: Admin), level (Staff or Owner) and **temporary password**. It makes a verified Supabase login and the admin records in one go. If saving the admin record fails, the new login is removed again. The password is never saved or logged. I used a fixed **Admin** label (not a checkbox), because this form can only make admins, plus a Level dropdown for Staff or Owner.
+- **Safety for temporary passwords:** new column `profiles.must_change_password` (migration `0005_admin_temp_password`, **not applied to Supabase**). After sign in the person goes to the new page `/account/change-password`. The admin area refuses the account until the password is changed (new code `must-change-password` in `checkAdmin`).
+- The old "Make an existing account an admin" box was removed from the page, because the Existing accounts list does the same job. The email invitation box stays as "Or invite someone by email".
+- Checks: lint, type check and 514 tests pass (new: `tests/unit/admin-accounts.test.ts`).
+- **Run `pnpm db:migrate` on Supabase before you deploy** (migrations 0004 and 0005 are both waiting). Making an admin needs `SUPABASE_SECRET_KEY`, like the invitation.
+- Not checked by eye: the new page and the change password page in a browser, and a real temporary-password sign in on Supabase.

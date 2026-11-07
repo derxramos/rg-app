@@ -23,7 +23,13 @@ export type AdminSession = {
 };
 
 export type AdminAuthCode =
-  "no-session" | "needs-2fa" | "not-admin" | "inactive" | "wrong-role" | "needs-fresh-2fa";
+  | "no-session"
+  | "needs-2fa"
+  | "not-admin"
+  | "inactive"
+  | "wrong-role"
+  | "needs-fresh-2fa"
+  | "must-change-password";
 
 export class AdminAuthError extends Error {
   constructor(public code: AdminAuthCode) {
@@ -64,11 +70,13 @@ export async function checkAdmin(
   // The account role must ALSO be "admin" (profiles table). Two separate records must agree, so a
   // mistake in one place does not make someone an admin. This check runs even when 2FA is off.
   const [account] = await db
-    .select({ role: profiles.role })
+    .select({ role: profiles.role, mustChangePassword: profiles.mustChangePassword })
     .from(profiles)
     .where(eq(profiles.id, session.userId))
     .limit(1);
   if (account?.role !== "admin") throw new AdminAuthError("not-admin");
+  // An admin made with a temporary password must choose their own password first.
+  if (account.mustChangePassword) throw new AdminAuthError("must-change-password");
   if (options.roles && !hasRole(profile, options.roles)) throw new AdminAuthError("wrong-role");
   return profile;
 }
@@ -84,6 +92,8 @@ export function adminFailureRedirect(code: AdminAuthCode): string {
     case "needs-2fa":
     case "needs-fresh-2fa":
       return "/admin/mfa";
+    case "must-change-password":
+      return "/account/change-password";
     case "wrong-role":
       return "/admin?denied=1";
     case "not-admin":

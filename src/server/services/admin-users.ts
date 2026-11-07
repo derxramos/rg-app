@@ -1,8 +1,9 @@
 import "server-only";
 
 // Admin users (owner only, fresh 2FA). docs/FEATURES.md A9.
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, ilike, or } from "drizzle-orm";
 
+import { passwordProblem } from "@/lib/validation/auth";
 import {
   AdminAuthError,
   OWNER_ONLY,
@@ -17,6 +18,18 @@ import type { AppDb } from "@/server/db/types";
 export interface AuthAdminApi {
   // Creates the login and sends the invite email. Returns the new user id.
   invite(email: string): Promise<{ id: string }>;
+}
+
+// For making a login with a temporary password. A fake is used in tests.
+export interface AuthPasswordApi {
+  // Creates a login that is already verified. Returns the new user id.
+  createWithPassword(input: {
+    email: string;
+    password: string;
+    fullName: string;
+  }): Promise<{ id: string }>;
+  // Removes a login again (used to clean up when a later step fails).
+  remove(userId: string): Promise<void>;
 }
 
 export class UserAdminError extends Error {
@@ -245,4 +258,157 @@ export async function updateAdmin(
     }
     throw error;
   }
+}
+
+// ---------- All accounts: the "Existing accounts" list ----------
+
+export type AccountRow = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: "user" | "admin";
+  // Only for admins: "owner" or "staff", and whether the admin record is on.
+  level: AdminRole | null;
+  isActive: boolean | null;
+  mustChangePassword: boolean;
+};
+
+export const ACCOUNT_LIST_LIMIT = 50;
+
+// Every account (users and admins), in email order. `search` matches part of the email or the name.
+// Only the first 50 are returned, so the page stays fast. Use the search box to find someone else.
+export async function listAccounts(db: AppDb, search?: string): Promise<AccountRow[]> {
+  // % and _ and \ have a special meaning in LIKE, so they are escaped.
+  const term = (search ?? "")
+    .trim()
+    .slice(0, 100)
+    .replace(/[%_\\]/g, (char) => `\\${char}`);
+  return db
+    .select({
+      id: profiles.id,
+      email: profiles.email,
+      fullName: profiles.fullName,
+      role: profiles.role,
+      mustChangePassword: profiles.mustChangePassword,
+      level: adminProfiles.role,
+      isActive: adminProfiles.isActive,
+    })
+    .from(profiles)
+    .leftJoin(adminProfiles, eq(adminProfiles.id, profiles.id))
+    .where(
+      term
+        ? or(ilike(profiles.email, `%${term}%`), ilike(profiles.fullName, `%${term}%`))
+        : undefined,
+    )
+    .orderBy(asc(profiles.email))
+    .limit(ACCOUNT_LIST_LIMIT);
+}
+
+// The dropdown on "Existing accounts": User or Admin. OWNER ONLY, fresh 2FA, logged (by the two functions it calls).
+// "Admin" keeps the old level (owner or staff) when the person was an admin before. A new admin is "staff".
+// The level can be changed in the admin list above the form.
+export async function setAccountRole(
+  db: AppDb,
+  actor: AdminProfile,
+  input: { accountId: string; role: "user" | "admin" },
+  context: { fresh2fa: boolean; ipHash?: string | null },
+): Promise<"changed" | "same"> {
+  guard(actor, context.fresh2fa);
+  if (!["user", "admin"].includes(input.role)) throw new UserAdminError("invalid", "Unknown role.");
+  const [account] = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.id, input.accountId))
+    .limit(1);
+  if (!account) throw new UserAdminError("not-found", "Account not found.");
+  if (account.role === input.role) return "same";
+  if (input.accountId === actor.id)
+    throw new UserAdminError("self", "You cannot change your own role. Ask another owner.");
+
+  if (input.role === "user") {
+    await removeAdmin(db, actor, { adminId: input.accountId }, context);
+    return "changed";
+  }
+  const [previous] = await db
+    .select({ role: adminProfiles.role })
+    .from(adminProfiles)
+    .where(eq(adminProfiles.id, input.accountId))
+    .limit(1);
+  await promoteToAdmin(
+    db,
+    actor,
+    { email: account.email, role: previous?.role ?? "staff" },
+    context,
+  );
+  return "changed";
+}
+
+// ---------- A new admin with a temporary password ----------
+
+// Makes a login that is already verified, with a temporary password the owner chose, and makes it an admin.
+// The person MUST choose their own password at the first sign in (profiles.must_change_password).
+// We never save or log the temporary password. OWNER ONLY and a fresh 2FA code.
+export async function createAdminWithPassword(
+  db: AppDb,
+  actor: AdminProfile,
+  api: AuthPasswordApi,
+  input: { email: string; fullName: string; role: AdminRole; temporaryPassword: string },
+  context: { fresh2fa: boolean; ipHash?: string | null },
+) {
+  guard(actor, context.fresh2fa);
+  const email = input.email.trim().toLowerCase();
+  const fullName = input.fullName.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200)
+    throw new UserAdminError("invalid", "Please enter a full email address.");
+  if (fullName.length < 2 || fullName.length > 100)
+    throw new UserAdminError("invalid", "Please enter the full name.");
+  if (!["owner", "staff"].includes(input.role))
+    throw new UserAdminError("invalid", "Unknown role.");
+  const problem = passwordProblem(input.temporaryPassword, email);
+  if (problem) throw new UserAdminError("invalid", `Temporary password: ${problem}`);
+
+  const [existing] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.email, email))
+    .limit(1);
+  if (existing)
+    throw new UserAdminError(
+      "exists",
+      "That email already has an account. Find it under Existing accounts and set it to Admin.",
+    );
+
+  const { id } = await api.createWithPassword({
+    email,
+    password: input.temporaryPassword,
+    fullName,
+  });
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(adminProfiles).values({ id, fullName, email, role: input.role });
+      // The sign-up trigger already made a "user" profile for the new login, so this upsert changes it.
+      await tx
+        .insert(profiles)
+        .values({ id, email, fullName, role: "admin", mustChangePassword: true })
+        .onConflictDoUpdate({
+          target: profiles.id,
+          set: { role: "admin", fullName, mustChangePassword: true },
+        });
+      await tx.insert(activityLog).values({
+        actorType: "admin",
+        actorId: actor.id,
+        action: "admin.created",
+        entityType: "admin",
+        entityId: id,
+        // The password is never written here.
+        details: { role: input.role, method: "temporary-password" },
+        ipHash: context.ipHash ?? null,
+      });
+    });
+  } catch (error) {
+    // Do not leave a login with no admin record behind.
+    await api.remove(id).catch(() => {});
+    throw error;
+  }
+  return id;
 }

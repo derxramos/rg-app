@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import type { AuthDeleteApi } from "@/server/services/account";
-import type { AuthAdminApi } from "@/server/services/admin-users";
+import type { AuthAdminApi, AuthPasswordApi } from "@/server/services/admin-users";
 
 import { getBaseUrl } from "@/lib/site-url";
 
@@ -31,6 +31,42 @@ export function createAuthAdminApi(): AuthAdminApi {
           code: "invalid",
         });
       return { id: data.user.id };
+    },
+  };
+}
+
+// Makes a verified login with a temporary password (needs the SECRET key, so server only).
+export function createAuthPasswordApi(): AuthPasswordApi {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const secret = process.env.SUPABASE_SECRET_KEY?.trim();
+  if (!url || !secret) {
+    throw Object.assign(
+      new Error("Making admin accounts needs the Supabase keys. They are not set up yet."),
+      { code: "invalid" },
+    );
+  }
+  const client = createClient(url, secret, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return {
+    async createWithPassword({ email, password, fullName }) {
+      const { data, error } = await client.auth.admin.createUser({
+        email,
+        password,
+        // The owner knows this person, so the email counts as verified. They still sign in with the
+        // temporary password and must change it at once.
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
+      if (error || !data.user)
+        throw Object.assign(
+          new Error(`Could not create the login: ${error?.message ?? "unknown error"}`),
+          { code: "invalid" },
+        );
+      return { id: data.user.id };
+    },
+    async remove(userId) {
+      await client.auth.admin.deleteUser(userId, false);
     },
   };
 }
