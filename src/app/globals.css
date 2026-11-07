@@ -226,6 +226,37 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 
+  /*
+    Hero art motion (home page). Slow and gentle. Only "translate", "scale" and "rotate" change,
+    so the browser can run them on the graphics card and the page layout never moves.
+    Each shape sets its own distance with --dx, --dy and --ds. --k is 0.6 on phones, 1 on larger screens.
+    The negative time before "infinite" is the start delay: shapes begin at different points.
+    Components use these with the "motion-safe:" prefix, so people who ask for less motion see none.
+  */
+  --animate-hero-card-a: hero-drift 6s ease-in-out -1s infinite alternate;
+  --animate-hero-card-b: hero-drift 7s ease-in-out -4s infinite alternate;
+  --animate-hero-peach: hero-drift 11s ease-in-out -5s infinite alternate;
+  --animate-hero-teal: hero-drift 9s ease-in-out -3s infinite alternate;
+  --animate-hero-dot: hero-drift 4s ease-in-out -2s infinite alternate;
+  --animate-hero-spin: hero-spin 1.6s linear infinite;
+
+  @keyframes hero-drift {
+    from {
+      translate: 0 0;
+      scale: 1;
+    }
+    to {
+      translate: calc(var(--k, 1) * var(--dx, 0px)) calc(var(--k, 1) * var(--dy, 0px));
+      scale: var(--ds, 1);
+    }
+  }
+
+  @keyframes hero-spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+
   /* Breakpoints */
   --breakpoint-sm: 40rem; /* 640 */
   --breakpoint-md: 48rem; /* 768 */

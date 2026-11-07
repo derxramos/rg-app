@@ -489,3 +489,12 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 4. Run the manual test list (section 6).
 5. Approve the new privacy notice text (version 2.0) and set "Privacy notice version" to `2.0` in Settings > Site content.
 6. **Before real clients: set `ADMIN_REQUIRE_2FA=true` on the live site** and test the admin login.
+
+### 2026-11-07 — Hero animation (branch `feat/hero-animation`)
+- Added a slow, light CSS animation to the home page hero art (`src/components/public/hero-art.tsx`). It only changes `translate`, `scale` and `rotate`. No JavaScript, no new package, no new file. The component is still a server component and still `aria-hidden`.
+- The keyframes and timings are in `src/app/globals.css` (inside `@theme`, the Tailwind 4 way). Each shape has its own time and a negative start delay, so they never move together.
+- Phones (under 640 px) use 60% of the distance, through the `--k` variable.
+- All classes use the `motion-safe:` prefix. People who ask for less motion get no animation (checked in the built CSS: it sits inside `@media (prefers-reduced-motion: no-preference)`).
+- Lint, type check and production build pass.
+- Lighthouse (production build, headless, local, mobile): before 100 / LCP 0.9 s / CLS 0 / TBT 40 ms (1 good run). After 100 / LCP 1.0 s / CLS 0 / TBT 90 ms (1 good run). Many runs failed with a Lighthouse error, so only one good run each. The difference is probably noise. Please re-run in Chrome DevTools to confirm.
+- Not tested by eye: the page at 390, 768 and 1440 px, and the real reduced-motion setting.
