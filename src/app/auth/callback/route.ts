@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { googleLanding, isGoogleSignInEnabled } from "@/lib/google-signin";
+import { classifyGoogleReturn, googleLanding, isGoogleSignInEnabled } from "@/lib/google-signin";
 import { logAuthEvent } from "@/server/auth/auth-log";
 import { ensureProfile } from "@/server/auth/session-core";
 import { performSignOut } from "@/server/auth/sign-out";
@@ -13,18 +13,34 @@ import { hashIp, readClientIp } from "@/server/security/client-ip";
 // The role always comes from our profiles table, never from Google.
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-  const back = (reason: string) =>
-    NextResponse.redirect(new URL(`/login?reason=${reason}`, request.url));
+  const back = (reason: string, detail?: string) =>
+    NextResponse.redirect(
+      new URL(
+        `/login?reason=${reason}${detail ? `&detail=${encodeURIComponent(detail)}` : ""}`,
+        request.url,
+      ),
+    );
 
   if (!isGoogleSignInEnabled(process.env.GOOGLE_SIGNIN_ENABLED) || !supabaseAuthConfigured())
     return back("google-off");
-  // The person said no on the Google screen, or Google or Supabase returned an error.
   const code = params.get("code");
-  if (params.get("error") || !code) return back("google-cancelled");
+  if (params.get("error") || !code) {
+    // Only a "No" on the Google screen is "cancelled". Other errors are failures, and we keep the reason.
+    const result = classifyGoogleReturn(params);
+    console.error("Google sign in did not finish:", {
+      error: params.get("error"),
+      error_code: params.get("error_code"),
+      error_description: params.get("error_description"),
+    });
+    return back(result.reason, result.detail);
+  }
 
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error || !data.user) return back("google-failed");
+  if (error || !data.user) {
+    console.error("Google sign in: code exchange failed:", error?.code, error?.message);
+    return back("google-failed", error?.code ?? "exchange_failed");
+  }
 
   const db = getDb();
   const ipHash = hashIp(readClientIp(request.headers));

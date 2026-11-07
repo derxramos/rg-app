@@ -243,6 +243,7 @@ Test with a Google account that is **not** an admin account on the website.
 | "Invalid domain: must be a top private domain" in Authorized domains | You typed a shared domain such as `supabase.co` or `vercel.app` | Type your own domain, or the full address with your name in front (`your-site.vercel.app`). Do not leave it empty if you add the home page and privacy links: Google needs their domain listed (Part A2 step 6). |
 | **"To publish your app, you must complete your configuration on the Branding page"**, or **Publish app** is grey | The Branding page is not complete | Part A2 step 6: fill in the home page, privacy policy and terms links, the authorized domain and the developer contact, then **Save**. Then try **Publish app** again. |
 | Google refuses `your-site.vercel.app` as an authorized domain, or Publish stays grey after you filled everything | A Vercel address may not be accepted for the consent screen links | Get your own domain (for example `rgservices.ph` from a domain seller), add it to the Vercel project (Vercel > Settings > Domains), set `APP_BASE_URL` to it, then use it in A2 step 6 and A4. Verify it in Google Search Console if Google asks. |
+| After Google you see **"We could not sign you in with Google"** and a **Reason code** | The code says what failed | `unexpected_failure` or `server_error`: Client ID or Client Secret in Supabase is wrong (paste again, no spaces), or the redirect address in Google is not exactly the Supabase callback URL. `bad_oauth_state` or `bad_code_verifier`: try again in the same browser with cookies allowed. `no_code`: check Site URL and Redirect URLs in Supabase (Part B2). |
 | Google says **Access blocked: app has not completed verification** or "only test users" | The app is still in **Testing** | Part A3: publish the app so it says **In production**. |
 | The button does not show | `GOOGLE_SIGNIN_ENABLED` is not `true`, or you did not redeploy | Part C2. |
 | After Google, you come back to the Sign in page with "We could not sign you in with Google" | Client ID or Secret pasted wrong in Supabase, or the provider is off | Part B1: paste them again and Save. |
@@ -251,6 +252,13 @@ Test with a Google account that is **not** an admin account on the website.
 | An admin cannot use Google | By design | Admins use email, password and the 2-step code. |
 
 ---
+
+## How to find the real reason when Google sign in fails
+
+1. The Sign in page shows **"Reason code: ..."** under the message (after the latest update of the website).
+2. Supabase: Dashboard > **Logs** > **Auth** (or **Auth Logs**). Look for the newest error at the time you tried. It says in words what Google or Supabase refused.
+3. Vercel: your project > **Logs**. Search for `Google sign in`. The website writes the error there.
+4. "Google sign in was cancelled" in the OLD version of the website was shown for **every** return error, not only for a real cancel. Update the website, try again, and read the reason code.
 
 ## Good habits
 

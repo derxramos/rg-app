@@ -40,6 +40,18 @@ const GOOGLE_MESSAGES: Record<string, { title: string; text: string }> = {
   },
 };
 
+// A short reason code from Google or Supabase, with a plain hint for the owner. The code is safe to show
+// (letters, numbers, _ and - only).
+function googleHint(detail: string): string {
+  if (/^(unexpected_failure|server_error|exchange_failed)$/.test(detail))
+    return "Supabase could not finish with Google. Most often the Client ID or Client Secret in Supabase is wrong, or the redirect address in Google does not match the one Supabase shows.";
+  if (/^(bad_oauth_state|bad_code_verifier|flow_state_not_found|flow_state_expired)$/.test(detail))
+    return "The sign in took too long, or this browser blocked cookies. Try again in the same browser.";
+  if (detail === "no_code")
+    return "The return page opened without a code. Check Site URL and Redirect URLs in Supabase.";
+  return "Tell the website owner this code.";
+}
+
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
@@ -62,6 +74,10 @@ async function LoginBody({ searchParams }: { searchParams: PageProps<"/login">["
   const params = await searchParams;
   const next = safeNextPath(first(params.next), "");
   const reason = first(params.reason);
+  const detail = (first(params.detail) ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "")
+    .slice(0, 40);
 
   // Already signed in: go where they wanted, or to their own start page.
   const viewer = await getViewer();
@@ -80,6 +96,11 @@ async function LoginBody({ searchParams }: { searchParams: PageProps<"/login">["
       {reason && GOOGLE_MESSAGES[reason] ? (
         <WarningBox variant="warning" title={GOOGLE_MESSAGES[reason].title}>
           {GOOGLE_MESSAGES[reason].text}
+          {detail && reason === "google-failed" ? (
+            <p className="mt-2 text-sm">
+              Reason code: <strong className="font-mono">{detail}</strong>. {googleHint(detail)}
+            </p>
+          ) : null}
         </WarningBox>
       ) : null}
 
