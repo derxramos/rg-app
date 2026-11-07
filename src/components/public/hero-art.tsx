@@ -15,7 +15,7 @@ export function HeroArt() {
       <span className="absolute top-2 right-6 size-40 rounded-full [background:var(--hero-peach)] motion-safe:animate-hero-peach md:size-48" />
       <span className="absolute bottom-0 left-2 size-24 rounded-full bg-hero-teal motion-safe:animate-hero-teal" />
       <span className="absolute top-0 left-12 size-6 rounded-full bg-hero-dot motion-safe:animate-hero-dot" />
-      <span className="absolute right-0 bottom-10 h-3 w-24 rounded-full bg-brand-accent" />
+      <span className="absolute right-0 bottom-10 h-3 w-24 rounded-full bg-hero-bar" />
 
       <div className="absolute top-8 left-0 flex w-60 flex-col gap-3 rounded-lg border border-hero-card-border border-t-hero-card-border-top bg-hero-card p-4 shadow-md [--dy:-10px] motion-safe:animate-hero-card-a md:w-64">
         {/* Hero colors come from the --hero-* tokens (day and night, globals.css). The text and the icon are split so they can appear one after the other, like "Verified" and the check. */}

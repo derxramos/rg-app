@@ -82,6 +82,8 @@
   --hero-peach: #ffe8dc;
   --hero-teal: #e3f2ef;
   --hero-dot: #ffd23f;
+  /* The small orange bar behind the Verified card. Day mode: the solid card hides it, so nothing changes. */
+  --hero-bar: var(--brand-accent);
 }
 
 /* Alternative palette "Harbor Navy". Only the values that differ. */
@@ -189,6 +191,8 @@
   --hero-peach: #1e6b60;
   --hero-teal: #2a8f82;
   --hero-dot: #ffd23f;
+  /* The glass card is see-through, so the orange bar behind it would show as a muddy stripe. Hidden at night. */
+  --hero-bar: transparent;
   /* Shadows are almost invisible on dark, so they are darker and a little stronger. */
   --shadow-sm: 0 1px 2px #00000066, 0 1px 1px #00000040;
   --shadow-md: 0 8px 24px #00000073, 0 2px 6px #00000059;
@@ -281,6 +285,7 @@
   --color-hero-line-2: var(--hero-line-2);
   --color-hero-teal: var(--hero-teal);
   --color-hero-dot: var(--hero-dot);
+  --color-hero-bar: var(--hero-bar);
   --color-status-draft-bg: var(--status-draft-bg);
   --color-status-draft-fg: var(--status-draft-fg);
   --color-status-submitted-bg: var(--status-submitted-bg);
