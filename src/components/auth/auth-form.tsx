@@ -6,18 +6,20 @@ import type { AuthState } from "@/app/auth/actions";
 import { TurnstileWidget } from "@/components/request/turnstile-widget";
 import { FieldError, FieldHint } from "@/components/shared/field-message";
 import { WarningBox } from "@/components/shared/warning-box";
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export type AuthField = {
   name: string;
   label: string;
-  type?: "text" | "email" | "password";
+  type?: "text" | "email" | "password" | "tel";
   autoComplete?: string;
-  inputMode?: "email" | "text";
+  inputMode?: "email" | "text" | "tel";
   hint?: string;
   defaultValue?: string;
+  // Not required (for example the phone number on the profile).
+  optional?: boolean;
 };
 
 type Props = {
@@ -32,6 +34,10 @@ type Props = {
   consent?: React.ReactNode;
   // Extra links under the button.
   footer?: React.ReactNode;
+  submitVariant?: ButtonProps["variant"];
+  // After a good result, load this address as a FULL page (not a soft navigation). Used when the session
+  // ended (account deleted), so the Back button cannot show private pages from memory.
+  redirectOnSuccess?: string;
 };
 
 declare global {
@@ -40,8 +46,8 @@ declare global {
   }
 }
 
-// One form for all the sign-in screens. It uses onSubmit, so the fields keep their text after an error.
-// Errors show an icon and words (never color only), and each field is linked to its error.
+// One form for the sign-in screens and the account forms. It uses onSubmit, so the fields keep their text
+// after an error. Errors show an icon and words (never color only), and each field is linked to its error.
 export function AuthForm({
   action,
   fields,
@@ -50,6 +56,8 @@ export function AuthForm({
   hidden,
   consent,
   footer,
+  submitVariant,
+  redirectOnSuccess,
 }: Props) {
   const [state, run, pending] = useActionState(action, null);
   const [, startTransition] = useTransition();
@@ -58,6 +66,10 @@ export function AuthForm({
   useEffect(() => {
     if (state && !state.ok) window.turnstile?.reset();
   }, [state]);
+
+  useEffect(() => {
+    if (state?.ok && redirectOnSuccess) window.location.assign(redirectOnSuccess);
+  }, [state, redirectOnSuccess]);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,7 +117,7 @@ export function AuthForm({
               defaultValue={field.defaultValue}
               aria-invalid={error ? true : undefined}
               aria-describedby={describedBy || undefined}
-              required
+              required={!field.optional}
             />
             {field.hint ? <FieldHint id={`${id}-hint`}>{field.hint}</FieldHint> : null}
             {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
@@ -134,7 +146,13 @@ export function AuthForm({
       {turnstile ? <TurnstileWidget /> : null}
 
       <div>
-        <Button type="submit" size="lg" loading={pending} className="w-full sm:w-auto">
+        <Button
+          type="submit"
+          size="lg"
+          variant={submitVariant}
+          loading={pending}
+          className="w-full sm:w-auto"
+        >
           {submitLabel}
         </Button>
       </div>

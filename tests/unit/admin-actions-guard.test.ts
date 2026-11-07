@@ -82,7 +82,7 @@ describe("admin actions and routes check access first", () => {
 // Every Server Action in /account must check the login first. A page check is not enough, because a
 // Server Action can be called with a direct POST request. (The folder may not exist yet in early phases.)
 const USER_GUARD = /withUser\(|requireUser\(|requireVerifiedUser\(|requireRequestAccess\(/;
-const accountDir = path.join(ROOT, "app/account");
+const accountDir = path.join(ROOT, "app/(public)/account");
 const accountActions = (() => {
   try {
     return walk(accountDir).filter((f) => /actions\.ts$/.test(f));
@@ -104,6 +104,18 @@ describe("user actions check the login first", () => {
       });
     }
   }
+
+  it("every route under /api/account checks the login first and only answers POST", () => {
+    const routes = walk(path.join(ROOT, "app/api/account")).filter((f) => f.endsWith("route.ts"));
+    expect(routes.length).toBeGreaterThanOrEqual(2);
+    for (const file of routes) {
+      const text = readFileSync(file, "utf8");
+      const rel = path.relative(ROOT, file);
+      expect(text, rel).toMatch(/requireUser\(|requireVerifiedUser\(/);
+      expect(text, rel).toContain("export async function POST(");
+      expect(text, rel).not.toMatch(/export (async )?function GET\(/);
+    }
+  });
 
   it("the development test login route answers 404 unless NODE_ENV is development", () => {
     const source = readFileSync(path.join(ROOT, "app/api/dev-login/route.ts"), "utf8");

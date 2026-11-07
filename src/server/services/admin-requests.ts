@@ -374,6 +374,9 @@ export async function getFileLink(
 
 export const ERASED_NAME = "Deleted client";
 
+// Who asked for the erase: an owner (admin) or the client themself (account deletion).
+export type EraseActor = { type: "admin" | "client"; id: string | null };
+
 export async function eraseClientData(
   db: AppDb,
   storage: StorageDriver,
@@ -382,7 +385,20 @@ export async function eraseClientData(
 ) {
   if (actor.role !== "owner") throw new AdminAuthError("wrong-role");
   if (!input.fresh2fa) throw new AdminAuthError("needs-fresh-2fa");
+  return eraseRequestData(db, storage, {
+    requestId: input.requestId,
+    bucket: input.bucket,
+    ipHash: input.ipHash,
+    actor: { type: "admin", id: actor.id },
+  });
+}
 
+// The work itself. The CALLER must have checked who may do this (owner + fresh 2FA, or the account owner).
+export async function eraseRequestData(
+  db: AppDb,
+  storage: StorageDriver,
+  input: { requestId: string; bucket: string; actor: EraseActor; ipHash?: string | null },
+) {
   const [request] = await db
     .select({ id: requests.id })
     .from(requests)
@@ -437,8 +453,8 @@ export async function eraseClientData(
       .set({ toEmail: "deleted@example.invalid" })
       .where(eq(emailLog.requestId, input.requestId));
     await tx.insert(activityLog).values({
-      actorType: "admin",
-      actorId: actor.id,
+      actorType: input.actor.type,
+      actorId: input.actor.id,
       action: "request.data_erased",
       entityType: "request",
       entityId: input.requestId,

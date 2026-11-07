@@ -260,3 +260,138 @@ test.describe("requests belong to the account", () => {
     }
   });
 });
+
+// ---------- The account area ----------
+const USER_C = "zolb-test+userc@example.com";
+
+async function startRequestAs(page: Page, email: string, name: string) {
+  await signInAsTestUser(page, email);
+  await page.goto("/request?service=test-service-e2e");
+  await page.getByLabel("Full name").fill(name);
+  await page.getByLabel("Mobile number").fill("917 123 4567");
+  await page.getByRole("checkbox").check();
+  await waitForTurnstile(page);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Your request is started" })).toBeVisible();
+  return page.url().split("/request/")[1].split("/")[0];
+}
+
+test.describe("the account area", () => {
+  let requestId = "";
+
+  test.beforeAll(async () => {
+    await ensureTestService();
+  });
+  test.afterAll(async () => {
+    await cleanTestData();
+    await removeTestProfiles();
+  });
+
+  test("a visitor is sent to sign in", async ({ page }) => {
+    await asVisitor(page);
+    await page.goto("/account");
+    await expect(page).toHaveURL(/\/login\?next=%2Faccount/);
+    await page.goto("/account/requests/99999999-9999-4999-8999-999999999999");
+    await expect(page).toHaveURL(/\/login\?next=/);
+  });
+
+  test("My requests is empty for a new user, then lists the request", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_EMAIL);
+    await page.goto("/account");
+    await expect(page.getByRole("heading", { level: 1, name: "My requests" })).toBeVisible();
+    await expect(page.getByText("You have no requests yet")).toBeVisible();
+
+    requestId = await startRequestAs(page, E2E_USER_EMAIL, "Test Client A");
+    await page.goto("/account");
+    const card = page.getByRole("link", { name: /Test service \(e2e\)/ });
+    await expect(card).toBeVisible();
+    await expect(card.getByText("Draft")).toBeVisible();
+  });
+
+  test("the request page shows status, timeline and file names, but no way to open a file", async ({
+    page,
+  }) => {
+    await signInAsTestUser(page, E2E_USER_EMAIL);
+    await page.request.post("/api/upload", {
+      multipart: {
+        requestId,
+        file: { name: "my-id.png", mimeType: "image/png", buffer: TINY_PNG },
+      },
+    });
+    await page.goto(`/account/requests/${requestId}`);
+    await expect(page.getByRole("heading", { level: 1, name: "Your request" })).toBeVisible();
+    await expect(page.getByText("my-id.png")).toBeVisible();
+    await expect(page.getByText(/documents cannot be opened or downloaded/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue this request" })).toBeVisible();
+    // No link to a file anywhere on the page.
+    await expect(page.locator('a[href*="/api/admin/file"], a[href*="storage"]')).toHaveCount(0);
+  });
+
+  test("another user and a made-up id both see the Not found page", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_B_EMAIL);
+    for (const id of [requestId, "99999999-9999-4999-8999-999999999999", "not-an-id"]) {
+      await page.goto(`/account/requests/${id}`);
+      // The same "not found" page in every case (the page streams, so the HTTP status stays 200).
+      await expect(
+        page.getByRole("heading", { level: 1, name: "We could not find that page" }),
+        id,
+      ).toBeVisible();
+      await expect(page.getByText("my-id.png")).toHaveCount(0);
+    }
+  });
+
+  test("Download my data gives only the user's own data", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_EMAIL);
+    const response = await page.request.post("/api/account/export");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-disposition"]).toContain("attachment");
+    const text = await response.text();
+    expect(text).toContain(E2E_USER_EMAIL);
+    expect(text).toContain("my-id.png");
+    expect(text).not.toContain(E2E_USER_B_EMAIL);
+    expect(text).not.toContain("users/");
+  });
+
+  test("Download my data needs a sign in and a POST", async ({ page }) => {
+    await asVisitor(page);
+    expect((await page.request.post("/api/account/export")).status()).toBe(401);
+    await signInAsTestUser(page, E2E_USER_EMAIL);
+    expect((await page.request.get("/api/account/export")).status()).toBe(405);
+  });
+
+  test("a user can change their name and phone", async ({ page }) => {
+    await signInAsTestUser(page, E2E_USER_EMAIL);
+    await page.goto("/account");
+    await page.getByLabel("Full name").fill("Test Client Renamed");
+    await page.getByRole("button", { name: "Save my details" }).click();
+    await expect(page.getByText("Your details were saved.")).toBeVisible();
+    await page.reload();
+    await expect(page.getByLabel("Full name")).toHaveValue("Test Client Renamed");
+  });
+
+  test("delete my account needs the word DELETE, then removes the account", async ({ page }) => {
+    await signInAsTestUser(page, USER_C);
+    await page.goto("/account");
+    await page.getByLabel("Your password").fill("not-checked-in-development");
+    await page.getByLabel("Type DELETE to confirm").fill("delete");
+    await page.getByRole("button", { name: "Delete my account" }).click();
+    await expect(page.getByText("Type the word DELETE in capital letters.")).toBeVisible();
+
+    await page.getByLabel("Type DELETE to confirm").fill("DELETE");
+    await page.getByRole("button", { name: "Delete my account" }).click();
+    // A full page load of the home page, with a message and the signed-out header.
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText("Your account was deleted.")).toBeVisible();
+
+    const sql = testSql();
+    try {
+      const rows = await sql`select 1 from profiles where email = ${USER_C}`;
+      expect(rows).toHaveLength(0);
+    } finally {
+      await sql.end();
+    }
+    // The old session does not work any more.
+    await page.goto("/account");
+    await expect(page).toHaveURL(/\/login/);
+  });
+});

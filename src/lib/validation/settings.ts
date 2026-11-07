@@ -56,7 +56,8 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
   max_file_size_mb: 3,
   storage_warning_percent: 80,
   // Draft version. The owner replaces it when the real privacy notice is approved.
-  privacy_notice_version: "1.0",
+  // 2.0: the notice now explains accounts, download and delete. The owner sets the same number in Site content.
+  privacy_notice_version: "2.0",
   last_keep_alive_at: null,
   last_cleanup_at: null,
 };

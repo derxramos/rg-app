@@ -26,7 +26,7 @@ Plan: user accounts (role `user`) and admin accounts (role `admin`). Phases:
 - [x] Phase 4 — Login, register, verify, forgot and reset, sign out (live email flow to be checked by hand, see docs/AUTH_AND_ROLES.md section 2)
 - [x] Phase 5 — Header and layouts (browser checks pass on phone and desktop with the dev test login)
 - [x] Phase 6 — Requests belong to users (the old guest draft cookie code stays only for old guest drafts; they expire within 7 days)
-- [ ] Phase 7 — Account area
+- [x] Phase 7 — Account area (My requests, request page, profile, download my data, delete my account, privacy notice 2.0)
 - [ ] Phase 8 — Admin role management, docs and checklist
 - [ ] Phase 9 — 2FA ON path (last)
 

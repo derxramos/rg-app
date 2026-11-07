@@ -5,7 +5,7 @@ import "server-only";
 // a page check does not protect a Server Action (it can be called with a direct POST request).
 // Admin checks are in admin.ts (requireAdmin).
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,6 +14,7 @@ import { cache } from "react";
 
 import { loginUrlFor } from "@/lib/safe-next";
 import { getDb } from "@/server/db/client";
+import type { AppDb } from "@/server/db/types";
 import { adminProfiles } from "@/server/db/schema";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
 
@@ -127,11 +128,31 @@ export async function guardUserPage(
 }
 
 // Runs a read as the logged-in user, so database Row Level Security filters the rows as well.
-export function withUserRls<T>(
+// In production (and in tests) the "authenticated" role MUST exist, or this fails loudly. Only on a
+// development computer with the plain local test database (no Supabase roles), it falls back to the normal
+// connection. The code still filters by user id there, and the fake-Supabase unit tests cover the rules.
+export async function withUserRls<T>(
   session: UserSession,
   run: Parameters<typeof runAsUser<T>>[2],
 ): Promise<T> {
-  return runAsUser(getDb(), session.userId, run);
+  const db = getDb();
+  if (process.env.NODE_ENV === "development" && !(await rlsRoleExists(db))) {
+    return db.transaction((tx) => run(tx));
+  }
+  return runAsUser(db, session.userId, run);
+}
+
+const roleCache = globalThis as unknown as { __rgRlsRole?: boolean };
+async function rlsRoleExists(db: AppDb): Promise<boolean> {
+  if (roleCache.__rgRlsRole === undefined) {
+    // postgres-js returns the rows as an array, PGlite as { rows }. Handle both.
+    const result: unknown = await db.execute(
+      sql`select exists (select 1 from pg_roles where rolname = 'authenticated') as found`,
+    );
+    const rows = Array.isArray(result) ? result : ((result as { rows?: unknown[] }).rows ?? []);
+    roleCache.__rgRlsRole = Boolean((rows[0] as { found?: boolean } | undefined)?.found);
+  }
+  return roleCache.__rgRlsRole;
 }
 
 // ---------- Server action wrapper ----------
