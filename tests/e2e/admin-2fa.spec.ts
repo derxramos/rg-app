@@ -39,10 +39,13 @@ test(`the red banner is ${required ? "NOT shown (2FA is required)" : "shown on a
   }
 });
 
-test("a risky change asks for a fresh code only when 2FA is required", async ({ page }) => {
+test("a risky change always asks for the confirm of the person doing it (the flag does not remove it)", async ({
+  page,
+}) => {
   await page.goto("/api/dev-login?as=admin&next=/");
   await page.goto(`/admin/settings/payments/${E2E_METHOD_ID}`);
-  await expect(page.getByLabel(/Your 6-digit code/)).toHaveCount(required ? 1 : 0);
+  // With the flag off the confirm is still asked (code, or the password when there is no authenticator).
+  await expect(page.getByLabel(/6-digit code/)).toHaveCount(1);
 });
 
 test("the 2FA pages never help a normal user", async ({ page }) => {

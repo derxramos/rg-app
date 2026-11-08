@@ -2,7 +2,7 @@
 
 Update this file at the end of every work session.
 
-**Current status:** All 8 phases are built and each is committed. The accounts and roles work (branch `feat/auth-roles`, merged into `main`, not pushed) is built too: see "Accounts and roles work" below and docs/AUTH_AND_ROLES.md. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
+**Current status:** The roles, accounts table and 2-step login recovery work is built on `feat/roles-accounts-recovery` and merged into `main` (not pushed, nothing run on a live database): see "Roles, accounts table and 2-step login recovery" below. All 8 original phases are built and each is committed. The accounts and roles work (branch `feat/auth-roles`, merged into `main`, not pushed) is built too: see "Accounts and roles work" below and docs/AUTH_AND_ROLES.md. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
 **Last updated:** 2026-11-08
 
 **Next step:** Owner: answer the open questions, set up the real accounts, and run the live checklist. Then deploy a preview.
@@ -45,7 +45,7 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - [x] Phase 4 — Accounts table and role dialog (the Reset 2-step login menu item is a disabled placeholder until phase 5)
 - [x] Phase 5 — Backup device and reset by another person (the real Supabase calls are NOT run here: unit tests use fakes, see the report)
 - [x] Phase 6 — RECOVERY.md and docs
-- [ ] Phase 7 — Final tests, lint, build
+- [x] Phase 7 — Final tests, lint, build
 
 ### Phase 2 report (2026-11-08)
 - **Permission table:** `src/lib/permissions.ts` (`can(role, action)`). 136 unit tests: every role times every action. `OWNER_ONLY`, `PAYMENT_VERIFY_ROLES` and `hasRole` are gone (a test fails if they come back).
@@ -94,6 +94,16 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - **Updated:** CLAUDE.md (rule 5, the stack row, the docs list; the git rules were done in phase 0), `docs/DATABASE.md` (one role column, `private.can`, the actor triggers, the removed `admin_profiles` table), `docs/FEATURES.md`, `docs/SECURITY_AND_PRIVACY.md` (T6, T13, new T14), `docs/SECURITY_CHECKLIST.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN_HANDOFF.md` (accounts table, Actions menu, role dialog, reset dialog, Security page, two-step setup, not-allowed page, staff menu), `docs/OWNER_GUIDE.md` (roles, lost phone).
 - **`.env.example`:** no new variable was needed. `ADMIN_REQUIRE_2FA` stays as it was, and the red banner and the "Before launch" item above stay.
 - `docs/PHASES.md` is the old build plan and still names `requireAdmin()` in its history. I left it as it was.
+
+### Phase 7 report (2026-11-08): final checks
+- **Unit tests:** 745 pass (48 files). **Lint, type check and production build** pass.
+- **Browser tests (local database only, phone and desktop): 128 pass, 3 fail. None of the 3 is from this work:**
+  - `smoke.spec.ts` "case study page" (phone and desktop): the test expects no `robots` meta tag, but the page has one. The page was changed earlier.
+  - `accounts.spec.ts` "a user sees My requests and Sign out" (desktop only): the desktop header has one account menu since the header change on 2026-11-07, and the test still looks for the link outside the menu.
+- **Browser tests I fixed because the new rule changed them:** the confirm box label is now "Enter the 6-digit code from YOUR authenticator app." (tests matched the old words), and the confirm is now asked even with `ADMIN_REQUIRE_2FA=false` (the old test expected no box). The test "payment methods: a risky change needs a fresh code" now passes with the flag on or off.
+- **How I ran them:** `DEV_USER_BYPASS_EMAILS` must be set for the user tests (the first run without it made every "normal user" test run as the owner; I caught it and ran again). Use the command in the README with the local database address.
+- **Test data search:** after `pnpm e2e:clean`, a search for `zolb-test` in profiles, requests, email_log, activity_log, services and payment_methods of the local database found **0 rows**. Nothing was written to any real database.
+- **Test accounts that were made (local database only, all removed again):** one **owner** (`zolb-test+owner@example.com`, used by the browser tests as before), many **staff** accounts and **one admin** account (`zolb-test+acc-NN@example.com`, `zolb-test+sec-01@example.com`), and test clients. No account with these roles was made on Supabase.
 
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.

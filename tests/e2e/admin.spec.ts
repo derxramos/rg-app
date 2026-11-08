@@ -90,11 +90,11 @@ test("payment methods: a risky change needs a fresh code, and is logged", async 
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("A fresh code is needed")).toBeVisible();
 
-  await page.getByLabel(/Your 6-digit code/).fill("111111"); // a wrong code
+  await page.getByLabel(/6-digit code/).fill("111111"); // a wrong code
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("A fresh code is needed")).toBeVisible();
 
-  await page.getByLabel(/Your 6-digit code/).fill("000000"); // development bypass code
+  await page.getByLabel(/6-digit code/).fill("000000"); // development bypass code
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText(/Saved. This change is in the activity log/).first()).toBeVisible();
 
