@@ -63,6 +63,11 @@ WHERE a.id = p.id AND p.role = 'admin';
 UPDATE public.profiles SET role = 'user' WHERE role = 'admin';
 --> statement-breakpoint
 
+-- Every staff, admin and owner account must set up an authenticator AND a backup device. This flag keeps the panel
+-- closed until two devices exist. It only matters while ADMIN_REQUIRE_2FA is on. New panel accounts get it too.
+UPDATE public.profiles SET mfa_reset_required = true WHERE role IN ('staff', 'admin', 'owner');
+--> statement-breakpoint
+
 -- ============================================================
 -- 4. Point the old foreign keys at profiles (the ids are the same, so no data changes)
 -- ============================================================

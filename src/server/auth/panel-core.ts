@@ -31,6 +31,8 @@ export type PanelUser = {
   email: string;
   role: PanelRole;
   isActive: boolean;
+  // True until the person has an authenticator AND a backup device (first setup, or after a reset).
+  mfaResetRequired: boolean;
 };
 
 export type PanelSession = {
@@ -112,6 +114,7 @@ export async function checkPanel(
     email: account.email,
     role: account.role,
     isActive: account.isActive,
+    mfaResetRequired: account.mfaResetRequired,
   };
 }
 
@@ -130,6 +133,11 @@ export async function recordDenied(
     details: { action: input.action ?? null },
     ipHash: input.ipHash ?? null,
   });
+}
+
+// The person now has an authenticator AND a backup device: the panel may open.
+export async function markMfaSetupDone(db: AppDb, userId: string): Promise<void> {
+  await db.update(profiles).set({ mfaResetRequired: false }).where(eq(profiles.id, userId));
 }
 
 // Used by services as a second check (CLAUDE.md rule 5: every layer checks).
@@ -163,17 +171,18 @@ export function panelFailureRedirect(code: PanelAuthCode): string {
 }
 
 // Right after a good password. Clients are never asked for 2FA. A panel account is asked only while 2FA is required.
+// With an authenticator: the code step first. (If a backup device is still missing, the admin area then sends
+// the person on to the setup page, where they are already at the higher level.) Without one: the setup page.
 export function afterLoginDestination(input: {
   role: Role;
   isActive: boolean;
   twoFactorRequired: boolean;
   hasVerifiedFactor: boolean;
-  mfaResetRequired?: boolean;
   next: string | null | undefined;
 }): string {
   const isPanel = isPanelRole(input.role) && input.isActive;
   if (isPanel && input.twoFactorRequired) {
-    return input.hasVerifiedFactor && !input.mfaResetRequired ? "/admin/mfa" : "/admin/mfa/setup";
+    return input.hasVerifiedFactor ? "/admin/mfa" : "/admin/mfa/setup";
   }
   return safeNextPath(input.next, landingPathForRole(isPanel ? input.role : "user"));
 }

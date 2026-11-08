@@ -13,40 +13,40 @@ import { Label } from "@/components/ui/label";
 
 type Enroll = { factorId: string; qr: string; secret: string };
 
-// First login: the admin must set up an authenticator app before they can see anything.
-// Then they are asked to add a second device as a backup (Supabase gives no recovery codes).
-export function MfaSetup() {
+// Two devices are needed: an authenticator app and a backup (Supabase gives no recovery codes, and a
+// recovery by email would make 2-step login useless). The same QR code can be scanned on two phones.
+//   mode "required"  = the setup after the first sign in or after a reset: the admin area stays closed
+//   mode "optional"  = the Security page: add one more device when you want
+export function MfaSetup({
+  verifiedCount,
+  mode = "required",
+}: {
+  verifiedCount: number;
+  mode?: "required" | "optional";
+}) {
+  const [count, setCount] = useState(verifiedCount);
   const [enroll, setEnroll] = useState<Enroll | null>(null);
+  const [name, setName] = useState(verifiedCount === 0 ? "My phone" : "Backup phone");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
 
   async function start() {
     setBusy(true);
     setError(null);
-    const result = await startEnrollAction();
+    const result = await startEnrollAction(name);
     setBusy(false);
     if (result.ok) setEnroll(result);
     else setError(result.message);
   }
 
-  if (done) {
+  // Required mode is finished with two devices. The Security page just shows the new list.
+  if (mode === "required" && count >= 2) {
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-bold text-primary-ink">You are set up</h1>
-        <WarningBox variant="info" title="Add a backup device">
-          Supabase does not give recovery codes. If you lose your phone, you could be locked out.
-          Set up a second authenticator device now, and keep it safe.
-        </WarningBox>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setDone(false);
-            setEnroll(null);
-          }}
-        >
-          Add a backup device
-        </Button>
+        <p className="text-base">
+          Your authenticator app and your backup device are ready. Keep the backup device safe.
+        </p>
         <Link href="/admin" className={buttonVariants()}>
           Go to the admin area
         </Link>
@@ -54,9 +54,17 @@ export function MfaSetup() {
     );
   }
 
+  const step = count + 1;
+  const title =
+    mode === "optional"
+      ? "Add a device"
+      : step === 1
+        ? "Step 1 of 2: your authenticator app"
+        : "Step 2 of 2: a backup device";
+
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-2xl font-bold text-primary-ink">Set up your authenticator app</h1>
+      <h1 className="text-2xl font-bold text-primary-ink">{title}</h1>
       {error ? (
         <WarningBox variant="danger" title="That did not work">
           {error}
@@ -65,9 +73,21 @@ export function MfaSetup() {
       {!enroll ? (
         <>
           <p className="text-base text-muted-foreground">
-            Every admin needs a 6-digit code from an authenticator app (for example Google
-            Authenticator or Microsoft Authenticator) to log in.
+            {step === 1
+              ? "Every account that opens the admin area needs a 6-digit code from an authenticator app (for example Google Authenticator or Microsoft Authenticator)."
+              : "If you lose your phone and have no second device, a person must reset your 2-step login. A backup device avoids that."}{" "}
+            You can also scan the same QR code on two phones.
           </p>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="device-name">Name of this device</Label>
+            <Input
+              id="device-name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={40}
+              placeholder="For example: Rosemarie's phone"
+            />
+          </div>
           <Button size="lg" onClick={start} loading={busy}>
             <Smartphone aria-hidden="true" />
             Start setup
@@ -96,7 +116,11 @@ export function MfaSetup() {
           <ActionForm
             action={async (previous, formData) => {
               const result = await verifyEnrollAction(previous, formData);
-              if (result.ok) setDone(true);
+              if (result.ok) {
+                setCount(result.verifiedCount ?? count + 1);
+                setEnroll(null);
+                setName("Backup phone");
+              }
               return result;
             }}
             hidden={{ factorId: enroll.factorId }}

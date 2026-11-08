@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { MfaSetup } from "@/components/admin/mfa-setup";
 import { Skeleton } from "@/components/ui/skeleton";
-import { guardMfaPage } from "@/server/auth/panel";
+import { guardMfaSetupPage } from "@/server/auth/panel";
 
 export const metadata: Metadata = { title: "Set up 2FA" };
 
@@ -15,8 +15,8 @@ export default function AdminMfaSetupPage() {
   );
 }
 
-// Only for admins, and only while 2FA is required.
+// Only for staff, admin and owner accounts, and only while 2-step login is required and a device is missing.
 async function Setup() {
-  await guardMfaPage();
-  return <MfaSetup />;
+  const { verifiedCount } = await guardMfaSetupPage();
+  return <MfaSetup verifiedCount={verifiedCount} />;
 }

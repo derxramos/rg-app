@@ -43,7 +43,7 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - [x] Phase 2 — Role model, permission function, database policies and triggers (migration `drizzle/0006_single_role.sql`, NOT applied anywhere live)
 - [x] Phase 3 — Staff menu and page guards (the browser checks for staff come in phase 7)
 - [x] Phase 4 — Accounts table and role dialog (the Reset 2-step login menu item is a disabled placeholder until phase 5)
-- [ ] Phase 5 — Backup device and reset by another person
+- [x] Phase 5 — Backup device and reset by another person (the real Supabase calls are NOT run here: unit tests use fakes, see the report)
 - [ ] Phase 6 — RECOVERY.md and docs
 - [ ] Phase 7 — Final tests, lint, build
 
@@ -76,6 +76,17 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - **Found by the browser test:** every admin page was 10 px wider than a phone screen (the header logo line). The admin header now drops the small line under "RG'S" on a phone.
 - **Browser tests (local database only):** 9 tests on phone and desktop pass (`tests/e2e/accounts-table.spec.ts`). They made 13 local test accounts with the markers `zolb-test+acc-NN@example.com`, **including accounts with the role staff and ONE with the role admin** (local database only), and removed them again with their activity rows.
 - Tests: 719 unit tests pass. Lint, type check and build pass.
+
+### Phase 5 report (2026-11-08)
+- **Backup device (layer 1):** `/admin/mfa/setup` is now two steps: "Step 1 of 2: your authenticator app" and "Step 2 of 2: a backup device". Each device gets a name the person types. The page says the same QR code can be scanned on two phones. The admin area stays closed (`needs-mfa-setup`) until two devices exist. This applies to a first setup AND after a reset. The flag is `profiles.mfa_reset_required`: migration 0006 sets it for every staff, admin and owner account, and new panel accounts get it too. It only has an effect while `ADMIN_REQUIRE_2FA` is on.
+- **Codes from any device:** at sign in, a code from ANY verified device is accepted (so the backup phone works).
+- **Security page** `/admin/security` for every staff, admin and owner account (a "Security" link in the admin header; the staff menu stays Requests, Services, Activity): lists devices (name, date added), adds a device, and removes one only with a code from a DIFFERENT device. The last device can never be removed (the button is missing and the server refuses). Adding a device needs the higher level (a code typed at sign in), so a password alone cannot add an attacker's device.
+- **Reset 2-step login (layer 2):** Settings > Admin users > Actions > Reset 2-step login. Owner and admin can reset staff, and each other (an admin may reset an owner; they still cannot demote or turn off an owner). The person doing it confirms with their OWN code (or password, see below) and types the other person's full email. The system: marks the account "set up again", signs the person out everywhere (`sessions_revoked_at`), removes all devices with the Supabase secret key (server only), writes `account.2fa_reset` to the activity log, and emails the person. **If the target is an owner, every active owner gets an email too.** Nobody can reset themselves.
+- **Safe order:** the database change (forced setup, signed out) happens BEFORE the devices are deleted, so a Supabase error half way still leaves the account locked down.
+- **Flag off, no authenticator yet:** the confirm asks for the person's own account password (see phase 2). Reset still works. While the flag is off the setup is not forced; the red banner and the "Before launch" item stay.
+- **Found while building:** a helper exported from a "use server" file would have become a public endpoint. The device log writer is in its own file (`src/server/auth/device-log.ts`), and a test pins the exported functions of that file.
+- **NOT verified here (needs a Supabase project):** the real enroll, verify, unenroll and `admin.mfa.deleteFactor` calls, and what Supabase does to sessions. The rules are proven with fakes (`tests/unit/mfa-devices.test.ts`, `accounts-reset.test.ts`). Please run the manual checks in docs/AUTH_AND_ROLES.md on a TEST project.
+- Tests: 745 unit tests pass (new: devices, reset, emails to all owners). Browser tests for the Security page and the reset dialog pass on phone and desktop (local database; the test account has the role **staff**, local only). Lint, type check and build pass.
 
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.

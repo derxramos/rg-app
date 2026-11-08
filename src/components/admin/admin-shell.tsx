@@ -1,11 +1,11 @@
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { AdminNav } from "@/components/admin/admin-nav";
 import { Logo } from "@/components/shared/logo";
 import { ReloadOnRestore } from "@/components/shared/reload-on-restore";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/permissions";
 import type { PanelUser } from "@/server/auth/panel-core";
 
@@ -29,6 +29,15 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
             <span className="block truncate font-bold">{admin.fullName}</span>
             <span className="block text-muted-foreground">{ROLE_LABELS[admin.role]}</span>
           </span>
+          {/* "Security" (my authenticator devices) is for everyone who opens the admin area, staff too. */}
+          <Link
+            href="/admin/security"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            aria-label="Security: my authenticator devices"
+          >
+            <ShieldCheck aria-hidden="true" />
+            <span className="hidden md:inline">Security</span>
+          </Link>
           <ThemeToggle />
           {/* Same plain form POST as the public header: ends the session on the server, then loads the home page. */}
           <form method="post" action="/auth/sign-out">

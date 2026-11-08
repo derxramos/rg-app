@@ -29,5 +29,6 @@ export async function insertPanelUsers(db: AppDb, rows: PanelUserInput[]): Promi
     email: row.email,
     role: row.role,
     isActive: row.isActive ?? true,
+    mfaResetRequired: false,
   }));
 }

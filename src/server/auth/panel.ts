@@ -19,12 +19,15 @@ import {
   isFresh2faValid,
   isTwoFactorRequired,
   makeFresh2faValue,
+  markMfaSetupDone,
   panelFailureRedirect,
   recordDenied,
   type PanelAuthCode,
   type PanelSession,
   type PanelUser,
 } from "./panel-core";
+import { createMfaApi } from "./mfa-api";
+import { DEVICES_NEEDED, verifiedOf } from "./mfa-devices";
 import { getSession } from "./session";
 import { createSupabaseServer, supabaseAuthConfigured } from "./supabase-server";
 
@@ -168,6 +171,34 @@ export async function guardMfaPage(): Promise<{ hasVerifiedFactor: boolean; fact
   const { data: factors } = await supabase.auth.mfa.listFactors();
   const verified = factors?.totp.filter((f) => f.status === "verified") ?? [];
   return { hasVerifiedFactor: verified.length > 0, factorCount: verified.length };
+}
+
+// For the SETUP page (/admin/mfa/setup). Needed in two cases: a first setup (no device yet), and the backup step
+// (one device, and the account still needs a second one: first setup or after a reset by another person).
+// Everything else goes on: no device but a password-only login is fine; a device but no code yet goes to the code
+// page; two devices go to the admin area.
+export async function guardMfaSetupPage(): Promise<{ verifiedCount: number }> {
+  let session: PanelSession | null = null;
+  let failure: PanelAuthCode | null = null;
+  try {
+    session = await requirePanelPendingMfa();
+  } catch (error) {
+    if (!(error instanceof PanelAuthError)) throw error;
+    failure = error.code;
+  }
+  if (!session) redirect(panelFailureRedirect(failure ?? "no-session"));
+  // Nothing is forced while 2-step login is off. The Security page still adds devices.
+  if (!isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA)) redirect("/admin");
+  if (!supabaseAuthConfigured()) return { verifiedCount: 0 };
+
+  const count = verifiedOf(await (await createMfaApi()).list()).length;
+  const db = getDb();
+  if (count > 0 && session.aal !== "aal2") redirect("/admin/mfa");
+  if (count >= DEVICES_NEEDED) {
+    await markMfaSetupDone(db, session.userId);
+    redirect("/admin");
+  }
+  return { verifiedCount: count };
 }
 
 // ---------- Fresh confirm ("step-up") ----------

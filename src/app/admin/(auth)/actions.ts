@@ -7,7 +7,17 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { PanelAuthError } from "@/server/auth/panel-core";
+import { PanelAuthError, markMfaSetupDone } from "@/server/auth/panel-core";
+import { createMfaApi } from "@/server/auth/mfa-api";
+import {
+  DEVICES_NEEDED,
+  DeviceError,
+  cleanDeviceName,
+  finishEnrollment,
+  startEnrollment,
+  verifiedOf,
+} from "@/server/auth/mfa-devices";
+import { recordDeviceEvent } from "@/server/auth/device-log";
 import { requirePanelPendingMfa, type ActionResult } from "@/server/auth/panel";
 import { createSupabaseServer, supabaseAuthConfigured } from "@/server/auth/supabase-server";
 import { getDb } from "@/server/db/client";
@@ -16,14 +26,13 @@ import { rateLimit } from "@/server/security/rate-limit";
 
 const NOT_ALLOWED = "This account is not allowed here.";
 
-// These steps are for admins only (the password step is done, the 2FA step may not be). A normal user
-// cannot enroll an authenticator or try codes here.
-async function adminPending(): Promise<boolean> {
+// These steps are for staff, admin and owner accounts only (the password step is done, the 2FA step may not be).
+// A normal client cannot enroll an authenticator or try codes here. Returns the session, or null.
+async function adminPending() {
   try {
-    await requirePanelPendingMfa();
-    return true;
+    return await requirePanelPendingMfa();
   } catch (error) {
-    if (error instanceof PanelAuthError) return false;
+    if (error instanceof PanelAuthError) return null;
     throw error;
   }
 }
@@ -46,43 +55,64 @@ export async function verifyMfaAction(
   if (!user.user) redirect("/login?next=%2Fadmin");
 
   const { data: factors } = await supabase.auth.mfa.listFactors();
-  const factor = factors?.totp.find((f) => f.status === "verified");
-  if (!factor) redirect("/admin/mfa/setup");
+  const devices = factors?.totp.filter((f) => f.status === "verified") ?? [];
+  if (devices.length === 0) redirect("/admin/mfa/setup");
 
-  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
-  if (error) return { ok: false, message: "That code is not right. Please try the newest code." };
+  // A code from ANY of the person's devices is accepted, so the backup phone works too.
+  let accepted = false;
+  for (const device of devices) {
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: device.id, code });
+    if (!error) {
+      accepted = true;
+      break;
+    }
+  }
+  if (!accepted)
+    return { ok: false, message: "That code is not right. Please try the newest code." };
   redirect("/admin");
 }
 
 // Setup, part 1: makes a new authenticator entry and returns the QR picture and the secret text.
-export async function startEnrollAction(): Promise<
+// A person who already has a device must have passed the code step first (the higher level). Otherwise
+// someone who only knows the password could add their own device.
+export async function startEnrollAction(
+  name: string,
+): Promise<
   { ok: true; factorId: string; qr: string; secret: string } | { ok: false; message: string }
 > {
   if (!supabaseAuthConfigured()) return { ok: false, message: "Login is not set up yet." };
-  if (!(await adminPending())) return { ok: false, message: NOT_ALLOWED };
-  const supabase = await createSupabaseServer();
-  const { data: user } = await supabase.auth.getUser();
-  if (!user.user) return { ok: false, message: "Please log in again." };
-  const { data, error } = await supabase.auth.mfa.enroll({
-    factorType: "totp",
-    friendlyName: `RG device ${new Date().toISOString().slice(0, 16)}`,
-  });
-  if (error || !data)
+  const session = await adminPending();
+  if (!session) return { ok: false, message: NOT_ALLOWED };
+  const api = await createMfaApi();
+  const hasDevice = verifiedOf(await api.list()).length > 0;
+  if (hasDevice && session.aal !== "aal2")
+    return { ok: false, message: "Please enter a code from your authenticator app first." };
+  try {
+    const started = await startEnrollment(api, cleanDeviceName(name, "My phone"));
+    return { ok: true, factorId: started.id, qr: started.qr, secret: started.secret };
+  } catch {
     return { ok: false, message: "We could not start the setup. Please try again." };
-  return { ok: true, factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret };
+  }
 }
 
-// Setup, part 2: the first code proves the app was set up right.
+// Setup, part 2: the first code proves the app was set up right. When there are two devices, the panel opens.
 export async function verifyEnrollAction(
   _previous: ActionResult | null,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<ActionResult & { verifiedCount?: number }> {
   if (!supabaseAuthConfigured()) return { ok: false, message: "Login is not set up yet." };
-  if (!(await adminPending())) return { ok: false, message: NOT_ALLOWED };
-  const supabase = await createSupabaseServer();
-  const factorId = String(formData.get("factorId") ?? "");
-  const code = String(formData.get("code") ?? "").replace(/\s/g, "");
-  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
-  if (error) return { ok: false, message: "That code is not right. Please try the newest code." };
-  return { ok: true, message: "Done. Your authenticator app is set up." };
+  const session = await adminPending();
+  if (!session) return { ok: false, message: NOT_ALLOWED };
+  try {
+    const count = await finishEnrollment(await createMfaApi(), {
+      factorId: String(formData.get("factorId") ?? ""),
+      code: String(formData.get("code") ?? ""),
+    });
+    if (count >= DEVICES_NEEDED) await markMfaSetupDone(getDb(), session.userId);
+    await recordDeviceEvent(session.userId, "mfa.device_added", { devices: count });
+    return { ok: true, message: "Done. Your authenticator app is set up.", verifiedCount: count };
+  } catch (error) {
+    if (error instanceof DeviceError) return { ok: false, message: error.message };
+    return { ok: false, message: "Something went wrong. Please try again." };
+  }
 }

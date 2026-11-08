@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 
 import { getBaseUrl } from "@/lib/site-url";
 import { getDb } from "@/server/db/client";
+import type { AppDb } from "@/server/db/types";
 import { profiles } from "@/server/db/schema";
 import { formatManilaDateTime } from "@/lib/time";
 
@@ -91,9 +92,13 @@ export type AccountChangeNotice = {
   role?: Role;
 };
 
-export async function notifyAccountChange(change: AccountChangeNotice): Promise<void> {
-  const db = getDb();
-  const ctx = emailContext();
+export async function notifyAccountChange(
+  change: AccountChangeNotice,
+  // Tests give their own database and a fake Brevo. The app uses the real ones.
+  deps: { db?: AppDb; ctx?: EmailContext } = {},
+): Promise<void> {
+  const db = deps.db ?? getDb();
+  const ctx = deps.ctx ?? emailContext();
   const when = formatManilaDateTime(new Date());
   const loginUrl = `${ctx.baseUrl}/login`;
   const byWho = `Changed by: ${change.actorName}`;

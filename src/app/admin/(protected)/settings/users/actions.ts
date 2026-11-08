@@ -4,13 +4,18 @@ import { revalidatePath } from "next/cache";
 
 import { ROLES, isPanelRole, type PanelRole, type Role } from "@/lib/permissions";
 import { withPanel, type ActionResult } from "@/server/auth/panel";
-import { createAuthAdminApi, createAuthPasswordApi } from "@/server/auth/supabase-admin";
+import {
+  createAuthAdminApi,
+  createAuthMfaAdminApi,
+  createAuthPasswordApi,
+} from "@/server/auth/supabase-admin";
 import { getDb } from "@/server/db/client";
 import { notifyAccountChange } from "@/server/email/notify";
 import {
   changeRole,
   createAccountWithPassword,
   inviteAccount,
+  reset2fa,
   resendInvite,
   setAccountActive,
 } from "@/server/services/accounts";
@@ -105,6 +110,33 @@ export async function setActiveAction(
       return {
         ok: true,
         message: change.active ? "The account is on again." : "The account is turned off.",
+      };
+    },
+  );
+}
+
+// "Reset 2-step login" for another person (a lost phone). Confirm with YOUR code, and type their email.
+export async function reset2faAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withPanel(
+    { action: "accounts.reset_2fa", formData },
+    async ({ admin, ipHash, fresh2fa }) => {
+      const result = await reset2fa(
+        getDb(),
+        admin,
+        createAuthMfaAdminApi(),
+        { accountId: text(formData, "id"), confirmEmail: text(formData, "confirmEmail") },
+        { fresh2fa, ipHash },
+      );
+      revalidatePath("/admin/settings/users");
+      // The person is told. If the account is an owner, every owner is told too.
+      await notifyAccountChange({ kind: "2fa_reset", ...result, actorName: admin.fullName });
+      return {
+        ok: true,
+        message:
+          "The 2-step login was reset. The person is signed out everywhere and must set up a new device and a backup device at the next sign in.",
       };
     },
   );

@@ -18,18 +18,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { accountActionsFor, assignableRoles, type AccountActionRow } from "@/lib/account-rules";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import {
   changeRoleAction,
+  reset2faAction,
   resendInviteAction,
   setActiveAction,
 } from "@/app/admin/(protected)/settings/users/actions";
 
 type Row = AccountActionRow & { email: string; fullName: string };
-type DialogKind = "role" | "active" | "resend" | null;
+type DialogKind = "role" | "active" | "resend" | "reset" | null;
 
 // The "Actions" menu of one account. Each choice opens ONE dialog with ONE confirm: the code (or the
 // password, when there is no authenticator yet) of the person who is making the change, never of the
@@ -68,7 +70,7 @@ export function AccountRowActions({
             <DropdownMenuItem onSelect={() => setDialog("role")}>Change role</DropdownMenuItem>
           ) : null}
           {actions.reset2fa ? (
-            <DropdownMenuItem onSelect={() => setDialog(null)} disabled>
+            <DropdownMenuItem onSelect={() => setDialog("reset")}>
               Reset 2-step login
             </DropdownMenuItem>
           ) : null}
@@ -132,6 +134,41 @@ export function AccountRowActions({
             onSuccess={close}
           >
             <span />
+          </ActionForm>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dialog === "reset"} onOpenChange={(open) => !open && close()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset 2-step login</DialogTitle>
+            <DialogDescription>
+              Use this when {label} lost their phone. All their authenticator devices are removed,
+              they are signed out everywhere, and at the next sign in they must set up a new
+              authenticator AND a backup device. They get an email
+              {account.role === "owner" ? ", and so does every owner" : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <ActionForm
+            action={reset2faAction}
+            hidden={{ id: account.id }}
+            fresh
+            variant="destructive"
+            submitLabel="Reset 2-step login"
+            onSuccess={close}
+          >
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`reset-${account.id}`}>
+                To confirm, type the email of this person: {account.email}
+              </Label>
+              <Input
+                id={`reset-${account.id}`}
+                name="confirmEmail"
+                type="email"
+                autoComplete="off"
+                required
+              />
+            </div>
           </ActionForm>
         </DialogContent>
       </Dialog>

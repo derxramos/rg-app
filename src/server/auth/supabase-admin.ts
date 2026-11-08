@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import type { AuthDeleteApi } from "@/server/services/account";
-import type { AuthAdminApi, AuthPasswordApi } from "@/server/services/accounts";
+import type { AuthAdminApi, AuthMfaAdminApi, AuthPasswordApi } from "@/server/services/accounts";
 
 import { getBaseUrl } from "@/lib/site-url";
 
@@ -52,6 +52,39 @@ export function createAuthAdminApi(): AuthAdminApi {
       });
       if (error)
         throw Object.assign(new Error(`Could not update the login: ${error.message}`), {
+          code: "invalid",
+        });
+    },
+  };
+}
+
+// Removes the authenticator devices of another person (needs the SECRET key, so server only).
+export function createAuthMfaAdminApi(): AuthMfaAdminApi {
+  // The keys are checked when Supabase is first used, so the form checks (typed email, role) answer first.
+  const client = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const secret = process.env.SUPABASE_SECRET_KEY?.trim();
+    if (!url || !secret) {
+      throw Object.assign(
+        new Error("Resetting 2-step login needs the Supabase keys. They are not set up yet."),
+        { code: "invalid" },
+      );
+    }
+    return createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
+  };
+  return {
+    async listFactors(userId) {
+      const { data, error } = await client().auth.admin.mfa.listFactors({ userId });
+      if (error)
+        throw Object.assign(new Error(`Could not read the devices: ${error.message}`), {
+          code: "invalid",
+        });
+      return (data?.factors ?? []).map((f) => ({ id: f.id, verified: f.status === "verified" }));
+    },
+    async deleteFactor(userId, factorId) {
+      const { error } = await client().auth.admin.mfa.deleteFactor({ id: factorId, userId });
+      if (error)
+        throw Object.assign(new Error(`Could not remove a device: ${error.message}`), {
           code: "invalid",
         });
     },

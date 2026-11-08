@@ -40,6 +40,7 @@ const actor = (id: string, role: PanelUser["role"], name: string = role): PanelU
   email: `zolb-test+${name}@example.com`,
   role,
   isActive: true,
+  mfaResetRequired: false,
 });
 const owner = actor(ids.owner, "owner");
 const admin = actor(ids.admin, "admin");

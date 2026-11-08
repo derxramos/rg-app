@@ -195,7 +195,7 @@ describe("the 2FA pages and actions are for admins only", () => {
   const read = (rel: string) => readFileSync(path.join(SRC, rel), "utf8");
   it("the code and setup pages use guardMfaPage", () => {
     expect(read("app/admin/(auth)/mfa/page.tsx")).toContain("guardMfaPage()");
-    expect(read("app/admin/(auth)/mfa/setup/page.tsx")).toContain("guardMfaPage()");
+    expect(read("app/admin/(auth)/mfa/setup/page.tsx")).toContain("guardMfaSetupPage()");
   });
   it("every 2FA action checks the person is an admin first", () => {
     const source = read("app/admin/(auth)/actions.ts");

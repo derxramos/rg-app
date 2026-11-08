@@ -32,6 +32,13 @@ export interface AuthAdminApi {
   setBanned(userId: string, banned: boolean): Promise<void>;
 }
 
+// Removing the authenticator devices of ANOTHER person (needs the Supabase secret key). A fake is used in tests.
+export interface AuthMfaAdminApi {
+  listFactors(userId: string): Promise<{ id: string; verified: boolean }[]>;
+  // Deleting a verified device also signs the person out of every session at Supabase.
+  deleteFactor(userId: string, factorId: string): Promise<void>;
+}
+
 // For making a login with a temporary password. A fake is used in tests.
 export interface AuthPasswordApi {
   // Creates a login that is already verified. Returns the new user id.
@@ -301,10 +308,22 @@ export async function inviteAccount(
     // The sign-up trigger already made a "user" profile for the new login, so this upsert changes it.
     await tx
       .insert(profiles)
-      .values({ id, email: clean.email, fullName: clean.fullName, role: clean.role })
+      .values({
+        id,
+        email: clean.email,
+        fullName: clean.fullName,
+        role: clean.role,
+        // A new staff, admin or owner account must set up two devices at the first sign in.
+        mfaResetRequired: true,
+      })
       .onConflictDoUpdate({
         target: profiles.id,
-        set: { role: clean.role, fullName: clean.fullName, isActive: true },
+        set: {
+          role: clean.role,
+          fullName: clean.fullName,
+          isActive: true,
+          mfaResetRequired: true,
+        },
       });
     await log(tx, actor, {
       action: "account.invited",
@@ -360,6 +379,7 @@ export async function createAccountWithPassword(
           fullName: clean.fullName,
           role: clean.role,
           mustChangePassword: true,
+          mfaResetRequired: true,
         })
         .onConflictDoUpdate({
           target: profiles.id,
@@ -368,6 +388,7 @@ export async function createAccountWithPassword(
             fullName: clean.fullName,
             mustChangePassword: true,
             isActive: true,
+            mfaResetRequired: true,
           },
         });
       await log(tx, actor, {
@@ -419,6 +440,10 @@ export async function changeRole(
         .update(profiles)
         .set({
           role: input.role,
+          // A client who becomes staff, admin or owner must set up two devices first.
+          ...(isPanelRole(input.role) && !isPanelRole(target.role)
+            ? { mfaResetRequired: true }
+            : {}),
           // A lower role is signed out at once, so an open admin page cannot be used any more.
           ...(RANK[input.role] < RANK[target.role] ? { sessionsRevokedAt: sql`now()` } : {}),
         })
@@ -504,6 +529,70 @@ export async function setAccountActive(
     fullName: target.fullName,
     role: target.role,
     active: input.active,
+  };
+}
+
+// ---------- Reset the 2-step login of another person ----------
+// For a lost phone. Forgot password does not bring back an authenticator, and an email code would make 2-step
+// login useless, so a SECOND PERSON does it: an owner or an admin (they may reset each other).
+// The person doing it confirms with their own code (or password) and types the other person's email.
+// What happens: all devices are removed, the person is signed out everywhere, the next sign in must set up a new
+// device AND a backup device, it is logged, and the person is told by email (every owner too, for an owner).
+
+export type ResetResult = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: Role;
+  factorsRemoved: number;
+};
+
+export async function reset2fa(
+  db: Db,
+  actor: PanelUser,
+  api: AuthMfaAdminApi,
+  input: { accountId: string; confirmEmail: string },
+  context: AccountContext,
+): Promise<ResetResult> {
+  assertCan(actor, "accounts.reset_2fa");
+  requireStepUp(context);
+  if (input.accountId === actor.id)
+    throw new AccountError(
+      "self",
+      "You cannot reset your own 2-step login. Use Security to manage your devices, or ask another owner or admin.",
+    );
+  const target = await getAccount(db, input.accountId);
+  if (!isPanelRole(target.role))
+    throw new AccountError("invalid", "Only staff, admin and owner accounts have a 2-step login.");
+  if (input.confirmEmail.trim().toLowerCase() !== target.email.toLowerCase())
+    throw new AccountError("invalid", "Type the full email of the person to confirm.");
+
+  // Read first: if Supabase cannot be reached, nothing has changed yet.
+  const factors = await api.listFactors(target.id);
+
+  // The database first: the person is signed out everywhere and must set up two new devices. Even if removing
+  // a device fails after this, the safe state (forced setup) is already in place.
+  await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
+    await tx
+      .update(profiles)
+      .set({ mfaResetRequired: true, sessionsRevokedAt: sql`now()` })
+      .where(eq(profiles.id, target.id));
+    await log(tx, actor, {
+      action: "account.2fa_reset",
+      entityId: target.id,
+      details: { email: target.email, role: target.role, factorsRemoved: factors.length },
+      ipHash: context.ipHash,
+    });
+  });
+  for (const factor of factors) await api.deleteFactor(target.id, factor.id);
+
+  return {
+    id: target.id,
+    email: target.email,
+    fullName: target.fullName,
+    role: target.role,
+    factorsRemoved: factors.length,
   };
 }
 

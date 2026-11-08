@@ -139,7 +139,6 @@ export async function loginAction(_previous: AuthState, formData: FormData): Pro
     afterLoginDestination({
       role: profile.role,
       isActive: profile.isActive,
-      mfaResetRequired: profile.mfaResetRequired,
       twoFactorRequired,
       hasVerifiedFactor,
       next: String(formData.get("next") ?? ""),
