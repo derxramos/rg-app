@@ -128,7 +128,7 @@ Night rules (tested in `tests/unit/hero-palette.test.ts`): every shape is at lea
 | A11 | Edit service + checklist | `/admin/settings/services/[id]` | service form, checklist items add/edit/reorder/delete, empty checklist state |
 | A12 | Site content | `/admin/settings/site` | contact, hours, social links, home texts, privacy notice |
 | A13 | File settings | `/admin/settings/files` | retention days, max files, max size, warning % |
-| A14 | Admin users (accounts table) | `/admin/settings/users` | table from 768 px (Name, Email, Role, Status, 2-step login, Joined, Actions), stacked cards on a phone; toolbar (search, role filter, status filter, rows per page 10, 25, 50); pagination "Page X of Y" with Previous and Next; empty state "No accounts found"; Invite button above the table |
+| A14 | Admin users (accounts table) | `/admin/settings/users` | table from 1180 px (Account, Role, Status, 2-step, Joined, three-dots actions), cards below it (see 3b); toolbar (search, role filter, status filter, rows per page 10, 25, 50; on a phone: search and a Filters button, 10 rows); pagination "Page X of Y" with Previous and Next; empty state "No accounts found"; Invite button above the table |
 | A14a | Actions menu | (menu on each row) | Change role, Reset 2-step login, Turn account off or on, Resend invite. Never a delete. A row you may not touch shows "–"; your own row has no menu |
 | A14b | Change role dialog | (dialog on A14) | ONE role dropdown, ONE confirm: "Enter the 6-digit code from YOUR authenticator app." (or the password field when the person has no authenticator yet). Says the person gets an email |
 | A14c | Reset 2-step login dialog | (dialog on A14) | Explains what happens (devices removed, signed out everywhere, new device and backup needed, email; "and so does every owner" for an owner), the confirm field, and a field to type the person's email; red "Reset 2-step login" button |
@@ -140,6 +140,22 @@ Night rules (tested in `tests/unit/hero-palette.test.ts`): every shape is at lea
 | A15 | Activity log | `/admin/activity` | list, filters, highlighted payment-method rows, empty |
 | A16 | Export | `/admin/export` | date range, two buttons, "exporting" state, backup reminder |
 | A17 | Fresh 2FA dialog | (shared dialog) | used before risky actions |
+
+### 3b. Admin page frame, tables and cards (2026-11-09, branch `fix/admin-uniform-layout`)
+
+One rule for every admin page. Nothing here changes features, permissions or data.
+
+- **One page frame.** `AdminShell` (`src/components/admin/admin-shell.tsx`) is the only place that sets the width. Side padding is 16 px on a phone, 24 px from 640 px and 32 px from 1280 px. The frame is at most 1760 px wide and centered. A page never sets its own width, so the left and right edges are the same on every page.
+- **Readable widths inside the frame.** A form (`ActionForm`) is at most 720 px wide. Intro text is at most `max-w-prose`. Two-column layouts (Site content, File settings, Payment method, Service edit, Security, Request details, Dashboard) start at 1280 px, where there is room. Below 1280 px they are one column.
+- **Settings cards.** 1 column on a phone, 2 columns from 640 px, 3 from 1280 px, 4 from 1536 px (a card is never narrower than about 280 px). Owner and Admin also get an Export card here.
+- **Table or cards: one breakpoint, 1180 px.** From 1180 px a list is a table, below it a list of cards (`TABLE_ONLY`, `CARDS_ONLY`, `TableBox`, `CardList` in `src/components/admin/data-views.tsx`). We found 1180 px by testing: with the 256 px sidebar and 32 px padding, the Admin users table needs about 860 px to show every word on one line.
+- **Table rules.** Cells never wrap (`whitespace-nowrap`). Cell padding is 16 px left and right. Header labels are left-aligned like the cells, numbers are right-aligned. An email longer than 40 characters is cut with "..." and the full value is in a tooltip (`Clip`). If a table is still wider than its box, it scrolls sideways inside the box, never the whole page.
+- **Admin users table.** Columns: Account (name, with a small "You" tag on your own row, and the email under it in smaller muted text), Role, Status, 2-step, Joined, and an actions column with a three-dots button (accessible name "Actions for NAME"). Your own row has no actions button. Status labels in the table: Invited, Active, Turned off, Unverified, with tooltips for Invited and Unverified.
+- **Cards.** Same data and same actions as the table. Admin users card: name in bold (and "You"), email in muted text that may wrap, a three-dots button at the top right (44 x 44 px), role and status badges (the long label, for example "Invited with temporary password", is visible text because a phone has no hover), then "2-step login" and "Joined" in two columns. Requests and Activity use the same pattern, and a Requests card is one big link.
+- **Filters on a phone.** A search box, a search button and a "Filters" button. The button opens a panel (Role and Status; Requests and Activity have their own fields) with an Apply button. "Rows per page" is not shown on a phone and a phone asks for 10 rows (`FilterPanel`, `AccountsToolbar`).
+- **Pagination on a phone.** Large Previous and Next buttons (44 px) and "Page 1 of 3".
+- **Bottom bar.** The bar is 60 px tall. The page has bottom padding of the bar height plus the device safe area, so the last card is never hidden. Export is not in the bar (4 items is the most that fits), so Owner and Admin open it from an "Export" card on the Settings page. Staff keep Requests, Services, Activity.
+- **Sidebar collapse** (optional) was not built: it needs saved state and tooltips for the icons, which is a bigger change than this layout fix.
 
 ---
 

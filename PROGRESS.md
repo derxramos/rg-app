@@ -3,9 +3,28 @@
 Update this file at the end of every work session.
 
 **Current status:** The roles, accounts table and 2-step login recovery work is built on `feat/roles-accounts-recovery` and merged into `main` (not pushed, nothing run on a live database): see "Roles, accounts table and 2-step login recovery" below. All 8 original phases are built and each is committed. The accounts and roles work (branch `feat/auth-roles`, merged into `main`, not pushed) is built too: see "Accounts and roles work" below and docs/AUTH_AND_ROLES.md. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
-**Last updated:** 2026-11-08
+**Last updated:** 2026-11-09
 
 **Next step:** Owner: answer the open questions, set up the real accounts, and run the live checklist. Then deploy a preview.
+
+---
+
+## Admin uniform layout (branch `fix/admin-uniform-layout`, 2026-11-09)
+
+Layout and table or card styling only. No feature, permission or data change.
+
+- [x] One page frame in `AdminShell`: side padding 16 px (phone), 24 px (from 640 px), 32 px (from 1280 px); max width 1760 px, centered. No page sets its own width.
+- [x] Forms are at most 720 px wide; two-column form layouts start at 1280 px (Site content, File settings, Payment method, Service edit, Security, Request details, Dashboard).
+- [x] Settings cards: 1, 2, 3, 4 columns (from 640, 1280, 1536 px). Export card added for Owner and Admin (phone bottom bar has no room for Export).
+- [x] Tables (Admin users, Requests, Activity, Services): table from 1180 px, cards below. No wrapped words, 16 px cell padding, left-aligned headers, long emails cut with "..." and a tooltip.
+- [x] Admin users: Account column, short status labels with tooltips, "You" tag, three-dots actions (none on your own row).
+- [x] Phone filters panel ("Filters" button), 10 rows on a phone, large Previous and Next buttons, bottom padding for the bottom bar and the safe area.
+- [ ] Sidebar collapse: not built (optional, bigger change).
+- [ ] Lighthouse before and after: NOT run. The dev server reloads itself in a loop (also on `main`), so Lighthouse cannot record a trace, and the test login only exists in development. Steps: deploy a preview, sign in as the owner, run Lighthouse (desktop, performance) on /admin/settings/users on `main` and on this branch, compare.
+- Checks: lint, type check, 808 unit tests pass. `next build` compiles; the full build could not finish here because the local test database (PGlite, one connection) resets connections while pages prerender. `main` fails the same way. Run the full build once on Supabase or a preview.
+- Screenshots: 748 page checks (3 roles x light and dark x 11 widths x 11 pages) were made. At every width all pages have the same left and right edge, no table has wrapped text, and the page never scrolls sideways (after one fix: Dashboard cards are one column below 480 px).
+- Test data: temporary test accounts with the zolb-test+...@example.com pattern were made ONLY in the local test database, including an owner, an admin and a staff account. They were removed again (0 left). The live Supabase database was never used.
+- Known, not fixed (outside this task): in `pnpm dev` the admin pages show a Next.js "uncached data ... outside Suspense" error and the browser reloads in a loop. It also happens on `main`.
 
 ---
 
