@@ -220,3 +220,57 @@ test("the admin pages still fit a phone", async ({ page }) => {
     expect(overflow, path).toBeLessThanOrEqual(0);
   }
 });
+
+// The "Loading..." indicator shows at once after a click (it does not wait for the server). The server is slowed
+// down on purpose, so there is time to see it.
+test("loading indicator: a menu link shows Loading at once", async ({ page }) => {
+  await page.goto("/admin");
+  await page.route("**/admin/requests**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await route.continue();
+  });
+  const nav = page.getByRole("navigation", { name: "Admin" }).locator("visible=true");
+  await nav.getByRole("link", { name: "Requests" }).click();
+  // A page the browser already fetched in advance opens at once, and then there is nothing to wait for.
+  const seen = await page
+    .getByRole("status")
+    .getByText("Loading...")
+    .first()
+    .waitFor({ timeout: 1500 })
+    .then(
+      () => true,
+      () => false,
+    );
+  if (!seen) await expect(page).toHaveURL(/\/admin\/requests/);
+  await expect(page).toHaveURL(/\/admin\/requests/);
+  // And it goes away when the page has arrived.
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator("div.fixed.top-0").getByText("Loading...")).toHaveCount(0, {
+    timeout: 8000,
+  });
+  await page.unroute("**/admin/requests**");
+});
+
+test("loading indicator: a page button and a filter form on the same page show Loading", async ({
+  page,
+}) => {
+  await page.goto("/admin/activity?action=imp.test");
+  await page.route("**/admin/activity**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    await route.continue();
+  });
+  await page.getByRole("link", { name: "Next" }).click();
+  // A page the browser already fetched in advance opens at once, and then there is nothing to wait for.
+  const seen = await page
+    .getByRole("status")
+    .getByText("Loading...")
+    .first()
+    .waitFor({ timeout: 1500 })
+    .then(
+      () => true,
+      () => false,
+    );
+  if (!seen) await expect(page).toHaveURL(/page=2/);
+  await expect(page).toHaveURL(/page=2/);
+  await page.unroute("**/admin/activity**");
+});

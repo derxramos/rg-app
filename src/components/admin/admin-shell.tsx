@@ -1,7 +1,9 @@
 import { LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
+import { NavigationProgress } from "@/components/admin/navigation-progress";
 import { Logo } from "@/components/shared/logo";
 import { ReloadOnRestore } from "@/components/shared/reload-on-restore";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -14,6 +16,10 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
   return (
     <div className="flex min-h-dvh flex-col bg-surface-subtle">
       <ReloadOnRestore />
+      {/* "Loading..." after every click on a link, card, page button or search form. */}
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b bg-background px-4 md:px-6">
         <Link
           href="/admin"

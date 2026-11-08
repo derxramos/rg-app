@@ -137,6 +137,12 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - The server enforces it too: a clean-up is refused ("Please download the CSV copy of these entries first") unless the same person downloaded the copy for the same age in the last 30 minutes (the download is logged). A copy for another age, by another person, or older than 30 minutes does not count.
 - Tests: 779 unit tests and the browser spec (phone and desktop) pass. No database change.
 
+### Loading indicator for all admin clicks (2026-11-08)
+- **One indicator for the whole admin area** (`src/components/admin/navigation-progress.tsx`, in the admin shell): a thin bar at the top and a "Loading..." label. It shows at once after a click on any link or card (menu, dashboard cards, settings cards, request rows, pagination, "Next" and "Previous", links inside tables), and after sending a search or filter form (requests, activity, accounts). It goes away when the new address arrives. A safety timeout (20 s for pages, 4 s for downloads and server routes such as the CSV export and Sign out) makes sure it never stays on.
+- It shows nothing for the same address, a new tab, another website, or a click with Ctrl or Shift. The rules are in `src/lib/nav-progress.ts` (unit tested).
+- Buttons that save or change something already had their own spinner (the form buttons, the row menus), and the menu pages still use `loading.tsx`. Nothing else needed one.
+- Tests: 784 unit tests; browser tests on phone and desktop. The two timing tests accept "the page opened at once" for pages the browser fetched in advance.
+
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.
 2. In the Supabase SQL editor run this READ-ONLY query and send me the rows. It changes nothing:
