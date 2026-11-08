@@ -104,6 +104,11 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - **Test data search:** after `pnpm e2e:clean`, a search for `zolb-test` in profiles, requests, email_log, activity_log, services and payment_methods of the local database found **0 rows**. Nothing was written to any real database.
 - **Test accounts that were made (local database only, all removed again):** one **owner** (`zolb-test+owner@example.com`, used by the browser tests as before), many **staff** accounts and **one admin** account (`zolb-test+acc-NN@example.com`, `zolb-test+sec-01@example.com`), and test clients. No account with these roles was made on Supabase.
 
+### Deploy runbook (2026-11-08)
+- New `docs/DEPLOY_RUNBOOK.md`: (A) a TEST Supabase project with a rehearsal from the old code and a real two-authenticator recovery test, (B) the live migration with backup, the M1 query and how to confirm, (C) how to roll back the Vercel deploy and undo the migration, (D) separate Preview variables for the TEST project, (E) how to check what is on GitHub and which Vercel deploy is production.
+- New `docs/rollback/0006_down.sql`: undoes migration 0006. It is in `docs/`, so `pnpm db:migrate` never runs it. It is tested on a local copy (`tests/unit/migration-0006-down.test.ts`): after the undo the database has the same columns, triggers, policies, constraints, types and functions as after migration 0005. What it cannot restore is written at the top of the file.
+- Nothing was run on any live database or pushed.
+
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.
 2. In the Supabase SQL editor run this READ-ONLY query and send me the rows. It changes nothing:

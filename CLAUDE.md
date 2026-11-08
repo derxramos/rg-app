@@ -96,6 +96,7 @@ pnpm lint && pnpm typecheck
 - `docs/FEATURES.md` — user stories with acceptance checks
 - `docs/SECURITY_AND_PRIVACY.md` — threats and fixes, Data Privacy Act basics
 - `docs/AUTH_AND_ROLES.md` — accounts, roles and the role-by-action table, guards, Supabase sign-in setup, migrations, 2-step login, manual test list
+- `docs/DEPLOY_RUNBOOK.md` — exact steps: test Supabase project and recovery test, live migration, rollback, separate Preview variables
 - `docs/RECOVERY.md` — a lost authenticator: backup device, reset by another person, last resort in Supabase; recovery for clients
 - `docs/GOOGLE_SIGN_IN_SETUP.md` — beginner guide: turn on "Continue with Google" (Google Cloud + Supabase)
 - `docs/OCR_PAYMENTS.md` — receipt OCR and parser design, tests, edge cases
