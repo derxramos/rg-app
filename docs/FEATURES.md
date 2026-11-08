@@ -194,6 +194,8 @@ As staff, admin or owner, I want a safe login so that only we can see client dat
 ### A7 — Settings: services and checklists
 - [ ] Staff, admin and owner: add a service, edit names and descriptions, add, edit and move checklist items. A service added by staff starts hidden and with no fee.
 - [ ] Admin and owner only: change the fee, turn on/off, reorder services, choose the payment QR codes, delete a checklist item.
+- [ ] The services list is a table (cards on a phone) with fixed column widths and 10 services per page. An Actions menu has Turn on/off, Move up, Move down, Delete.
+- [ ] Admin and owner can delete one service or many at once (tick boxes, "Delete selected"). It needs the fresh confirm. A service that requests used is kept and named in the answer (turn it off instead). Each delete is logged (`service.deleted`).
 - [ ] Staff see a staff menu with Services opening this page directly (no Settings page).
 - [ ] New services start with an empty checklist.
 - [ ] Public pages update after saving.
@@ -225,7 +227,8 @@ As staff, admin or owner, I want a safe login so that only we can see client dat
 ### A10 — Activity log
 - [ ] List of actions with who, what, when. Filters: action type, person, date. Staff may view it (read only). It includes refused tries (`access.denied`).
 - [ ] Payment method changes are highlighted.
-- [ ] Read-only. Nobody can edit or delete entries from the app.
+- [ ] 20 entries per page. Nobody can edit entries. Entries older than 1 year are removed every day by the cleanup job.
+- [ ] Owner and admin can clean up by hand: entries older than 90, 180 or 365 days, with the fresh confirm. The page shows how many will be removed. The database refuses anything younger than 30 days. The clean-up is logged (`activity.purged`). Needs migration 0007.
 
 ### A11 — CSV export
 - [ ] Export requests and payments as CSV, with date range.

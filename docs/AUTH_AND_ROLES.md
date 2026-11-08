@@ -41,6 +41,8 @@ How accounts, roles and sign-in work in this app. Plain English on purpose.
 | Services and checklists: view, add a service, change names and descriptions, add, edit and move checklist items | – | ✓ | ✓ | ✓ |
 | A service made by staff starts **hidden and with no fee** | – | ✓ | – | – |
 | Services: change the fee, hide or show, reorder, choose payment QR codes; delete a checklist item | – | – | ✓ | ✓ |
+| Delete a service (one or many; kept when a request used it) | – | – | ✓ | ✓ |
+| Activity log: manual clean-up of entries older than 90, 180 or 365 days (fresh confirm; never younger than 30 days) | – | – | ✓ | ✓ |
 | Payment methods, Site content, File settings, Export | – | – | ✓ | ✓ |
 | Activity log (view only) | – | ✓ | ✓ | ✓ |
 | Admin users: table, invite, change role, turn off or on, reset 2-step login, resend invite | – | – | ✓ | ✓ |

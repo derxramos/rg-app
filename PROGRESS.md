@@ -117,6 +117,15 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - **Live site check:** the public site runs the new build (no `/case-study` in the sitemap) and the admin sign in works. A signed-in admin is sent to "Step 2 of 2: a backup device", because migration 0006 marks every staff, admin and owner account as "needs two devices". Each person must add a second device at the next sign in.
 - The undo file is `docs/rollback/0006_down.sql` (run only if needed).
 
+### Admin improvements (2026-11-08, branch `feat/admin-improvements`)
+- **Admin users:** centered column titles, shorter intro text.
+- **Loading screen:** `src/app/admin/(protected)/loading.tsx` shows "Loading..." and page-shaped placeholders at once for every admin menu page.
+- **Services:** a table with fixed column widths (6/44/20/12/18 percent, or 50/22/12/16 for staff, who have no checkbox), cards on a phone, 10 per page, an Actions menu, single and bulk delete (admin and owner, fresh confirm; a service that requests used is kept). I chose a table because the alignment is exact and it pages well. The widths differ from the 65/25/10 you asked for because the table also needs a checkbox and an Actions column.
+- **Activity:** 20 per page. Automatic clean-up (older than 1 year, daily) already existed. New manual clean-up (90, 180 or 365 days) with the fresh confirm, logged, 30-day minimum in the database.
+- **Bug found by a test:** the "requests using this service" count was always 0 (a subquery lost its table name). Fixed before it could let a used service be deleted.
+- **Migration `0007_activity_purge_and_service_delete` is NOT applied to any live database.** Run `pnpm db:migrate` after the deploy. Until then only the manual clean-up button shows an error. The local dev database gets it by itself (`pnpm dev:db`).
+- Tests: 774 unit tests; browser tests (phone and desktop, local database) for the services table, delete, bulk delete, activity paging and the clean-up. Test data (`test-imp-NN` services and `imp.test` activity rows) is removed afterwards.
+
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.
 2. In the Supabase SQL editor run this READ-ONLY query and send me the rows. It changes nothing:
