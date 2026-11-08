@@ -297,7 +297,8 @@ export default async function AdminRequestDetailPage({
         </div>
       </div>
 
-      {admin.role === "owner" && request.clientFullName !== "Deleted client" ? (
+      {can(admin.role, "requests.erase_client_data") &&
+      request.clientFullName !== "Deleted client" ? (
         <Card>
           <CardHeader>
             <CardTitle>Delete client data (privacy request)</CardTitle>

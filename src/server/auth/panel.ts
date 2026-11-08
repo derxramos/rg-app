@@ -20,6 +20,7 @@ import {
   isTwoFactorRequired,
   makeFresh2faValue,
   panelFailureRedirect,
+  recordDenied,
   type PanelAuthCode,
   type PanelSession,
   type PanelUser,
@@ -82,23 +83,32 @@ export async function getPanelSession(): Promise<PanelSession | null> {
 
 // Called at the start of EVERY admin server action, route and page (CLAUDE.md rule 5).
 // `action` is the thing the person wants to do. The role table in src/lib/permissions.ts decides.
-export async function requirePanel(action?: Action): Promise<PanelUser> {
-  return checkPanel(getDb(), await getPanelSession(), {
-    action,
-    // With ADMIN_REQUIRE_2FA=false only the 2FA code step is skipped. All other checks still run.
-    twoFactorRequired: isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA),
-    lookupSessionStart,
-  });
+// `where` says what was tried (a page path, "server-action" or "route"). If the role is not allowed, the try is
+// written to the activity log here, in one place, for pages, Server Actions and routes alike.
+export async function requirePanel(action?: Action, where = "route"): Promise<PanelUser> {
+  const session = await getPanelSession();
+  try {
+    return await checkPanel(getDb(), session, {
+      action,
+      // With ADMIN_REQUIRE_2FA=false only the 2FA code step is skipped. All other checks still run.
+      twoFactorRequired: isTwoFactorRequired(process.env.ADMIN_REQUIRE_2FA),
+      lookupSessionStart,
+    });
+  } catch (error) {
+    if (error instanceof PanelAuthError && error.code === "wrong-role") {
+      await logDenied(session?.userId ?? null, action, where);
+      // So the Server Action wrapper does not write the same try a second time.
+      (error as { logged?: boolean }).logged = true;
+    }
+    throw error;
+  }
 }
 
 // Writes the refused try to the activity log, so the owner can see it (staff typing a hidden address).
 async function logDenied(actorId: string | null, action: Action | undefined, where: string) {
   try {
     const ipHash = hashIp(readClientIp(await headers()));
-    await getDb().execute(
-      sql`insert into activity_log (actor_type, actor_id, action, entity_type, entity_id, details, ip_hash)
-          values ('admin', ${actorId}, 'access.denied', 'page', ${where}, ${JSON.stringify({ action: action ?? null })}::jsonb, ${ipHash})`,
-    );
+    await recordDenied(getDb(), { actorId, action, where, ipHash });
   } catch (error) {
     console.error("Could not log a refused try:", error);
   }
@@ -110,16 +120,12 @@ export async function guardPanelPage(action?: Action, where = "/admin"): Promise
   let user: PanelUser | null = null;
   let failure: PanelAuthCode | null = null;
   try {
-    user = await requirePanel(action);
+    user = await requirePanel(action, where);
   } catch (error) {
     if (!(error instanceof PanelAuthError)) throw error;
     failure = error.code;
   }
   if (user) return user;
-  if (failure === "wrong-role") {
-    const session = await getPanelSession();
-    await logDenied(session?.userId ?? null, action, where);
-  }
   redirect(panelFailureRedirect(failure ?? "no-session"));
 }
 
@@ -289,15 +295,16 @@ export async function withPanel(
   run: (context: PanelContext) => Promise<ActionResult>,
 ): Promise<ActionResult> {
   try {
-    const admin = await requirePanel(options.action);
+    const admin = await requirePanel(options.action, "server-action");
     await applyStepUp(admin, options.formData);
     const ipHash = hashIp(readClientIp(await headers()));
     return await run({ admin, ipHash, fresh2fa: await hasFresh2fa(admin.id) });
   } catch (error) {
     if (error instanceof PanelAuthError) {
-      if (error.code === "wrong-role") {
+      // A role that is not allowed INSIDE a service (for example a staff fee change) is logged here too.
+      if (error.code === "wrong-role" && !(error as { logged?: boolean }).logged) {
         const session = await getPanelSession().catch(() => null);
-        await logDenied(session?.userId ?? null, options.action, "server-action");
+        await logDenied(session?.userId ?? null, options.action, "service");
       }
       return { ok: false, code: error.code, message: MESSAGES[error.code] };
     }

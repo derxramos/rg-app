@@ -12,6 +12,7 @@ import { Checkbox, CheckboxRow } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { can } from "@/lib/permissions";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { centavosToPesoInput } from "@/lib/money";
@@ -28,7 +29,13 @@ export const metadata: Metadata = { title: "Edit service" };
 export default async function EditServicePage({
   params,
 }: PageProps<"/admin/settings/services/[id]">) {
-  await guardPanelPage("services.view", "/admin/settings/services");
+  const me = await guardPanelPage("services.view", "/admin/settings/services");
+  // What this role may do. Hiding a field is not security: the actions and the database check again.
+  const canFee = can(me.role, "services.edit_fee");
+  const canVisibility = can(me.role, "services.set_visibility");
+  const canLinks = can(me.role, "services.payment_links");
+  const canReorder = can(me.role, "checklist.reorder");
+  const canDelete = can(me.role, "checklist.delete");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const found = await getServiceWithRequirements(getDb(), id);
@@ -49,30 +56,37 @@ export default async function EditServicePage({
         <CardContent>
           <ActionForm
             action={updateServiceAction}
-            hidden={{ id: service.id, hasPaymentChoices: "1" }}
+            hidden={{ id: service.id, ...(canLinks ? { hasPaymentChoices: "1" } : {}) }}
             submitLabel="Save service"
           >
             <div className="flex flex-col gap-2">
               <Label htmlFor="e-name">Name</Label>
               <Input id="e-name" name="name" defaultValue={service.name} maxLength={120} required />
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="e-fee">Service fee (Philippine pesos)</Label>
-              <Input
-                id="e-fee"
-                name="fee"
-                inputMode="decimal"
-                defaultValue={centavosToPesoInput(service.feeCentavos)}
-                placeholder="Example: 5000"
-                maxLength={14}
-                aria-describedby="e-fee-help"
-              />
-              <p id="e-fee-help" className="text-sm text-muted-foreground">
-                Clients see this fee on the service and on the payment screen. Leave it empty to
-                show &quot;Fee will be confirmed&quot;. This is your service fee, not government
-                fees.
+            {canFee ? (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="e-fee">Service fee (Philippine pesos)</Label>
+                <Input
+                  id="e-fee"
+                  name="fee"
+                  inputMode="decimal"
+                  defaultValue={centavosToPesoInput(service.feeCentavos)}
+                  placeholder="Example: 5000"
+                  maxLength={14}
+                  aria-describedby="e-fee-help"
+                />
+                <p id="e-fee-help" className="text-sm text-muted-foreground">
+                  Clients see this fee on the service and on the payment screen. Leave it empty to
+                  show &quot;Fee will be confirmed&quot;. This is your service fee, not government
+                  fees.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                You can change the words. The owner or the admin changes the fee, the payment QR
+                codes, and shows or hides the service.
               </p>
-            </div>
+            )}
             <div className="flex flex-col gap-2">
               <Label htmlFor="e-short">Short description</Label>
               <Input
@@ -92,43 +106,47 @@ export default async function EditServicePage({
                 className="min-h-40"
               />
             </div>
-            <fieldset className="flex flex-col gap-3">
-              <legend className="text-base font-bold">Payment QR codes for this service</legend>
-              <p className="text-sm text-muted-foreground">
-                Choose which QR codes clients can scan to pay for this service. If you choose none,
-                clients see all active QR codes. To use a new QR code (for example Maya or BDO), add
-                it first in{" "}
-                <Link
-                  href="/admin/settings/payments/new"
-                  className="font-bold text-primary underline underline-offset-4"
-                >
-                  Settings &gt; Payments
-                </Link>
-                , then come back and choose it here.
-              </p>
-              {methodChoices.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No payment methods yet.</p>
-              ) : (
-                methodChoices.map((m) => (
-                  <CheckboxRow key={m.id} htmlFor={`pm-${m.id}`}>
-                    <Checkbox
-                      id={`pm-${m.id}`}
-                      name="paymentMethodIds"
-                      value={m.id}
-                      defaultChecked={chosenIds.includes(m.id)}
-                    />
-                    <span>
-                      {m.name}
-                      {m.isActive ? "" : " (turned off)"}
-                    </span>
-                  </CheckboxRow>
-                ))
-              )}
-            </fieldset>
-            <CheckboxRow htmlFor="e-active">
-              <Checkbox id="e-active" name="isActive" defaultChecked={service.isActive} />
-              <span>Show this service on the website</span>
-            </CheckboxRow>
+            {canLinks ? (
+              <fieldset className="flex flex-col gap-3">
+                <legend className="text-base font-bold">Payment QR codes for this service</legend>
+                <p className="text-sm text-muted-foreground">
+                  Choose which QR codes clients can scan to pay for this service. If you choose
+                  none, clients see all active QR codes. To use a new QR code (for example Maya or
+                  BDO), add it first in{" "}
+                  <Link
+                    href="/admin/settings/payments/new"
+                    className="font-bold text-primary underline underline-offset-4"
+                  >
+                    Settings &gt; Payments
+                  </Link>
+                  , then come back and choose it here.
+                </p>
+                {methodChoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No payment methods yet.</p>
+                ) : (
+                  methodChoices.map((m) => (
+                    <CheckboxRow key={m.id} htmlFor={`pm-${m.id}`}>
+                      <Checkbox
+                        id={`pm-${m.id}`}
+                        name="paymentMethodIds"
+                        value={m.id}
+                        defaultChecked={chosenIds.includes(m.id)}
+                      />
+                      <span>
+                        {m.name}
+                        {m.isActive ? "" : " (turned off)"}
+                      </span>
+                    </CheckboxRow>
+                  ))
+                )}
+              </fieldset>
+            ) : null}
+            {canVisibility ? (
+              <CheckboxRow htmlFor="e-active">
+                <Checkbox id="e-active" name="isActive" defaultChecked={service.isActive} />
+                <span>Show this service on the website</span>
+              </CheckboxRow>
+            ) : null}
           </ActionForm>
           <Link
             href="/admin/settings/services"
@@ -185,7 +203,7 @@ export default async function EditServicePage({
                     </CheckboxRow>
                   </ActionForm>
                   <div className="flex flex-wrap gap-2">
-                    {index > 0 ? (
+                    {canReorder && index > 0 ? (
                       <ActionForm
                         action={requirementAction}
                         hidden={{ id: r.id, serviceId: service.id, intent: "up" }}
@@ -196,7 +214,7 @@ export default async function EditServicePage({
                         <span />
                       </ActionForm>
                     ) : null}
-                    {index < requirements.length - 1 ? (
+                    {canReorder && index < requirements.length - 1 ? (
                       <ActionForm
                         action={requirementAction}
                         hidden={{ id: r.id, serviceId: service.id, intent: "down" }}
@@ -207,15 +225,17 @@ export default async function EditServicePage({
                         <span />
                       </ActionForm>
                     ) : null}
-                    <ActionForm
-                      action={requirementAction}
-                      hidden={{ id: r.id, serviceId: service.id, intent: "delete" }}
-                      submitLabel="Delete"
-                      variant="destructive"
-                      size="sm"
-                    >
-                      <span />
-                    </ActionForm>
+                    {canDelete ? (
+                      <ActionForm
+                        action={requirementAction}
+                        hidden={{ id: r.id, serviceId: service.id, intent: "delete" }}
+                        submitLabel="Delete"
+                        variant="destructive"
+                        size="sm"
+                      >
+                        <span />
+                      </ActionForm>
+                    ) : null}
                   </div>
                 </Card>
               </li>

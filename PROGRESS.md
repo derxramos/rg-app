@@ -41,7 +41,7 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 
 - [x] Phase 1 — Plan and data mapping (the owner runs the read-only query M1 before the migration, see below)
 - [x] Phase 2 — Role model, permission function, database policies and triggers (migration `drizzle/0006_single_role.sql`, NOT applied anywhere live)
-- [ ] Phase 3 — Staff menu and page guards (menu, header label and guards are in; the browser checks for staff come in phase 7)
+- [x] Phase 3 — Staff menu and page guards (the browser checks for staff come in phase 7)
 - [ ] Phase 4 — Accounts table and role dialog (service, actions and emails are in; the table screen is still a plain list)
 - [ ] Phase 5 — Backup device and reset by another person
 - [ ] Phase 6 — RECOVERY.md and docs
@@ -57,6 +57,15 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - **Sessions:** "turned off" and "signed out everywhere" (`sessions_revoked_at`) are checked on every admin request.
 - **Local test accounts:** the browser tests still use ONE test account with the role **owner** (`zolb-test+owner@example.com`) in the LOCAL database only. No other test account was made in this phase.
 - **Tests:** 705+ unit tests pass (new: `roles-db`, `accounts`, `permissions`). Build passes against the local test database (it needs `experimental.staticGenerationMaxConcurrency: 1` for that database, which I set only for the run and did not commit).
+
+### Phase 3 report (2026-11-08)
+- **Menu:** built from `can()` (`src/components/admin/admin-nav-items.ts`, tested per role). Staff see Requests, Services (opens `/admin/settings/services` directly, no Settings page) and Activity. Owner and admin see the full menu. The phone bar uses the same list (3 or 4 items). The header shows Owner, Admin or Staff.
+- **Landing:** staff go to Requests after sign in, owner and admin to the dashboard. The public header "Admin" link follows the same rule.
+- **Not allowed:** a page the role may not open goes to `/admin/not-allowed?reason=role`. A refused Server Action or route answers "You are not allowed to do this." Every refused try is written to the activity log as `access.denied` (who, action, where) in ONE place (`requirePanel`). A refusal inside a service (for example a staff fee change) is logged too.
+- **Services pages for staff:** no fee field, no show/hide, no reorder, no payment QR choices, no Delete on checklist items. A new service made by staff starts hidden with no fee. The server refuses the same things if the form is replayed (tests), and so does a database trigger.
+- **Requests page:** the "mark payment verified" controls show only for admin and owner (`payments.verify`). Staff can still view client documents (every open is logged as `file.opened`).
+- **Found by the build:** a page that reads `?reason=` outside Suspense could not be prerendered. Fixed with a small Suspense block.
+- Tests: 713 unit tests pass. Lint, type check and build pass (build against the local test database with one static worker, set only for the run).
 
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.

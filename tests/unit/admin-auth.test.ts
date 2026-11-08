@@ -215,3 +215,25 @@ describe("isTwoFactorRequired", () => {
     expect(isTwoFactorRequired(" FALSE ")).toBe(false);
   });
 });
+
+describe("recordDenied", () => {
+  it("writes who tried what and where to the activity log (a staff member typing a hidden address)", async () => {
+    const { recordDenied } = await import("@/server/auth/panel-core");
+    const { activityLog } = await import("@/server/db/schema");
+    await recordDenied(t.db, {
+      actorId: STAFF,
+      action: "payment_methods.manage",
+      where: "/admin/settings/payments",
+      ipHash: "hash",
+    });
+    const rows = await t.db.select().from(activityLog);
+    const row = rows.find((r) => r.action === "access.denied")!;
+    expect(row).toMatchObject({
+      actorType: "admin",
+      actorId: STAFF,
+      entityType: "page",
+      entityId: "/admin/settings/payments",
+      details: { action: "payment_methods.manage" },
+    });
+  });
+});

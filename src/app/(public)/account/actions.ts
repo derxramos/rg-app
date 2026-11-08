@@ -3,6 +3,7 @@
 // Server Actions for the signed-in user's own account. Every one starts with withUser(), which checks the
 // login first (a page check does not protect a Server Action).
 
+import { isPanelRole } from "@/lib/permissions";
 import { eq } from "drizzle-orm";
 
 import type { AuthState } from "@/app/auth/actions";
@@ -113,7 +114,7 @@ export async function changePasswordAction(
       await logAuthEvent(db, {
         action: "auth.password_reset",
         userId: profile.id,
-        isAdmin: profile.role === "admin",
+        isAdmin: isPanelRole(profile.role),
         ipHash,
         details: { reason: "changed-while-signed-in" },
       });

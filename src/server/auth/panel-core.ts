@@ -18,7 +18,7 @@ import {
   type Role,
 } from "@/lib/permissions";
 import { safeNextPath } from "@/lib/safe-next";
-import { profiles } from "@/server/db/schema";
+import { activityLog, profiles } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 import { hmacHex, safeEqual } from "@/server/security/tokens";
 
@@ -113,6 +113,23 @@ export async function checkPanel(
     role: account.role,
     isActive: account.isActive,
   };
+}
+
+// Writes a refused try to the activity log: who, which action, where (a page path, "server-action" or "route").
+// Staff typing a hidden address, or replaying a form they may not use, leave a row the owner can see.
+export async function recordDenied(
+  db: AppDb,
+  input: { actorId: string | null; action?: Action; where: string; ipHash?: string | null },
+): Promise<void> {
+  await db.insert(activityLog).values({
+    actorType: "admin",
+    actorId: input.actorId,
+    action: "access.denied",
+    entityType: "page",
+    entityId: input.where,
+    details: { action: input.action ?? null },
+    ipHash: input.ipHash ?? null,
+  });
 }
 
 // Used by services as a second check (CLAUDE.md rule 5: every layer checks).

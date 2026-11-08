@@ -1,3 +1,4 @@
+import { isPanelRole } from "@/lib/permissions";
 import { ArrowRight, Download, FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -158,8 +159,10 @@ async function AccountBody() {
               for our business accounts. You cannot delete your account while you have an open
               request.
             </WarningBox>
-            {profile.role === "admin" ? (
-              <p className="text-base">An admin account cannot be deleted here.</p>
+            {isPanelRole(profile.role) ? (
+              <p className="text-base">
+                An account with access to the admin area cannot be deleted here.
+              </p>
             ) : (
               <DeleteAccountForm />
             )}

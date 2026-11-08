@@ -1,3 +1,4 @@
+import { isPanelRole, landingPathForRole } from "@/lib/permissions";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
@@ -57,8 +58,10 @@ export async function HeaderAuth({ layout }: { layout: "bar" | "menu" }) {
     );
   }
 
-  const linkHref = viewer.kind === "admin" ? "/admin" : "/account";
-  const linkLabel = viewer.kind === "admin" ? "Admin" : "My requests";
+  // Staff, admin and owner get an "Admin" link to their own first page. Clients get "My requests".
+  const isPanel = isPanelRole(viewer.kind);
+  const linkHref = landingPathForRole(viewer.kind);
+  const linkLabel = isPanel ? "Admin" : "My requests";
 
   if (!menu) {
     const { name, initial } = displayName(viewer.profile.fullName);

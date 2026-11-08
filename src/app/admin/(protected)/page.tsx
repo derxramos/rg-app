@@ -24,9 +24,9 @@ const COUNTED = [
 ] as const;
 const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
 
-export default async function AdminDashboardPage({ searchParams }: PageProps<"/admin">) {
+export default async function AdminDashboardPage() {
   const admin = await guardPanelPage("dashboard.view", "/admin");
-  const [{ denied }, d] = await Promise.all([searchParams, getDashboard(getDb())]);
+  const d = await getDashboard(getDb());
 
   return (
     <>
@@ -34,11 +34,6 @@ export default async function AdminDashboardPage({ searchParams }: PageProps<"/a
         title={`Hello, ${admin.fullName.split(" ")[0]}`}
         intro="What needs your attention today."
       />
-      {denied ? (
-        <WarningBox variant="warning" title="Only the owner can do that">
-          Your account is a staff account.
-        </WarningBox>
-      ) : null}
 
       <section
         aria-label="Requests by status"
