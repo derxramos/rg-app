@@ -109,6 +109,14 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - New `docs/rollback/0006_down.sql`: undoes migration 0006. It is in `docs/`, so `pnpm db:migrate` never runs it. It is tested on a local copy (`tests/unit/migration-0006-down.test.ts`): after the undo the database has the same columns, triggers, policies, constraints, types and functions as after migration 0005. What it cannot restore is written at the top of the file.
 - Nothing was run on any live database or pushed.
 
+### Live migration done (2026-11-08)
+- **Applied to the LIVE Supabase project** (migration 7 in `drizzle.__drizzle_migrations`; 0000 to 0005 were already there). Before that: a full data backup (JSON, outside the repo, in `C:\Users\Derx\rg-backups\`, 15 tables) and a read-only look at the accounts (M1).
+- **Result:** the old `admin_profiles` table and the old role types are gone; `account_role` and the `private` schema exist; every policy is for the authenticated role only; counts unchanged (4 profiles, 4 logins, 1 request, 25 activity rows); 2 active owners.
+- **Accounts now:** the two Rosemarie Gallego accounts (`rgsbookkeeping73`, `rgservices.ph`) = owner; Derx Ramos = admin (set by hand, as planned); the one other account = user.
+- **Not done (cannot be done without a person or a new project):** the TEST Supabase project and the real two-authenticator recovery test (needs two real authenticator apps), and separate Preview variables in Vercel (needs the TEST project). Vercel was not signed in in the browser, so nothing was changed there. `docs/DEPLOY_RUNBOOK.md` parts A and D are still to do.
+- **Live site check:** the public site runs the new build (no `/case-study` in the sitemap) and the admin sign in works. A signed-in admin is sent to "Step 2 of 2: a backup device", because migration 0006 marks every staff, admin and owner account as "needs two devices". Each person must add a second device at the next sign in.
+- The undo file is `docs/rollback/0006_down.sql` (run only if needed).
+
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.
 2. In the Supabase SQL editor run this READ-ONLY query and send me the rows. It changes nothing:
