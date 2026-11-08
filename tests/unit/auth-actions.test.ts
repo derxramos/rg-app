@@ -70,12 +70,17 @@ describe("public sign-in actions", () => {
 
   it("the sign out buttons are plain form posts, never links", () => {
     for (const rel of [
+      "src/components/shared/sign-out-form.tsx",
       "src/components/shared/header-auth.tsx",
       "src/components/admin/admin-shell.tsx",
     ]) {
       const text = readFileSync(path.resolve(__dirname, "../..", rel), "utf8");
-      expect(text, rel).toContain('method="post"');
-      expect(text, rel).toContain('action="/auth/sign-out"');
+      // The two menus use the shared SignOutForm, which holds the plain form post and the loading screen.
+      if (rel.endsWith("sign-out-form.tsx")) {
+        expect(text, rel).toContain('method="post"');
+        expect(text, rel).toContain('action="/auth/sign-out"');
+        expect(text, rel).toContain("Signing out...");
+      }
       expect(text, rel).not.toMatch(/href=["']\/auth\/sign-out/);
     }
   });

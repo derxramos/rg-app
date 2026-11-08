@@ -1,11 +1,11 @@
 import { isPanelRole, landingPathForRole } from "@/lib/permissions";
-import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 import { connection } from "next/server";
 
+import { SignOutForm } from "@/components/shared/sign-out-form";
 import { AccountMenu } from "@/components/shared/account-menu";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { displayName } from "@/lib/display-name";
 import { cn } from "@/lib/utils";
 import { getViewer, type Viewer } from "@/server/auth/session";
@@ -58,10 +58,10 @@ export async function HeaderAuth({ layout }: { layout: "bar" | "menu" }) {
     );
   }
 
-  // Staff, admin and owner get an "Admin" link to their own first page. Clients get "My requests".
+  // Staff, admin and owner get an "Admin" link to their own first page. Clients get "My Requests".
   const isPanel = isPanelRole(viewer.kind);
   const linkHref = landingPathForRole(viewer.kind);
-  const linkLabel = isPanel ? "Admin" : "My requests";
+  const linkLabel = isPanel ? "Admin" : "My Requests";
 
   if (!menu) {
     const { name, initial } = displayName(viewer.profile.fullName);
@@ -78,22 +78,13 @@ export async function HeaderAuth({ layout }: { layout: "bar" | "menu" }) {
       <Link
         href={linkHref}
         className={cn(
-          "flex min-h-11 w-full items-center rounded-md px-3 text-base font-semibold whitespace-nowrap hover:bg-accent",
+          "flex min-h-11 w-full items-center rounded-md border border-primary/30 bg-primary-soft px-3 text-base font-bold whitespace-nowrap text-primary-ink hover:bg-primary hover:text-primary-foreground",
         )}
       >
         {linkLabel}
       </Link>
       {/* A plain form POST, never a link, so another website cannot sign someone out. The answer is a full page load. */}
-      <form method="post" action="/auth/sign-out" className="w-full">
-        <Button
-          type="submit"
-          variant="ghost"
-          className="min-h-11 w-full justify-start px-3 text-base whitespace-nowrap"
-        >
-          <LogOut aria-hidden="true" />
-          Sign out
-        </Button>
-      </form>
+      <SignOutForm variant="phone" />
     </div>
   );
 }

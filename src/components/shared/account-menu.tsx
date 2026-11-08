@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { SignOutForm } from "@/components/shared/sign-out-form";
 import { cn, focusRing } from "@/lib/utils";
 
 type Props = {
@@ -16,8 +17,9 @@ type Props = {
   linkLabel: string;
 };
 
-const itemClass = cn(
-  "flex min-h-11 w-full items-center gap-2 rounded-md px-3 text-left text-sm font-semibold whitespace-nowrap text-foreground hover:bg-accent",
+// The link to the person's area is colored, so it is easy to notice (not only on hover).
+const linkItemClass = cn(
+  "flex min-h-11 w-full items-center gap-2 rounded-md border border-primary/30 bg-primary-soft px-3 text-left text-sm font-bold whitespace-nowrap text-primary-ink hover:bg-primary hover:text-primary-foreground",
   focusRing,
 );
 
@@ -141,17 +143,12 @@ export function AccountMenu({ name, initial, linkHref, linkLabel }: Props) {
           <Link
             role="menuitem"
             href={linkHref}
-            className={itemClass}
+            className={linkItemClass}
             onClick={() => setOpen(false)}
           >
             {linkLabel}
           </Link>
-          <form method="post" action="/auth/sign-out" role="none">
-            <button type="submit" role="menuitem" className={itemClass}>
-              <LogOut aria-hidden="true" className="size-4 shrink-0" />
-              Sign out
-            </button>
-          </form>
+          <SignOutForm variant="menu" />
         </div>
       ) : null}
     </div>

@@ -736,3 +736,8 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - **Migration `0008_offline_payments.sql` (hand-written) is NOT applied to the live database.** After you deploy, run `pnpm db:migrate` (see docs/DEPLOY_RUNBOOK.md). Until then the "Record a payment" form shows an error; everything else works. The local test database got it through `pnpm dev:db`.
 - Tests: 11 new unit tests (`tests/unit/offline-payments.test.ts`), the permission table tests, and 2 new browser tests (go back and edit details; record and void a cash payment).
 - Test accounts: only the local test owner `zolb-test+owner@example.com` (role **owner**, local database only, removed by the tests) and `zolb-test+usera@example.com`; a search of the local database found none left.
+
+### 2026-11-08 — Sign out loading screen and a colored "My Requests" link (branch `feat/signout-loading-my-requests`)
+- Sign out (clients, staff, admin, owner; wide menu, phone menu and admin header) now shows a full screen "Signing out..." message the moment the button is tapped, and blocks a second tap. The message is added straight to the page, because the menu can close while the server works. The sign out is still a plain form POST.
+- The account menu link is now "My Requests" (capital R, also the page title, heading and back link) and is colored (soft green fill, green border, bold dark green text; solid green with white text on hover), also in the phone menu. Staff, admin and owner get the same style on their "Admin" link.
+- Tests: new browser test for the message; unit test for the sign out form updated. No database change. Test accounts: only local test users, none left (searched).

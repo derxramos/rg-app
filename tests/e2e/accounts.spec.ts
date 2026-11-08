@@ -65,7 +65,7 @@ test.describe("header", () => {
     await expect(visible(page, "link", "Sign in")).toBeVisible();
     await expect(visible(page, "link", "Start a request").first()).toBeVisible();
     await expect(visible(page, "button", "Sign out")).toHaveCount(0);
-    await expect(visible(page, "link", "My requests")).toHaveCount(0);
+    await expect(visible(page, "link", "My Requests")).toHaveCount(0);
     await expect(visible(page, "link", "Admin")).toHaveCount(0);
   });
 
@@ -73,10 +73,30 @@ test.describe("header", () => {
     await asUser(page);
     await openMenuIfPhone(page);
     await openAccountMenuIfWide(page);
-    await expect(entry(page, "My requests")).toBeVisible();
+    await expect(entry(page, "My Requests")).toBeVisible();
     await expect(entry(page, "Sign out")).toBeVisible();
     await expect(entry(page, "Sign in")).toHaveCount(0);
     await expect(entry(page, "Admin")).toHaveCount(0);
+  });
+
+  test("Sign out shows a loading screen while the server works", async ({ page }) => {
+    // The page is replaced when the sign out answer arrives, so a script notes (in sessionStorage) that the
+    // message was on screen right after the form was sent.
+    await page.addInitScript(() => {
+      window.addEventListener("submit", () => {
+        setTimeout(() => {
+          const box = document.getElementById("signing-out-overlay");
+          if (box?.textContent?.includes("Signing out..."))
+            sessionStorage.setItem("sawSignOut", "1");
+        }, 0);
+      });
+    });
+    await asUser(page);
+    await openMenuIfPhone(page);
+    await openAccountMenuIfWide(page);
+    await entry(page, "Sign out").click();
+    await expect(page.getByText("You have been signed out.")).toBeVisible();
+    expect(await page.evaluate(() => sessionStorage.getItem("sawSignOut"))).toBe("1");
   });
 
   test("an admin sees Admin and Sign out", async ({ page }) => {
@@ -85,7 +105,7 @@ test.describe("header", () => {
     await openAccountMenuIfWide(page);
     await expect(entry(page, "Admin")).toBeVisible();
     await expect(entry(page, "Sign out")).toBeVisible();
-    await expect(entry(page, "My requests")).toHaveCount(0);
+    await expect(entry(page, "My Requests")).toHaveCount(0);
   });
 
   test("the first page already has the right state (no wrong button before scripts run)", async ({
@@ -105,7 +125,7 @@ test.describe("header", () => {
     await asUser(page);
     await openMenuIfPhone(page);
     await openAccountMenuIfWide(page);
-    for (const name of ["My requests", "Sign out"]) {
+    for (const name of ["My Requests", "Sign out"]) {
       const box = await entry(page, name).boundingBox();
       expect(box?.height ?? 0, name).toBeGreaterThanOrEqual(43.5);
     }
@@ -312,7 +332,7 @@ test.describe("the account area", () => {
   test("My requests is empty for a new user, then lists the request", async ({ page }) => {
     await signInAsTestUser(page, E2E_USER_EMAIL);
     await page.goto("/account");
-    await expect(page.getByRole("heading", { level: 1, name: "My requests" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "My Requests" })).toBeVisible();
     await expect(page.getByText("You have no requests yet")).toBeVisible();
 
     requestId = await startRequestAs(page, E2E_USER_EMAIL, "Test Client A");

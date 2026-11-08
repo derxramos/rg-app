@@ -1,13 +1,14 @@
-import { LogOut, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
 import { NavigationProgress } from "@/components/admin/navigation-progress";
 import { Logo } from "@/components/shared/logo";
+import { SignOutForm } from "@/components/shared/sign-out-form";
 import { ReloadOnRestore } from "@/components/shared/reload-on-restore";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/permissions";
 import type { PanelUser } from "@/server/auth/panel-core";
 
@@ -46,12 +47,7 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
           </Link>
           <ThemeToggle />
           {/* Same plain form POST as the public header: ends the session on the server, then loads the home page. */}
-          <form method="post" action="/auth/sign-out">
-            <Button type="submit" variant="outline" size="sm" className="md:min-h-11">
-              <LogOut aria-hidden="true" />
-              Sign out
-            </Button>
-          </form>
+          <SignOutForm variant="button" />
         </div>
       </header>
       <div className="flex flex-1">

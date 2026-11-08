@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils";
 import { guardUserPage, withUserRls } from "@/server/auth/session";
 import { listMyRequests } from "@/server/services/account";
 
-export const metadata: Metadata = { title: "My requests", robots: { index: false } };
+export const metadata: Metadata = { title: "My Requests", robots: { index: false } };
 
 export default function AccountPage() {
   return (
     <>
       <PageHeading
-        title="My requests"
+        title="My Requests"
         intro="See where each request is. This page updates by itself every minute."
       />
       <PageContainer className="flex max-w-[800px] flex-col gap-10 py-10 md:py-14">

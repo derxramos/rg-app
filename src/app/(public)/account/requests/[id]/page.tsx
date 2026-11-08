@@ -60,7 +60,7 @@ async function RequestDetail({
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={request.status} />
           <Link href="/account" className="text-base font-bold underline">
-            Back to My requests
+            Back to My Requests
           </Link>
         </div>
       </PageHeading>

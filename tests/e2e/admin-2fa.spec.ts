@@ -65,7 +65,7 @@ test("a visitor at the 2FA pages is sent to sign in", async ({ page }) => {
 test("a normal user is never asked for a code, and never sees the banner", async ({ page }) => {
   await signInAsTestUser(page);
   await page.goto("/account");
-  await expect(page.getByRole("heading", { level: 1, name: "My requests" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "My Requests" })).toBeVisible();
   await expect(page.getByText(BANNER)).toHaveCount(0);
   await expect(page.getByLabel(/6-digit code/)).toHaveCount(0);
 });
