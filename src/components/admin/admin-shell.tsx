@@ -20,7 +20,9 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
           aria-label="RG'S Bookkeeping & Accounting, admin home"
           className="rounded-md"
         >
-          <Logo />
+          {/* On a phone the small line under "RG'S" is left out, so the header fits the screen. */}
+          <Logo compact className="sm:hidden" />
+          <Logo className="hidden sm:inline-flex" />
         </Link>
         <div className="flex items-center gap-3">
           <span className="hidden min-w-0 text-right text-sm sm:block">

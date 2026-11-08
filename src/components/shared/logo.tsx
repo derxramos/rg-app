@@ -7,11 +7,18 @@ type LogoProps = {
   inverse?: boolean;
   // Hide the words when space is tight. The tile stays.
   showWordmark?: boolean;
+  // Keep "RG'S" but drop the small line under it (the admin header on a phone).
+  compact?: boolean;
   className?: string;
 };
 
 // The tile is an SVG file. The words are live text, so they stay sharp and can wrap.
-export function Logo({ inverse = false, showWordmark = true, className }: LogoProps) {
+export function Logo({
+  inverse = false,
+  showWordmark = true,
+  compact = false,
+  className,
+}: LogoProps) {
   return (
     <span className={cn("inline-flex shrink-0 items-center gap-3 whitespace-nowrap", className)}>
       <Image
@@ -35,6 +42,7 @@ export function Logo({ inverse = false, showWordmark = true, className }: LogoPr
           <span
             className={cn(
               "text-xs font-bold tracking-wide uppercase max-[349px]:hidden",
+              compact && "hidden",
               inverse ? "text-primary-foreground" : "text-muted-foreground",
             )}
           >

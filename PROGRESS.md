@@ -42,7 +42,7 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - [x] Phase 1 — Plan and data mapping (the owner runs the read-only query M1 before the migration, see below)
 - [x] Phase 2 — Role model, permission function, database policies and triggers (migration `drizzle/0006_single_role.sql`, NOT applied anywhere live)
 - [x] Phase 3 — Staff menu and page guards (the browser checks for staff come in phase 7)
-- [ ] Phase 4 — Accounts table and role dialog (service, actions and emails are in; the table screen is still a plain list)
+- [x] Phase 4 — Accounts table and role dialog (the Reset 2-step login menu item is a disabled placeholder until phase 5)
 - [ ] Phase 5 — Backup device and reset by another person
 - [ ] Phase 6 — RECOVERY.md and docs
 - [ ] Phase 7 — Final tests, lint, build
@@ -66,6 +66,16 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - **Requests page:** the "mark payment verified" controls show only for admin and owner (`payments.verify`). Staff can still view client documents (every open is logged as `file.opened`).
 - **Found by the build:** a page that reads `?reason=` outside Suspense could not be prerendered. Fixed with a small Suspense block.
 - Tests: 713 unit tests pass. Lint, type check and build pass (build against the local test database with one static worker, set only for the run).
+
+### Phase 4 report (2026-11-08)
+- **Settings > Admin users is now a table** (cards on a phone). Columns: Name, Email, Role, Status (Active, Turned off, Invited with temporary password, Email not verified), 2-step login (On or Off for staff, admin and owner), Joined, Actions. Search, role and status filters, rows per page (10, 25, 50) and the page number are all in the web address, and the SERVER does the work (`listAccounts`).
+- **Actions menu** (new `dropdown-menu.tsx`): Change role, Reset 2-step login (placeholder), Turn account off or on, Resend invite. There is NO delete. A row you may not touch shows "–". Your own row never has actions. An admin sees no actions on an owner row (only an owner can change or turn off an owner).
+- **Change role is ONE dialog:** choose the role, enter the code once: "Enter the 6-digit code from YOUR authenticator app." It is the code of the person making the change. With no authenticator yet (flag off) it asks for that person's own password instead. The old repeated dropdown and code box on every row are gone.
+- **Invite** button (owner and admin): staff or admin, and owner only when an owner invites. Two ways: invitation email, or a temporary password (never saved or logged; the person must change it at the first sign in).
+- **Turn off** also bans the login in Supabase, signs the person out everywhere, and works for clients too. Every role change, turn off and turn on writes to the activity log (who, whom, old and new value, time) and the affected person gets an email.
+- **Found by the browser test:** every admin page was 10 px wider than a phone screen (the header logo line). The admin header now drops the small line under "RG'S" on a phone.
+- **Browser tests (local database only):** 9 tests on phone and desktop pass (`tests/e2e/accounts-table.spec.ts`). They made 13 local test accounts with the markers `zolb-test+acc-NN@example.com`, **including accounts with the role staff and ONE with the role admin** (local database only), and removed them again with their activity rows.
+- Tests: 719 unit tests pass. Lint, type check and build pass.
 
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.

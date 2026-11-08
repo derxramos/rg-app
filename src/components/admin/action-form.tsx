@@ -30,6 +30,8 @@ type Props = {
   // Adds a "Cancel" link next to the button. It loads this address again (a full page load), which also
   // puts every field back to its saved value.
   cancelHref?: string;
+  // Called once after a good save (for example, to close the dialog the form is in).
+  onSuccess?: () => void;
 };
 
 // A form for admin Server Actions. It uses onSubmit (not the form "action" attribute), so React does
@@ -46,6 +48,7 @@ export function ActionForm({
   hidden,
   inline,
   cancelHref,
+  onSuccess,
 }: Props) {
   const [state, run, pending] = useActionState(action, null);
   const [, startTransition] = useTransition();
@@ -56,8 +59,9 @@ export function ActionForm({
     if (state?.ok) {
       notify.success(state.message ?? "Saved.");
       if (resetOnSuccess) form.current?.reset();
+      onSuccess?.();
     }
-  }, [state, resetOnSuccess]);
+  }, [state, resetOnSuccess, onSuccess]);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

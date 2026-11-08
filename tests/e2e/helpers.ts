@@ -131,6 +131,30 @@ export async function removeTestAdmin() {
   }
 }
 
+// The confirm step (code or password) allows 5 tries per 15 minutes. Several test runs in a row would hit that
+// limit, so the counters of the test owner are cleared before a spec that types a code. LOCAL test database only.
+export async function clearStepUpLimits() {
+  const sql = testSql();
+  try {
+    await sql`delete from rate_limits where key = ${"stepup:" + E2E_ADMIN_ID}`;
+  } finally {
+    await sql.end();
+  }
+}
+
+// Removes the activity log rows that tests made for the test admin or for test accounts. The log is append-only
+// (a trigger blocks delete), so the trigger is switched off for this one clean-up. LOCAL test database only.
+export async function removeTestActivity(entityIdLike = "zolb-test%") {
+  const sql = testSql();
+  try {
+    await sql`alter table activity_log disable trigger activity_log_no_update_delete`;
+    await sql`delete from activity_log where actor_id = ${E2E_ADMIN_ID} or entity_id like ${entityIdLike}`;
+    await sql`alter table activity_log enable trigger activity_log_no_update_delete`;
+  } finally {
+    await sql.end();
+  }
+}
+
 // Profiles made by the development test login (zolb-test+...@example.com). Removes them again.
 // Requests that point to them keep their rows (user_id becomes null).
 export async function removeTestProfiles() {
