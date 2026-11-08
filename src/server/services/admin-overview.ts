@@ -182,6 +182,27 @@ export async function purgeActivityLog(
 
   return db.transaction(async (tx) => {
     await setActor(tx, actor.id);
+    // A copy must be downloaded first: this person must have downloaded the CSV for the same age in the last
+    // 30 minutes (the download is logged). Not needed when there is nothing old to remove.
+    if ((await countActivityOlderThan(tx as unknown as AppDb, input.olderThanDays)) > 0) {
+      const [{ n }] = await tx
+        .select({ n: count() })
+        .from(activityLog)
+        .where(
+          and(
+            eq(activityLog.actorId, actor.id),
+            eq(activityLog.action, "export.csv"),
+            eq(activityLog.entityId, "activity"),
+            gte(activityLog.createdAt, new Date(Date.now() - 30 * 60 * 1000)),
+            sql`${activityLog.details} ->> 'olderThanDays' = ${String(input.olderThanDays)}`,
+          ),
+        );
+      if (n === 0)
+        throw Object.assign(
+          new Error("Please download the CSV copy of these entries first, then try again."),
+          { code: "confirm-needed" },
+        );
+    }
     const result = await tx.execute(
       sql`select public.purge_activity_log_older_than(${input.olderThanDays}) as removed`,
     );

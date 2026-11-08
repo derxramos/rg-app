@@ -30,6 +30,8 @@ type Props = {
   // Adds a "Cancel" link next to the button. It loads this address again (a full page load), which also
   // puts every field back to its saved value.
   cancelHref?: string;
+  // Keeps the submit button off (for example until a CSV copy was downloaded).
+  submitDisabled?: boolean;
   // Called once after a good save (for example, to close the dialog the form is in).
   onSuccess?: () => void;
 };
@@ -49,6 +51,7 @@ export function ActionForm({
   inline,
   cancelHref,
   onSuccess,
+  submitDisabled,
 }: Props) {
   const [state, run, pending] = useActionState(action, null);
   const [, startTransition] = useTransition();
@@ -140,7 +143,13 @@ export function ActionForm({
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" variant={variant} size={size} loading={pending}>
+        <Button
+          type="submit"
+          variant={variant}
+          size={size}
+          loading={pending}
+          disabled={submitDisabled}
+        >
           {submitLabel}
         </Button>
         {cancelHref ? (

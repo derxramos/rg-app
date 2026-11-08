@@ -11,6 +11,7 @@ import {
   ACTIVITY_PAGE_SIZE,
   PURGE_CHOICES_DAYS,
   countActivityOlderThan,
+  exportActivityCsv,
   listActivity,
   purgeActivityLog,
 } from "@/server/services/admin-overview";
@@ -228,6 +229,10 @@ describe("manual clean-up of the activity log", () => {
     expect(PURGE_CHOICES_DAYS).toEqual([90, 180, 365]);
     expect(await countActivityOlderThan(t.db, 180)).toBeGreaterThanOrEqual(2);
 
+    // The CSV copy comes first (the clean-up refuses without it).
+    expect(await rejects(purgeActivityLog(t.db, admin, { olderThanDays: 180 }, fresh))).toBe("confirm-needed");
+    expect(await countAction("purge.test.200")).toBe(1);
+    await exportActivityCsv(t.db, admin, { olderThanDays: 180 });
     const result = await purgeActivityLog(t.db, admin, { olderThanDays: 180 }, fresh);
     expect(result.removed).toBeGreaterThanOrEqual(2);
     expect(await countAction("purge.test.400")).toBe(0);
@@ -274,6 +279,45 @@ describe("manual clean-up of the activity log", () => {
       ),
     ).rejects.toThrow(/append-only/);
     await t.pg.exec(`select set_config('app.activity_log_purge', 'off', false)`);
+  });
+});
+
+describe("the clean-up waits for the CSV copy", () => {
+  async function oldRow(action: string) {
+    await t.pg.exec(`alter table activity_log disable trigger activity_log_no_update_delete`);
+    await t.pg.query(
+      `insert into activity_log (actor_type, action, entity_type, created_at)
+       values ('system', $1, 'test', now() - interval '400 days')`,
+      [action],
+    );
+    await t.pg.exec(`alter table activity_log enable trigger activity_log_no_update_delete`);
+  }
+
+  it("refuses when the copy was for a different age, was made by someone else, or is too old", async () => {
+    await oldRow("wait.test.1");
+    // A copy for 90 days does not count for 365.
+    await exportActivityCsv(t.db, owner, { olderThanDays: 90 });
+    expect(await rejects(purgeActivityLog(t.db, owner, { olderThanDays: 365 }, fresh))).toBe("confirm-needed");
+    // A copy made by another person does not count.
+    await exportActivityCsv(t.db, admin, { olderThanDays: 365 });
+    expect(await rejects(purgeActivityLog(t.db, owner, { olderThanDays: 365 }, fresh))).toBe("confirm-needed");
+    // A copy older than 30 minutes does not count.
+    await t.pg.exec(`alter table activity_log disable trigger activity_log_no_update_delete`);
+    await t.pg.query(
+      `insert into activity_log (actor_type, actor_id, action, entity_type, entity_id, details, created_at)
+       values ('admin', $1, 'export.csv', 'export', 'activity', '{"olderThanDays":365}'::jsonb, now() - interval '31 minutes')`,
+      [owner.id],
+    );
+    await t.pg.exec(`alter table activity_log enable trigger activity_log_no_update_delete`);
+    expect(await rejects(purgeActivityLog(t.db, owner, { olderThanDays: 365 }, fresh))).toBe("confirm-needed");
+    const left = await t.pg.query<{ n: number }>(`select count(*)::int as n from activity_log where action = 'wait.test.1'`);
+    expect(left.rows[0].n).toBe(1);
+  });
+
+  it("works right after the person downloaded the copy for the same age", async () => {
+    await exportActivityCsv(t.db, owner, { olderThanDays: 365 });
+    const result = await purgeActivityLog(t.db, owner, { olderThanDays: 365 }, fresh);
+    expect(result.removed).toBeGreaterThanOrEqual(1);
   });
 });
 

@@ -132,6 +132,11 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - Bug fixed: `scripts/dev-db.ts` used `to_regproc` with an argument list (always false), so the local test database tried to re-apply 0007 on every start. It now uses `to_regprocedure`.
 - Tests: 777 unit tests and the browser spec (phone and desktop) pass.
 
+### The clean-up now waits for the CSV copy (2026-11-08)
+- In the dialog the "Remove ..." button stays off until the CSV copy for the chosen age is downloaded (choose another age and it must be downloaded again). Not needed when there is nothing old to remove.
+- The server enforces it too: a clean-up is refused ("Please download the CSV copy of these entries first") unless the same person downloaded the copy for the same age in the last 30 minutes (the download is logged). A copy for another age, by another person, or older than 30 minutes does not count.
+- Tests: 779 unit tests and the browser spec (phone and desktop) pass. No database change.
+
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.
 2. In the Supabase SQL editor run this READ-ONLY query and send me the rows. It changes nothing:

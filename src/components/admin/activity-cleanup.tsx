@@ -23,8 +23,11 @@ import { NativeSelect } from "@/components/ui/select";
 export function ActivityCleanup({ counts }: { counts: Record<number, number> }) {
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState(180);
+  // The age (in days) for which the CSV copy was downloaded. The button stays off until it matches the choice.
+  const [downloadedFor, setDownloadedFor] = useState<number | null>(null);
   const close = useCallback(() => setOpen(false), []);
   const willRemove = counts[days] ?? 0;
+  const needsCopy = willRemove > 0 && downloadedFor !== days;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -44,10 +47,13 @@ export function ActivityCleanup({ counts }: { counts: Record<number, number> }) 
         </DialogHeader>
         {willRemove > 0 ? (
           <div className="flex flex-col gap-2 rounded-lg border bg-primary-soft p-3 text-primary-ink">
-            <p className="text-sm font-bold">Recommended: keep a copy first.</p>
+            <p className="text-sm font-bold">
+              First download a copy. The clean-up button stays off until you do.
+            </p>
             <a
               href={`/api/admin/activity-export?days=${days}`}
               download
+              onClick={() => setDownloadedFor(days)}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               <Download aria-hidden="true" />
@@ -62,6 +68,7 @@ export function ActivityCleanup({ counts }: { counts: Record<number, number> }) 
           fresh
           variant="destructive"
           submitLabel={`Remove ${willRemove} ${willRemove === 1 ? "entry" : "entries"}`}
+          submitDisabled={needsCopy}
           onSuccess={close}
         >
           <div className="flex flex-col gap-2">

@@ -186,6 +186,14 @@ test("activity: manual clean-up needs the confirm, removes old entries, and is l
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Remove entries older than").selectOption("180");
   await expect(dialog.getByText(/will be removed/)).toBeVisible();
+  // The clean-up button is off until the CSV copy is downloaded.
+  await expect(dialog.getByRole("button", { name: /^Remove \d+ entr/ })).toBeDisabled();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    dialog.getByRole("link", { name: /Download (this entry|these \d+ entries) as CSV/ }).click(),
+  ]);
+  expect(download.suggestedFilename()).toContain("rg-activity-older-than-180-days");
+  await expect(dialog.getByRole("button", { name: /^Remove \d+ entr/ })).toBeEnabled();
   await dialog.getByRole("button", { name: /^Remove \d+ entr/ }).click();
   await expect(dialog.getByText(/fresh 6-digit code/i)).toBeVisible();
   await dialog.getByLabel(/6-digit code/).fill("000000");
