@@ -52,22 +52,31 @@ test.afterAll(async () => {
   await removeTestAdmin();
 });
 
+// On a small screen Role and Status are inside the "Filters" panel. Open it first.
+async function openFilters(page: Page) {
+  const toggle = page.getByRole("button", { name: /^Filters/ });
+  if (await toggle.isVisible()) await toggle.click();
+}
+
 const visible = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator("visible=true").first();
 
 test("shows the columns, with search, filters and rows per page above", async ({ page }) => {
   await page.goto("/admin/settings/users?per=50");
   await expect(page.getByRole("heading", { level: 1, name: "Admin users" })).toBeVisible();
-  await expect(page.getByLabel("Search by name or email")).toBeVisible();
+  await expect(page.getByLabel(/^Search/).first()).toBeVisible();
+  await openFilters(page);
   await expect(page.getByLabel("Role", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Status")).toBeVisible();
-  await expect(page.getByLabel("Rows per page")).toBeVisible();
+  // "Rows per page" is only for large screens. A phone always uses 10 rows.
+  if (!(await page.getByRole("button", { name: /^Filters/ }).isVisible())) {
+    await expect(page.getByLabel("Rows per page")).toBeVisible();
+  }
   await expect(page.getByRole("button", { name: "Invite" })).toBeVisible();
   const headers = page.getByRole("columnheader");
   if (await headers.first().isVisible()) {
     await expect(headers).toHaveText([
-      "Name",
-      "Email",
+      "Account",
       "Role",
       "Status",
       "2-step login",
@@ -80,7 +89,7 @@ test("shows the columns, with search, filters and rows per page above", async ({
 
 test("search runs on the server and stays in the web address", async ({ page }) => {
   await page.goto("/admin/settings/users");
-  await page.getByLabel("Search by name or email").fill("Person 07");
+  await page.getByLabel(/^Search/).first().fill("Person 07");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page).toHaveURL(/q=Person\+07|q=Person%2007/);
   await expect(visible(page, "Table Person 07")).toBeVisible();
@@ -103,7 +112,11 @@ test("filters by role and by status", async ({ page }) => {
   await expect(visible(page, "Table Person 13")).toBeVisible();
   // The select changes the address by itself.
   await page.goto("/admin/settings/users");
+  await openFilters(page);
   await page.getByLabel("Role", { exact: true }).selectOption("staff");
+  // On a phone the filters wait for the Apply button. On a large screen the select sends the form.
+  const apply = page.getByRole("button", { name: "Apply" });
+  if (await apply.isVisible()) await apply.click();
   await expect(page).toHaveURL(/role=staff/);
 });
 
