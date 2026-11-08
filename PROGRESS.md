@@ -752,3 +752,7 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Result check: 2 profiles, 2 sign-in accounts, 0 requests, payments, files, notes, emails. The activity log keeps its old rows plus one line `system.cleaned_before_handover`.
 - Note: there is now no `admin` role account, only two owners. An owner can invite a new admin from Settings > Admin users when needed.
 - `scripts/cleanup-before-handover.sql` now accepts any two active owner or admin accounts.
+
+### 2026-11-08 — Admin account set up on the live database (branch `chore/set-admin-account`)
+- On the owner's request: `rgservices.ph@gmail.com` is now role **admin** with the name "System Admin" (it was an owner with no name). `rgsbookkeeping73@gmail.com` (Rosemarie Gallego) stays the only **owner**. Done with one SQL update (no migration, no code change) and logged in the activity log as `account.role_changed`.
+- The admin can do everything except change an owner account. The owner can invite more staff or admins from Settings > Admin users.
