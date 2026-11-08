@@ -56,9 +56,9 @@ Exact versions and the date we checked them are in `docs/ARCHITECTURE.md` → "V
 
 ## Git rules (every session)
 
-- Work on the branch `feat/auth-roles` (made from `main`) for the accounts and roles work.
+- Work on the branch `feat/roles-accounts-recovery` (made from `main`) for the roles, accounts table and 2-step login recovery work.
 - After EVERY finished step: run `git status` (never stage `.env` files or secrets), then `git add` the files and `git commit` with a clear message.
-- When a phase is finished and lint, tests and build pass: switch to `main` and run `git merge --ff-only feat/auth-roles`. If a fast-forward is not possible, rebase the feature branch on `main` first, fix conflicts, and run the checks again. Stay on `main`. Keep the feature branch.
+- After each phase passes lint, tests and build: switch to `main` and run `git merge --ff-only feat/roles-accounts-recovery`. If a fast-forward is not possible, rebase the feature branch on `main` first, fix conflicts, and run the checks again. Then switch back to the feature branch for the next phase. After the LAST phase, stay on `main`. Keep the feature branch.
 - NEVER run `git push`. Never force anything. Never run `git reset --hard`. Never change remotes or git config. (`.claude/settings.json` blocks these.)
 - At the end, show `git status -sb` and `git log --oneline -15`, and tell the owner: "Ready for you to run git push from rg-app."
 
