@@ -2,7 +2,8 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-// Show the table from md. Below md, show a list of cards instead (see docs/DESIGN_SYSTEM.md).
+// Show the table from 1180 px. Below that, show a list of cards instead (see data-views.tsx).
+// Cells never break words. If the table is wider than its box, it scrolls sideways inside the box.
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div data-slot="table-container" className="relative w-full overflow-x-auto">
@@ -53,7 +54,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-11 px-3 text-left align-middle text-sm font-bold text-muted-foreground",
+        "h-11 px-4 text-left align-middle text-sm font-bold whitespace-nowrap text-muted-foreground",
         className,
       )}
       {...props}
@@ -65,7 +66,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"
-      className={cn("min-h-11 px-3 py-3 align-middle", className)}
+      className={cn("min-h-11 px-4 py-3 align-middle whitespace-nowrap", className)}
       {...props}
     />
   );

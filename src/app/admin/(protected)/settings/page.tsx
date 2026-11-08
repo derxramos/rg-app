@@ -1,11 +1,19 @@
-import { Briefcase, FileCog, Globe, UserCog, Wallet, type LucideIcon } from "lucide-react";
+import {
+  Briefcase,
+  Download,
+  FileCog,
+  Globe,
+  UserCog,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminTitle } from "@/components/admin/bits";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { STAFF_SETTINGS_PATH } from "@/lib/permissions";
+import { STAFF_SETTINGS_PATH, can } from "@/lib/permissions";
 import { guardPanelPage } from "@/server/auth/panel";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -48,15 +56,24 @@ const ITEMS: {
   },
 ];
 
+// Export has no place in the phone bottom bar (it would crowd it), so it is also reachable from here.
+const EXPORT_ITEM = {
+  href: "/admin/export",
+  title: "Export",
+  text: "Download requests and payments as CSV files.",
+  icon: Download,
+};
+
 export default async function SettingsHubPage() {
   const admin = await guardPanelPage();
   // Staff have no Settings page: their menu opens the services page directly.
   if (admin.role === "staff") redirect(STAFF_SETTINGS_PATH);
-  const items = ITEMS;
+  const items = can(admin.role, "export.csv") ? [...ITEMS, EXPORT_ITEM] : ITEMS;
   return (
     <>
       <AdminTitle title="Settings" />
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* 1, 2, 3 or 4 columns. A card is never narrower than about 280 px. */}
+      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1536px]:grid-cols-4">
         {items.map(({ href, title, text, icon: Icon }) => (
           <li key={href}>
             <Link

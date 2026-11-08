@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { ActionForm } from "@/components/admin/action-form";
@@ -60,9 +60,9 @@ export function AccountRowActions({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" aria-label={`Actions for ${label}`}>
-            Actions
-            <ChevronDown aria-hidden="true" />
+          {/* A compact three-dots button. 44 x 44 px, so it is easy to tap. */}
+          <Button variant="ghost" size="icon" aria-label={`Actions for ${label}`} title="Actions">
+            <MoreHorizontal aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>

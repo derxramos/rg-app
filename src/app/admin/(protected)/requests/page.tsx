@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AdminTitle, Pagination } from "@/components/admin/bits";
+import { CardList, Clip, TableBox } from "@/components/admin/data-views";
+import { FilterPanel } from "@/components/admin/filter-panel";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PaymentStateBadge } from "@/components/shared/payment-state-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -59,55 +61,69 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
 
       <form
         method="get"
-        className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="flex flex-col gap-3 rounded-lg border bg-card p-4 min-[1180px]:grid min-[1180px]:grid-cols-4"
         aria-label="Filters"
       >
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="f-q">Search</Label>
-          <Input id="f-q" name="q" defaultValue={filters.q} placeholder="Code, name or email" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="f-status">Status</Label>
-          <NativeSelect id="f-status" name="status" defaultValue={filters.status ?? ""}>
-            <option value="">All</option>
-            {REQUEST_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="f-service">Service</Label>
-          <NativeSelect id="f-service" name="service" defaultValue={filters.serviceId ?? ""}>
-            <option value="">All</option>
-            {serviceList.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+        <FilterPanel
+          activeCount={
+            [filters.status, filters.serviceId, filters.from, filters.to].filter(Boolean).length +
+            (filters.includeDrafts ? 1 : 0)
+          }
+          search={
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="f-q">Search</Label>
+              <Input id="f-q" name="q" defaultValue={filters.q} placeholder="Code, name or email" />
+            </div>
+          }
+        >
           <div className="flex flex-col gap-1">
-            <Label htmlFor="f-from">From</Label>
-            <Input id="f-from" name="from" type="date" defaultValue={filters.from} />
+            <Label htmlFor="f-status">Status</Label>
+            <NativeSelect id="f-status" name="status" defaultValue={filters.status ?? ""}>
+              <option value="">All</option>
+              {REQUEST_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {STATUS_LABELS[s]}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
           <div className="flex flex-col gap-1">
-            <Label htmlFor="f-to">To</Label>
-            <Input id="f-to" name="to" type="date" defaultValue={filters.to} />
+            <Label htmlFor="f-service">Service</Label>
+            <NativeSelect id="f-service" name="service" defaultValue={filters.serviceId ?? ""}>
+              <option value="">All</option>
+              {serviceList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
-        </div>
-        <CheckboxRow htmlFor="f-drafts" className="sm:col-span-2">
-          <Checkbox id="f-drafts" name="drafts" value="1" defaultChecked={filters.includeDrafts} />
-          <span>Show drafts</span>
-        </CheckboxRow>
-        <div className="sm:col-span-2 lg:col-span-2 lg:justify-self-end">
-          <Button type="submit">
-            <Search aria-hidden="true" />
-            Apply filters
-          </Button>
-        </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="f-from">From</Label>
+              <Input id="f-from" name="from" type="date" defaultValue={filters.from} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="f-to">To</Label>
+              <Input id="f-to" name="to" type="date" defaultValue={filters.to} />
+            </div>
+          </div>
+          <CheckboxRow htmlFor="f-drafts" className="min-[1180px]:col-span-2">
+            <Checkbox
+              id="f-drafts"
+              name="drafts"
+              value="1"
+              defaultChecked={filters.includeDrafts}
+            />
+            <span>Show drafts</span>
+          </CheckboxRow>
+          <div className="min-[1180px]:col-span-2 min-[1180px]:justify-self-end">
+            <Button type="submit">
+              <Search aria-hidden="true" />
+              Apply filters
+            </Button>
+          </div>
+        </FilterPanel>
       </form>
 
       {rows.length === 0 ? (
@@ -118,8 +134,8 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
         />
       ) : (
         <>
-          {/* Table from md. Cards on a phone. */}
-          <div className="hidden md:block">
+          {/* Table from 1180 px. Cards below (see data-views.tsx). */}
+          <TableBox>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -142,8 +158,12 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
                         {r.trackingCode}
                       </Link>
                     </TableCell>
-                    <TableCell>{r.clientFullName}</TableCell>
-                    <TableCell>{r.serviceName}</TableCell>
+                    <TableCell>
+                      <Clip text={r.clientFullName} />
+                    </TableCell>
+                    <TableCell>
+                      <Clip text={r.serviceName} />
+                    </TableCell>
                     <TableCell>
                       <StatusBadge status={r.status} />
                     </TableCell>
@@ -155,16 +175,16 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
                 ))}
               </TableBody>
             </Table>
-          </div>
-          <ul className="flex flex-col gap-3 md:hidden">
+          </TableBox>
+          <CardList>
             {rows.map((r) => (
               <li key={r.id}>
                 <Link
                   href={`/admin/requests/${r.id}`}
-                  className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm"
+                  className="flex min-h-11 flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   <span className="font-mono text-sm font-bold text-primary">{r.trackingCode}</span>
-                  <span className="font-bold break-words">{r.clientFullName}</span>
+                  <span className="font-bold [overflow-wrap:anywhere]">{r.clientFullName}</span>
                   <span className="text-sm text-muted-foreground">
                     {r.serviceName} · {formatManilaDate(r.createdAt)}
                   </span>
@@ -175,7 +195,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
                 </Link>
               </li>
             ))}
-          </ul>
+          </CardList>
         </>
       )}
       <Pagination

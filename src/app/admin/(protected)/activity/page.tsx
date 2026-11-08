@@ -3,11 +3,21 @@ import type { Metadata } from "next";
 
 import { ActivityCleanup } from "@/components/admin/activity-cleanup";
 import { AdminTitle, Pagination } from "@/components/admin/bits";
+import { CardList, TableBox } from "@/components/admin/data-views";
+import { FilterPanel } from "@/components/admin/filter-panel";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { can } from "@/lib/permissions";
 import { formatManilaDateTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -35,6 +45,27 @@ const GROUPS = [
   ["export", "Exports"],
 ];
 const one = (v: string | string[] | undefined) => (typeof v === "string" && v ? v : undefined);
+
+type Row = Awaited<ReturnType<typeof listActivity>>["rows"][number];
+
+const who = (r: Row) =>
+  `${r.actorName ?? (r.actorType === "system" ? "System" : "Unknown")}${
+    r.entityId ? ` · ${r.entityType} ${r.entityId.slice(0, 8)}` : ""
+  }`;
+
+// The saved details of one entry, closed until you ask for them.
+function Details({ details }: { details: unknown }) {
+  if (!details || Object.keys(details as object).length === 0)
+    return <span aria-hidden="true">–</span>;
+  return (
+    <details className="text-sm">
+      <summary className="min-h-6 cursor-pointer font-bold">Details</summary>
+      <pre className="mt-1 max-w-xl overflow-x-auto rounded-md bg-background p-2 text-xs whitespace-pre-wrap [overflow-wrap:anywhere] text-foreground">
+        {JSON.stringify(details, null, 2)}
+      </pre>
+    </details>
+  );
+}
 
 export default async function ActivityPage({ searchParams }: PageProps<"/admin/activity">) {
   const me = await guardPanelPage("activity.view", "/admin/activity");
@@ -66,82 +97,117 @@ export default async function ActivityPage({ searchParams }: PageProps<"/admin/a
       />
       <form
         method="get"
-        className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="flex flex-col gap-3 rounded-lg border bg-card p-4 min-[1180px]:grid min-[1180px]:grid-cols-4"
         aria-label="Filters"
       >
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="a-action">What</Label>
-          <NativeSelect id="a-action" name="action" defaultValue={filters.action ?? ""}>
-            {GROUPS.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="a-admin">Who</Label>
-          <NativeSelect id="a-admin" name="admin" defaultValue={filters.actorId ?? ""}>
-            <option value="">Everyone</option>
-            {admins.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.fullName}
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+        <FilterPanel
+          activeCount={
+            [filters.action, filters.actorId, filters.from, filters.to].filter(Boolean).length
+          }
+        >
           <div className="flex flex-col gap-1">
-            <Label htmlFor="a-from">From</Label>
-            <Input id="a-from" name="from" type="date" defaultValue={filters.from} />
+            <Label htmlFor="a-action">What</Label>
+            <NativeSelect id="a-action" name="action" defaultValue={filters.action ?? ""}>
+              {GROUPS.map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
           <div className="flex flex-col gap-1">
-            <Label htmlFor="a-to">To</Label>
-            <Input id="a-to" name="to" type="date" defaultValue={filters.to} />
+            <Label htmlFor="a-admin">Who</Label>
+            <NativeSelect id="a-admin" name="admin" defaultValue={filters.actorId ?? ""}>
+              <option value="">Everyone</option>
+              {admins.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.fullName}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
-        </div>
-        <div>
-          <Button type="submit">
-            <Search aria-hidden="true" />
-            Apply filters
-          </Button>
-        </div>
+          <div className="grid grid-cols-2 gap-3 min-[1180px]:col-span-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="a-from">From</Label>
+              <Input id="a-from" name="from" type="date" defaultValue={filters.from} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="a-to">To</Label>
+              <Input id="a-to" name="to" type="date" defaultValue={filters.to} />
+            </div>
+          </div>
+          <div>
+            <Button type="submit">
+              <Search aria-hidden="true" />
+              Apply filters
+            </Button>
+          </div>
+        </FilterPanel>
       </form>
 
       {rows.length === 0 ? (
         <EmptyState icon={History} title="Nothing found" />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {rows.map((r) => {
-            const hot = r.action.startsWith("payment_method");
-            return (
-              <li
-                key={r.id}
-                className={cn(
-                  "flex flex-col gap-1 rounded-lg border p-3",
-                  hot ? "border-warning bg-warning-soft text-warning-ink" : "bg-card",
-                )}
-              >
-                <span className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono text-sm font-bold break-all">{r.action}</span>
+        <>
+          <CardList aria-label="Activity">
+            {rows.map((r) => {
+              const hot = r.action.startsWith("payment_method");
+              return (
+                <li
+                  key={r.id}
+                  className={cn(
+                    "flex flex-col gap-1 rounded-lg border p-4",
+                    hot ? "border-warning bg-warning-soft text-warning-ink" : "bg-card",
+                  )}
+                >
+                  <span className="font-mono text-sm font-bold [overflow-wrap:anywhere]">
+                    {r.action}
+                  </span>
                   <span className="text-sm">{formatManilaDateTime(r.createdAt)}</span>
-                </span>
-                <span className="text-sm">
-                  {r.actorName ?? (r.actorType === "system" ? "System" : "Unknown")}
-                  {r.entityId ? ` · ${r.entityType} ${r.entityId.slice(0, 8)}` : ""}
-                </span>
-                {r.details && Object.keys(r.details as object).length > 0 ? (
-                  <details className="text-sm">
-                    <summary className="min-h-6 cursor-pointer font-bold">Details</summary>
-                    <pre className="mt-1 overflow-x-auto rounded-md bg-background p-2 text-xs whitespace-pre-wrap break-all text-foreground">
-                      {JSON.stringify(r.details, null, 2)}
-                    </pre>
-                  </details>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+                  <span className="text-sm [overflow-wrap:anywhere]">{who(r)}</span>
+                  <Details details={r.details} />
+                </li>
+              );
+            })}
+          </CardList>
+          <TableBox>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">When</TableHead>
+                  <TableHead scope="col">Action</TableHead>
+                  <TableHead scope="col">Who</TableHead>
+                  <TableHead scope="col">Item</TableHead>
+                  <TableHead scope="col">Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow
+                    key={r.id}
+                    className={
+                      r.action.startsWith("payment_method") ? "bg-warning-soft" : undefined
+                    }
+                  >
+                    <TableCell className="align-top">{formatManilaDateTime(r.createdAt)}</TableCell>
+                    <TableCell className="align-top font-mono text-sm font-bold">
+                      {r.action}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {r.actorName ?? (r.actorType === "system" ? "System" : "Unknown")}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {r.entityId ? `${r.entityType} ${r.entityId.slice(0, 8)}` : "–"}
+                    </TableCell>
+                    <TableCell className="align-top whitespace-normal">
+                      <Details details={r.details} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableBox>
+        </>
       )}
       <Pagination
         basePath="/admin/activity"

@@ -76,17 +76,17 @@ export function Pagination({
   return (
     <nav aria-label="Pages" className="flex items-center justify-between gap-3">
       {page > 1 ? (
-        <Link href={href(page - 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>
+        <Link href={href(page - 1)} className={buttonVariants({ variant: "outline", size: "md" })}>
           Previous
         </Link>
       ) : (
         <span />
       )}
-      <span className="text-sm text-muted-foreground">
+      <span className="text-center text-sm text-muted-foreground">
         Page {page} of {pageCount}
       </span>
       {page < pageCount ? (
-        <Link href={href(page + 1)} className={buttonVariants({ variant: "outline", size: "sm" })}>
+        <Link href={href(page + 1)} className={buttonVariants({ variant: "outline", size: "md" })}>
           Next
         </Link>
       ) : (

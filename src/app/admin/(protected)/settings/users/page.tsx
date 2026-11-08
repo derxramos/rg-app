@@ -7,6 +7,7 @@ import { AccountsToolbar } from "@/components/admin/accounts-toolbar";
 import { AdminTitle } from "@/components/admin/bits";
 import { InviteAccount } from "@/components/admin/invite-account";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CardList, Clip, TableBox } from "@/components/admin/data-views";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ROLE_LABELS } from "@/lib/permissions";
+import { cn } from "@/lib/utils";
 import { formatManilaDate } from "@/lib/time";
 import {
   STATUS_LABELS,
@@ -38,6 +40,25 @@ const STATUS_VARIANT: Record<AccountStatus, "success" | "neutral" | "warning" | 
   invited: "info",
   unverified: "warning",
 };
+
+// Short labels for the table (the cards show the long labels from STATUS_LABELS).
+const TABLE_STATUS: Record<AccountStatus, { label: string; hint?: string }> = {
+  active: { label: "Active" },
+  turned_off: { label: "Turned off" },
+  invited: {
+    label: "Invited",
+    hint: "Invited with a temporary password. Must choose a new one at the first sign in.",
+  },
+  unverified: { label: "Unverified", hint: "Email not verified" },
+};
+
+function YouTag() {
+  return (
+    <span className="ml-2 rounded-full bg-muted px-2 py-0.5 align-middle text-xs font-bold whitespace-nowrap text-foreground">
+      You
+    </span>
+  );
+}
 
 // 2-step login: On or Off for staff, admin and owner. A client has none ("–").
 function TwoFactor({ value }: { value: boolean | null }) {
@@ -62,19 +83,22 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
   const pageCount = Math.max(1, Math.ceil(total / perPage));
   const viewer = { id: me.id, role: me.role };
 
-  const actionsFor = (row: AccountRow) => (
-    <AccountRowActions
-      viewer={viewer}
-      account={{
-        id: row.id,
-        email: row.email,
-        fullName: row.fullName,
-        role: row.role,
-        isActive: row.isActive,
-        status: row.status,
-      }}
-    />
-  );
+  const isMe = (row: AccountRow) => row.id === me.id;
+  // Your own row has no actions button: you cannot change your own role or turn yourself off here.
+  const actionsFor = (row: AccountRow) =>
+    isMe(row) ? null : (
+      <AccountRowActions
+        viewer={viewer}
+        account={{
+          id: row.id,
+          email: row.email,
+          fullName: row.fullName,
+          role: row.role,
+          isActive: row.isActive,
+          status: row.status,
+        }}
+      />
+    );
   const joined = (row: AccountRow) => formatManilaDate(row.createdAt);
   const link = (target: number) =>
     `/admin/settings/users${accountQueryString({ ...query, page: target })}`;
@@ -96,21 +120,29 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
         />
       ) : (
         <>
-          {/* Phones: one card per account. */}
-          <ul className="flex flex-col gap-3 md:hidden" aria-label="Accounts">
+          {/* Small screens: one card per account. */}
+          <CardList aria-label="Accounts">
             {rows.map((row) => (
               <li key={row.id}>
                 <Card className="gap-3 p-4 md:p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-bold break-words">{row.fullName || "(no name)"}</p>
-                      <p className="text-sm break-all text-muted-foreground">{row.email}</p>
+                      <p className="font-bold [overflow-wrap:anywhere]">
+                        {row.fullName || "(no name)"}
+                        {isMe(row) ? <YouTag /> : null}
+                      </p>
+                      <p className="text-sm [overflow-wrap:anywhere] text-muted-foreground">
+                        {row.email}
+                      </p>
                     </div>
                     {actionsFor(row)}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="primary">{ROLE_LABELS[row.role]}</Badge>
-                    <Badge variant={STATUS_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>
+                    {/* Touch screens have no hover, so the card shows the long label as visible text. */}
+                    <Badge variant={STATUS_VARIANT[row.status]} className="whitespace-normal">
+                      {STATUS_LABELS[row.status]}
+                    </Badge>
                   </div>
                   <dl className="grid grid-cols-2 gap-2 text-sm">
                     <div>
@@ -127,59 +159,58 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                 </Card>
               </li>
             ))}
-          </ul>
+          </CardList>
 
-          {/* From 768 px: a table. */}
-          <div className="hidden rounded-lg border bg-card md:block">
+          {/* Large screens: a table. It never wraps a word; if it is too wide it scrolls inside its box. */}
+          <TableBox>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead scope="col" className="text-center">
-                    Name
+                  <TableHead scope="col">Account</TableHead>
+                  <TableHead scope="col">Role</TableHead>
+                  <TableHead scope="col">Status</TableHead>
+                  <TableHead scope="col">
+                    <span title="2-step login">2-step</span>
                   </TableHead>
-                  <TableHead scope="col" className="text-center">
-                    Email
-                  </TableHead>
-                  <TableHead scope="col" className="text-center">
-                    Role
-                  </TableHead>
-                  <TableHead scope="col" className="text-center">
-                    Status
-                  </TableHead>
-                  <TableHead scope="col" className="text-center">
-                    2-step login
-                  </TableHead>
-                  <TableHead scope="col" className="text-center">
-                    Joined
-                  </TableHead>
-                  <TableHead scope="col" className="text-center">
-                    Actions
+                  <TableHead scope="col">Joined</TableHead>
+                  <TableHead scope="col">
+                    <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="font-bold">{row.fullName || "(no name)"}</TableCell>
-                    <TableCell className="break-all">{row.email}</TableCell>
+                    <TableCell className="min-w-64">
+                      <span className="block font-bold">
+                        {row.fullName || "(no name)"}
+                        {isMe(row) ? <YouTag /> : null}
+                      </span>
+                      <span className="block text-sm text-muted-foreground">
+                        <Clip text={row.email} />
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="primary">{ROLE_LABELS[row.role]}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_VARIANT[row.status]}>
-                        {STATUS_LABELS[row.status]}
+                      <Badge
+                        variant={STATUS_VARIANT[row.status]}
+                        title={TABLE_STATUS[row.status].hint}
+                      >
+                        {TABLE_STATUS[row.status].label}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <TwoFactor value={row.twoFactor} />
                     </TableCell>
                     <TableCell>{joined(row)}</TableCell>
-                    <TableCell className="text-right">{actionsFor(row)}</TableCell>
+                    <TableCell className="w-16">{actionsFor(row)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </TableBox>
         </>
       )}
 
@@ -190,15 +221,27 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
         <p>
           {total} {total === 1 ? "account" : "accounts"}. Page {page} of {pageCount}.
         </p>
-        <div className="flex gap-2">
+        <div className="flex w-full gap-2 min-[1180px]:w-auto">
           {page > 1 ? (
-            <Link href={link(page - 1)} className={buttonVariants({ variant: "outline" })}>
+            <Link
+              href={link(page - 1)}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "flex-1 min-[1180px]:flex-none",
+              )}
+            >
               <ChevronLeft aria-hidden="true" />
               Previous
             </Link>
           ) : null}
           {page < pageCount ? (
-            <Link href={link(page + 1)} className={buttonVariants({ variant: "outline" })}>
+            <Link
+              href={link(page + 1)}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "flex-1 min-[1180px]:flex-none",
+              )}
+            >
               Next
               <ChevronRight aria-hidden="true" />
             </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, Trash2 } from "lucide-react";
+import { CardList, TableBox } from "@/components/admin/data-views";
 import Link from "next/link";
 import { useCallback, useState, useTransition } from "react";
 
@@ -129,7 +130,7 @@ export function ServicesTable({
       ) : null}
 
       {/* Phones: one card per service. */}
-      <ul className="flex flex-col gap-3 md:hidden" aria-label="Services">
+      <CardList aria-label="Services">
         {rows.map((row) => (
           <li key={row.id}>
             <Card className="gap-3 p-4 md:p-4">
@@ -153,10 +154,10 @@ export function ServicesTable({
             </Card>
           </li>
         ))}
-      </ul>
+      </CardList>
 
-      {/* From 768 px: a table with fixed column widths. */}
-      <div className="hidden rounded-lg border bg-card md:block">
+      {/* From 1180 px: a table with fixed column widths. */}
+      <TableBox>
         <Table className="table-fixed">
           <colgroup>
             {widths.map((width, index) => (
@@ -166,8 +167,8 @@ export function ServicesTable({
           <TableHeader>
             <TableRow>
               {permissions.delete ? (
-                <TableHead scope="col" className="text-center">
-                  <span className="flex justify-center">
+                <TableHead scope="col">
+                  <span className="flex">
                     <Checkbox
                       aria-label="Select all services on this page"
                       checked={allSelected}
@@ -177,23 +178,19 @@ export function ServicesTable({
                 </TableHead>
               ) : null}
               <TableHead scope="col">Service</TableHead>
-              <TableHead scope="col" className="text-center">
+              <TableHead scope="col" className="text-right">
                 Service fee
               </TableHead>
-              <TableHead scope="col" className="text-center">
-                On / Off
-              </TableHead>
-              <TableHead scope="col" className="text-center">
-                Actions
-              </TableHead>
+              <TableHead scope="col">On / Off</TableHead>
+              <TableHead scope="col">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
               <TableRow key={row.id} data-state={selected.has(row.id) ? "selected" : undefined}>
                 {permissions.delete ? (
-                  <TableCell className="text-center">
-                    <span className="flex justify-center">
+                  <TableCell>
+                    <span className="flex">
                       <Checkbox
                         aria-label={`Select ${row.name}`}
                         checked={selected.has(row.id)}
@@ -202,15 +199,15 @@ export function ServicesTable({
                     </span>
                   </TableCell>
                 ) : null}
-                <TableCell>{nameLink(row)}</TableCell>
-                <TableCell className="text-center">{row.fee}</TableCell>
-                <TableCell className="text-center">{statusBadge(row)}</TableCell>
-                <TableCell className="text-center">{actions(row)}</TableCell>
+                <TableCell className="truncate">{nameLink(row)}</TableCell>
+                <TableCell className="text-right">{row.fee}</TableCell>
+                <TableCell>{statusBadge(row)}</TableCell>
+                <TableCell>{actions(row)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+      </TableBox>
 
       <Dialog open={deleteIds !== null} onOpenChange={(open) => !open && setDeleteIds(null)}>
         <DialogContent>

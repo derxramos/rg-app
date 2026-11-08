@@ -52,8 +52,14 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
       </header>
       <div className="flex flex-1">
         <AdminNav role={admin.role} variant="sidebar" />
-        <main id="main-content" className="min-w-0 flex-1 px-4 py-6 pb-24 md:px-8 lg:pb-10">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">{children}</div>
+        {/* ONE page frame for every admin page: the same side padding (24 px, 32 px from 1280 px; 16 px on
+            a phone) and the same max width (1760 px, centered). Pages never set their own width. The bottom
+            padding keeps the last item above the phone bar (60 px bar + the device safe area). */}
+        <main
+          id="main-content"
+          className="min-w-0 flex-1 px-4 py-6 pb-[calc(60px+env(safe-area-inset-bottom)+24px)] sm:px-6 lg:pb-10 xl:px-8"
+        >
+          <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-6">{children}</div>
         </main>
       </div>
       <AdminNav role={admin.role} variant="bottom" />
