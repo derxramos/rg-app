@@ -85,7 +85,7 @@ export function ServicesTable({
   const nameLink = (row: ServiceRowView) => (
     <Link
       href={`/admin/settings/services/${row.id}`}
-      className="font-bold break-words text-primary underline underline-offset-4"
+      className="inline-flex min-h-11 items-center font-bold break-words text-primary underline underline-offset-4 min-[1180px]:min-h-0"
     >
       {row.name}
     </Link>

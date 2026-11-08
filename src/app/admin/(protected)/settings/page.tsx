@@ -73,7 +73,7 @@ export default async function SettingsHubPage() {
     <>
       <AdminTitle title="Settings" />
       {/* 1, 2, 3 or 4 columns. A card is never narrower than about 280 px. */}
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 min-[1536px]:grid-cols-4">
+      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {items.map(({ href, title, text, icon: Icon }) => (
           <li key={href}>
             <Link

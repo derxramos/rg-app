@@ -48,7 +48,7 @@ export default async function PaymentMethodsPage() {
                   <div className="flex min-w-0 flex-col gap-1">
                     <Link
                       href={`/admin/settings/payments/${m.id}`}
-                      className="text-lg font-bold text-primary underline underline-offset-4"
+                      className="inline-flex min-h-11 items-center text-lg font-bold text-primary underline underline-offset-4"
                     >
                       {m.name}
                     </Link>

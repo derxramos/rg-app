@@ -89,7 +89,10 @@ test("shows the columns, with search, filters and rows per page above", async ({
 
 test("search runs on the server and stays in the web address", async ({ page }) => {
   await page.goto("/admin/settings/users");
-  await page.getByLabel(/^Search/).first().fill("Person 07");
+  await page
+    .getByLabel(/^Search/)
+    .first()
+    .fill("Person 07");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page).toHaveURL(/q=Person\+07|q=Person%2007/);
   await expect(visible(page, "Table Person 07")).toBeVisible();

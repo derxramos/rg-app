@@ -70,7 +70,7 @@ export function AccountsToolbar({ query }: { query: AccountQuery }) {
             type="search"
             defaultValue={query.q}
             maxLength={100}
-            placeholder="Name or email"
+            placeholder="Name, email"
           />
         </div>
         {/* Phone only: search with the button (the Enter key works too), and open the filters. */}

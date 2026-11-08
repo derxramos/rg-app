@@ -37,7 +37,7 @@ export default async function AdminDashboardPage() {
 
       <section
         aria-label="Requests by status"
-        className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5"
+        className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
       >
         {COUNTED.map((status) => (
           <StatCard
