@@ -746,3 +746,9 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Cause: while the header reads the login (a refresh or slow connection) its placeholder was an empty box, so "Sign in" vanished for a moment.
 - Fix: the placeholder is now a working "Sign in" link of the same size. A browser that was signed in last time (a small `rg_hint` cookie, no private data, never used for access) gets a neutral pulsing box instead, so a signed in person never sees a wrong "Sign in". A tiny script in the root layout sets the mark on `<html>` before the first paint; the real header (`AuthHint`) keeps the cookie correct.
 - Tests: unit test for the placeholder and the hint script. No database change.
+
+### 2026-11-08 — Live data clean-up before hand-over (branch `chore/clean-live-data-run`)
+- Run on the live database at the owner's request (all data was test data, so no backup). Kept only `rgservices.ph@gmail.com` and `rgsbookkeeping73@gmail.com` (both role owner). Removed: the developer admin account, one client account, 1 request, 4 email log rows and the rate-limit rows. Kept: 6 services, 3 payment methods, settings, checklists. Storage had no files. Migrations 0000 to 0008 were already applied.
+- Result check: 2 profiles, 2 sign-in accounts, 0 requests, payments, files, notes, emails. The activity log keeps its old rows plus one line `system.cleaned_before_handover`.
+- Note: there is now no `admin` role account, only two owners. An owner can invite a new admin from Settings > Admin users when needed.
+- `scripts/cleanup-before-handover.sql` now accepts any two active owner or admin accounts.

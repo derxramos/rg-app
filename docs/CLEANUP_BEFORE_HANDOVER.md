@@ -1,6 +1,6 @@
 # Clean-up before hand-over
 
-Goal: the owner starts with a system that looks brand new. Only **two accounts stay** (the owner and the developer admin).
+Goal: the owner starts with a system that looks brand new. Only **two accounts stay** (you name them in the script).
 Services, checklists, payment methods and settings stay. This cannot be undone, so follow the order.
 
 ## 1. Backup first (10 minutes)

@@ -24,24 +24,23 @@ select slug, name, is_active from public.services order by sort_order;  -- look 
 -- ============================== PART 2: the clean-up (one transaction) ==============================
 begin;
 
--- >>> EDIT THESE TWO EMAILS: the owner account and the developer admin account. <<<
+-- >>> EDIT THESE TWO EMAILS: the two accounts that stay (for example the owner and the developer admin). <<<
 create temporary table keep_emails (email text primary key) on commit drop;
 insert into keep_emails values (lower('OWNER_EMAIL_HERE')), (lower('DEVELOPER_ADMIN_EMAIL_HERE'));
 
--- Safety checks: stop (and undo everything) unless exactly those two accounts exist and are right.
+-- Safety checks: stop (and undo everything) unless exactly those two accounts exist, are active, and at least one is an owner.
 do $$
-declare found_count int; owners int; admins int;
+declare found_count int; owners int;
 begin
-  select count(*) into found_count from public.profiles p join keep_emails k on lower(p.email) = k.email;
+  select count(*) into found_count from public.profiles p join keep_emails k on lower(p.email) = k.email
+    where p.is_active and p.role in ('owner', 'admin');
   if found_count <> 2 then
-    raise exception 'Expected exactly 2 accounts to keep, found %. Check the two emails.', found_count;
+    raise exception 'Expected exactly 2 active owner or admin accounts to keep, found %. Check the two emails.', found_count;
   end if;
   select count(*) into owners from public.profiles p join keep_emails k on lower(p.email) = k.email
     where p.role = 'owner' and p.is_active;
-  select count(*) into admins from public.profiles p join keep_emails k on lower(p.email) = k.email
-    where p.role = 'admin' and p.is_active;
-  if owners <> 1 or admins <> 1 then
-    raise exception 'The two accounts must be one active owner and one active admin (found % owner, % admin).', owners, admins;
+  if owners < 1 then
+    raise exception 'At least one of the two accounts must be an active owner.';
   end if;
 end $$;
 
