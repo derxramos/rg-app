@@ -31,6 +31,10 @@ export const PERMISSIONS = {
   "requests.retry_email": STAFF_UP,
   "requests.open_file": STAFF_UP, // every open is written to the activity log
   "payments.verify": ADMIN_UP, // verify AND reject
+  // A payment made outside the website (cash, bank transfer, other). Staff may record it (amount, method and a
+  // receipt number or note are required, it is logged, owners get an email). Only admin and owner may void it.
+  "payments.record_offline": STAFF_UP,
+  "payments.void": ADMIN_UP,
   "requests.erase_client_data": ADMIN_UP,
 
   // Services and checklists (staff: words only. No fee, no hide, no delete)

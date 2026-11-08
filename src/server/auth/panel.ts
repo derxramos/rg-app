@@ -357,6 +357,7 @@ export async function withPanel(
         "reason-needed",
         "status-not-allowed",
         "owner-only",
+        "wrong-status",
         "last-device",
         "same-device",
       ].includes(known.code)

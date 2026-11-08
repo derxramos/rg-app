@@ -11,7 +11,13 @@ import { formatManilaDateTime } from "@/lib/time";
 import { deliver, sendRequestEmail, type EmailContext } from "./send";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
 
-import { accountChanged, paymentMethodChangedOwner, contactFormAdmin } from "./templates";
+import {
+  accountChanged,
+  contactFormAdmin,
+  offlinePaymentRecordedOwner,
+  paymentMethodChangedOwner,
+} from "./templates";
+import { formatPesos } from "@/lib/money";
 
 // The settings come from the environment (docs/ARCHITECTURE.md, "Environment variables").
 export function emailContext(): EmailContext {
@@ -73,6 +79,41 @@ export async function notifyPaymentMethodChanged(change: { who: string; what: st
           ...change,
           when: formatManilaDateTime(new Date()),
           adminUrl: `${ctx.baseUrl}/admin/activity?action=payment_method`,
+        }),
+      },
+    });
+  }
+}
+
+// Staff recorded a cash (or other offline) payment: every active owner gets an email.
+export async function notifyOfflinePaymentRecorded(
+  input: {
+    who: string;
+    requestId: string;
+    trackingCode: string;
+    amountCentavos: number;
+    method: string;
+  },
+  deps: { db?: AppDb; ctx?: EmailContext } = {},
+): Promise<void> {
+  const db = deps.db ?? getDb();
+  const ctx = deps.ctx ?? emailContext();
+  const owners = await db
+    .select({ email: profiles.email, fullName: profiles.fullName })
+    .from(profiles)
+    .where(and(eq(profiles.role, "owner"), eq(profiles.isActive, true)));
+  for (const owner of owners) {
+    await deliver(db, ctx, {
+      template: "offline_payment_recorded_owner",
+      message: {
+        to: { email: owner.email, name: owner.fullName || undefined },
+        ...offlinePaymentRecordedOwner({
+          who: input.who,
+          trackingCode: input.trackingCode,
+          amount: formatPesos(input.amountCentavos),
+          method: input.method,
+          when: formatManilaDateTime(new Date()),
+          adminUrl: `${ctx.baseUrl}/admin/requests/${input.requestId}`,
         }),
       },
     });

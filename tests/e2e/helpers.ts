@@ -121,6 +121,7 @@ export async function removeTestAdmin() {
     await sql`alter table profiles disable trigger profiles_protect_last_owner`;
     await sql`delete from request_notes where author_id = ${E2E_ADMIN_ID}`;
     await sql`update payments set verified_by = null where verified_by = ${E2E_ADMIN_ID}`;
+    await sql`update payments set recorded_by = null where recorded_by = ${E2E_ADMIN_ID}`;
     await sql`update request_status_events set changed_by = null where changed_by = ${E2E_ADMIN_ID}`;
     await sql`update payment_methods set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;
     await sql`update site_settings set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;

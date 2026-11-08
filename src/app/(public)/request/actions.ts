@@ -21,7 +21,13 @@ import { verifyTurnstile } from "@/server/security/turnstile";
 import { removeFile } from "@/server/services/files";
 import { notifyRequestSubmitted } from "@/server/email/notify";
 import { listPaymentsForRequest } from "@/server/services/payments";
-import { changeStatus, createDraft, RequestError } from "@/server/services/requests";
+import {
+  changeStatus,
+  createDraft,
+  draftDetailsSchema,
+  RequestError,
+  updateDraftDetails,
+} from "@/server/services/requests";
 import { readSetting } from "@/server/services/settings";
 import { CLIENT_FILES_BUCKET, getStorage } from "@/server/storage/storage";
 
@@ -134,6 +140,48 @@ export async function createDraftAction(
   }
 
   redirect(`/request/${created.requestId}/code`);
+}
+
+// Going back to step 1: the client changes name, phone, business or message while the request is a draft.
+export type EditDetailsState = {
+  values: Record<"fullName" | "phone" | "businessName" | "message", string>;
+  errors: Partial<Record<string, string>>;
+  formError?: string;
+};
+
+export async function updateDetailsAction(
+  requestId: string,
+  _previous: EditDetailsState,
+  formData: FormData,
+): Promise<EditDetailsState> {
+  const values = {
+    fullName: text(formData, "fullName"),
+    phone: text(formData, "phone"),
+    businessName: text(formData, "businessName"),
+    message: text(formData, "message"),
+  };
+  // Only the owner of a draft passes this check ("submit" is allowed for drafts only).
+  try {
+    await requireRequestAccess(requestId, "submit");
+  } catch (error) {
+    if (error instanceof AccessError) redirect("/request/expired");
+    throw error;
+  }
+  const parsed = draftDetailsSchema.safeParse(values);
+  if (!parsed.success)
+    return {
+      values,
+      errors: requestFieldErrors(parsed.error),
+      formError: "Please check the fields marked below.",
+    };
+  try {
+    await updateDraftDetails(getDb(), requestId, parsed.data);
+  } catch (error) {
+    if (error instanceof RequestError && error.code === "not-draft") redirect("/request/expired");
+    console.error("updateDraftDetails failed:", error);
+    return { values, errors: {}, formError: "We could not save your changes. Please try again." };
+  }
+  redirect(`/request/${requestId}/documents`);
 }
 
 export async function removeFileAction(

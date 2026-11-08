@@ -118,3 +118,47 @@ test("the server refuses an upload with no access, whatever the file", async ({ 
   });
   expect(response.status()).toBe(403);
 });
+
+test("a client can go back with the step bar, change details, and skip documents and payment", async ({
+  page,
+}) => {
+  await signInAsTestUser(page);
+  await page.goto("/request?service=test-service-e2e");
+  await page.getByLabel("Full name").fill("Back Client");
+  await page.getByLabel("Mobile number").fill("917 123 4567");
+  await page.getByRole("checkbox").check();
+  await waitForTurnstile(page);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Your request is started" })).toBeVisible();
+  const requestId = page.url().split("/request/")[1].split("/")[0];
+
+  // Documents are optional: the page says so and offers a way to skip.
+  await page.getByRole("link", { name: "Continue to documents" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Upload your documents (optional)" }),
+  ).toBeVisible();
+  await expect(page.getByText(/bring your documents to our office/).first()).toBeVisible();
+
+  // Go back to step 1 with the step bar (a link on a computer, a "Go back" link on a phone).
+  await page
+    .getByRole("link", { name: /Your details/ })
+    .locator("visible=true")
+    .first()
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/request/${requestId}/details`));
+  await page.locator("#ed-name").fill("Changed Name");
+  await page.getByRole("button", { name: /Save and continue/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/request/${requestId}/documents`));
+
+  // Skip documents, then skip payment, and check the review page.
+  await page.getByRole("link", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Pay with a QR code" })).toBeVisible();
+  await page.getByRole("link", { name: /Back to documents/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/request/${requestId}/documents`));
+  await page.getByRole("link", { name: "Continue" }).click();
+  await page.getByRole("link", { name: /Skip for now/ }).click();
+  await expect(page.getByRole("heading", { name: "Check and send" })).toBeVisible();
+  await expect(page.getByText("Changed Name")).toBeVisible();
+  await expect(page.getByText(/None uploaded/)).toBeVisible();
+  await expect(page.getByText(/pay later from the tracking page, or at our office/)).toBeVisible();
+});

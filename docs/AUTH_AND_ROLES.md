@@ -37,6 +37,8 @@ How accounts, roles and sign-in work in this app. Plain English on purpose.
 | Requests: view, change status, add notes, retry email | – | ✓ | ✓ | ✓ |
 | Requests: view client documents (every open is logged) | – | ✓ | ✓ | ✓ |
 | Mark a payment verified or rejected | – | – | ✓ | ✓ |
+| Record a payment made outside the website (cash, bank transfer, other) | – | ✓ | ✓ | ✓ |
+| Void a recorded offline payment | – | – | ✓ | ✓ |
 | Delete client data (privacy request) | – | – | ✓ | ✓ |
 | Services and checklists: view, add a service, change names and descriptions, add, edit and move checklist items | – | ✓ | ✓ | ✓ |
 | A service made by staff starts **hidden and with no fee** | – | ✓ | – | – |

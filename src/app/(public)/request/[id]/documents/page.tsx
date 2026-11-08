@@ -1,9 +1,10 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { DocumentsUploader } from "@/components/request/documents-uploader";
+import { cn } from "@/lib/utils";
 import { FlowFrame, FlowSkeleton } from "@/components/request/flow-frame";
 import { buttonVariants } from "@/components/ui/button";
 import { flowMode } from "@/server/auth/request-access-core";
@@ -39,8 +40,9 @@ async function Documents({ params }: { params: PageProps<"/request/[id]/document
   return (
     <FlowFrame
       step={fromTracking ? undefined : 2}
-      title="Upload your documents"
-      intro="Add a photo or a PDF of each document. You can continue even if you do not have everything yet. We will ask you for what is missing."
+      requestId={fromTracking ? undefined : id}
+      title="Upload your documents (optional)"
+      intro="Uploading is optional. You can add a photo or a PDF of each document now, or bring your documents to our office. We will ask you for anything that is missing."
     >
       <DocumentsUploader
         requestId={id}
@@ -50,7 +52,7 @@ async function Documents({ params }: { params: PageProps<"/request/[id]/document
         maxFiles={limits.maxFiles}
         maxBytes={limits.maxBytes}
       />
-      <div>
+      <div className="flex flex-wrap items-center gap-3">
         <Link
           href={fromTracking ? mode.backHref : nextStepAfterDocuments(id)}
           className={buttonVariants({ size: "lg" })}
@@ -58,6 +60,15 @@ async function Documents({ params }: { params: PageProps<"/request/[id]/document
           {fromTracking ? "Done. Back to my request" : "Continue"}
           <ArrowRight aria-hidden="true" />
         </Link>
+        {fromTracking ? null : (
+          <Link
+            href={`/request/${id}/details`}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+          >
+            <ArrowLeft aria-hidden="true" />
+            Back
+          </Link>
+        )}
       </div>
     </FlowFrame>
   );

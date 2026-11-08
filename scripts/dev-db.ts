@@ -66,6 +66,15 @@ async function main() {
     await applyMigrations(db, { fromFile: "0007" });
   }
 
+  // A local database without offline payments (migration 0008) gets it once.
+  const hasOffline = await db.query<{ exists: boolean }>(
+    `select exists (select 1 from information_schema.columns where table_name = 'payments' and column_name = 'offline_method') as exists`,
+  );
+  if (!hasOffline.rows[0].exists) {
+    console.log("Adding the offline payments migration (0008)...");
+    await applyMigrations(db, { fromFile: "0008" });
+  }
+
   const server = new PGLiteSocketServer({ db, port: PORT, host: "127.0.0.1", maxConnections: 3 });
   await server.start();
   console.log(`Local database is ready on postgres://postgres:postgres@127.0.0.1:${PORT}/postgres`);

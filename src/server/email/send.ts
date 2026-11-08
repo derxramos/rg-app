@@ -29,7 +29,8 @@ export type EmailTemplateKey =
   | "account_turned_off"
   | "account_turned_on"
   | "account_2fa_reset"
-  | "account_2fa_reset_owners";
+  | "account_2fa_reset_owners"
+  | "offline_payment_recorded_owner";
 
 // Templates tied to one request can be rebuilt from the database, so they can be retried.
 export const RETRYABLE: readonly EmailTemplateKey[] = [

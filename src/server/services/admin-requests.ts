@@ -6,6 +6,7 @@ import "server-only";
 import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 
 import type { RequestStatus } from "@/lib/status";
+import { parsePesosToCentavos } from "@/lib/money";
 import { addDaysToIsoDate } from "@/lib/time";
 import { PanelAuthError, assertCan, type PanelUser } from "@/server/auth/panel-core";
 import { setActor } from "@/server/db/actor";
@@ -282,6 +283,233 @@ export async function verifyPayment(
     });
   }
   return { requestId: payment.requestId };
+}
+
+// ---------- Offline payments (cash, bank transfer, other) ----------
+// For a client who chose "Skip for now. I will pay later" and then paid in the office or in another way.
+// Staff, admin and owner may record it. Required: the method, the amount, the date, and a receipt number or a note
+// ("Other" always needs a note). It is logged with the name of the person, and when STAFF record it the owners get an
+// email. Only admin and owner may void it again.
+
+export const OFFLINE_METHODS = ["cash", "bank_transfer", "other"] as const;
+export type OfflineMethod = (typeof OFFLINE_METHODS)[number];
+export const OFFLINE_METHOD_LABELS: Record<OfflineMethod, string> = {
+  cash: "Cash",
+  bank_transfer: "Bank transfer",
+  other: "Other",
+};
+
+export class OfflinePaymentError extends Error {
+  constructor(
+    public code: "invalid" | "not-found" | "wrong-status",
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+// A request can be paid for in the office while it is open or already finished. Not a draft (not sent yet)
+// and not a cancelled request.
+const OFFLINE_OK_STATUSES: readonly RequestStatus[] = [
+  "submitted",
+  "under_review",
+  "waiting_for_client",
+  "payment_submitted",
+  "payment_verified",
+  "in_progress",
+  "completed",
+];
+
+export type OfflinePaymentInput = {
+  requestId: string;
+  method: string;
+  amount: string;
+  paidOn: string;
+  receiptNumber?: string;
+  note?: string;
+  ipHash?: string | null;
+};
+
+export async function recordOfflinePayment(
+  db: AppDb,
+  actor: PanelUser,
+  input: OfflinePaymentInput,
+  now: Date = new Date(),
+) {
+  assertCan(actor, "payments.record_offline");
+
+  if (!(OFFLINE_METHODS as readonly string[]).includes(input.method))
+    throw new OfflinePaymentError("invalid", "Please choose how the client paid.");
+  const method = input.method as OfflineMethod;
+  const amount = parsePesosToCentavos(input.amount);
+  if (amount === null || Number.isNaN(amount) || amount < 1 || amount > 10_000_000_000)
+    throw new OfflinePaymentError(
+      "invalid",
+      "Please enter the amount in pesos, like 5000 or 1250.50.",
+    );
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(now);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.paidOn) || input.paidOn > today)
+    throw new OfflinePaymentError(
+      "invalid",
+      "Please choose the date the client paid (not in the future).",
+    );
+  const receipt = (input.receiptNumber ?? "")
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toUpperCase()
+    .slice(0, 40);
+  const note = (input.note ?? "").trim().slice(0, 300);
+  if (!receipt && !note)
+    throw new OfflinePaymentError(
+      "invalid",
+      "Please add a receipt number or a note (for example who took the cash).",
+    );
+  if (method === "other" && !note)
+    throw new OfflinePaymentError(
+      "invalid",
+      'For "Other", please write in the note how the client paid.',
+    );
+
+  const result = await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
+    const [request] = await tx
+      .select({ id: requests.id, status: requests.status, trackingCode: requests.trackingCode })
+      .from(requests)
+      .where(eq(requests.id, input.requestId))
+      .for("update")
+      .limit(1);
+    if (!request) throw new OfflinePaymentError("not-found", "Request not found.");
+    if (!OFFLINE_OK_STATUSES.includes(request.status))
+      throw new OfflinePaymentError(
+        "wrong-status",
+        "A payment can only be recorded for a request that was sent and is not cancelled.",
+      );
+
+    const [row] = await tx
+      .insert(payments)
+      .values({
+        requestId: request.id,
+        paymentMethodId: null,
+        methodSnapshot: {
+          name: OFFLINE_METHOD_LABELS[method],
+          offline: true,
+          recordedByName: actor.fullName,
+        },
+        // Without a receipt number we make a short one, so every payment has a reference.
+        referenceNumber: receipt || `OFF${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
+        amountCentavos: amount,
+        paidOn: input.paidOn,
+        entryMethod: "offline",
+        status: "verified",
+        verifiedBy: actor.id,
+        verifiedAt: now,
+        offlineMethod: method,
+        recordedBy: actor.id,
+        note: note || null,
+      })
+      .returning({ id: payments.id });
+    await tx.insert(activityLog).values({
+      actorType: "admin",
+      actorId: actor.id,
+      action: "payment.recorded_offline",
+      entityType: "payment",
+      entityId: row.id,
+      details: {
+        requestId: request.id,
+        trackingCode: request.trackingCode,
+        method,
+        amountCentavos: amount,
+        paidOn: input.paidOn,
+        receiptNumber: receipt || null,
+        note: note || null,
+        recordedByRole: actor.role,
+      },
+      ipHash: input.ipHash ?? null,
+    });
+    return {
+      paymentId: row.id,
+      requestId: request.id,
+      status: request.status,
+      trackingCode: request.trackingCode,
+    };
+  });
+
+  // Mark the request as "Payment verified" when the rules allow it. From "submitted" or "waiting for client" the
+  // rules need one step in between (under review).
+  let status = result.status;
+  if (status === "submitted" || status === "waiting_for_client") {
+    await changeStatus(db, {
+      requestId: result.requestId,
+      to: "under_review",
+      actor: "admin",
+      adminId: actor.id,
+      ipHash: input.ipHash,
+    });
+    status = "under_review";
+  }
+  if (status === "under_review" || status === "payment_submitted") {
+    await changeStatus(db, {
+      requestId: result.requestId,
+      to: "payment_verified",
+      actor: "admin",
+      adminId: actor.id,
+      ipHash: input.ipHash,
+    });
+  }
+  return {
+    paymentId: result.paymentId,
+    requestId: result.requestId,
+    trackingCode: result.trackingCode,
+    amountCentavos: amount,
+    method,
+    byStaff: actor.role === "staff",
+  };
+}
+
+// Admin and owner only. For a wrong entry: the payment is marked "rejected" with the reason, and the log says who and why.
+// The status of the request is not changed (use "Change status" if needed).
+export async function voidOfflinePayment(
+  db: AppDb,
+  actor: PanelUser,
+  input: { paymentId: string; reason: string; ipHash?: string | null },
+) {
+  assertCan(actor, "payments.void");
+  const reason = input.reason.trim();
+  if (reason.length < 3 || reason.length > 300)
+    throw new OfflinePaymentError("invalid", "Please write why (3 to 300 characters).");
+  return db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
+    const [row] = await tx
+      .select()
+      .from(payments)
+      .where(eq(payments.id, input.paymentId))
+      .for("update")
+      .limit(1);
+    if (!row) throw new OfflinePaymentError("not-found", "Payment not found.");
+    if (row.entryMethod !== "offline" || row.status !== "verified")
+      throw new OfflinePaymentError(
+        "wrong-status",
+        "Only a recorded offline payment can be voided.",
+      );
+    await tx
+      .update(payments)
+      .set({ status: "rejected", rejectionReason: `Voided: ${reason}` })
+      .where(eq(payments.id, row.id));
+    await tx.insert(activityLog).values({
+      actorType: "admin",
+      actorId: actor.id,
+      action: "payment.voided",
+      entityType: "payment",
+      entityId: row.id,
+      details: {
+        requestId: row.requestId,
+        amountCentavos: row.amountCentavos,
+        reason,
+        recordedBy: row.recordedBy,
+      },
+      ipHash: input.ipHash ?? null,
+    });
+    return { requestId: row.requestId };
+  });
 }
 
 export async function rejectPayment(

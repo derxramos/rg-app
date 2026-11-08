@@ -57,6 +57,13 @@
       "when": 1794053850026,
       "tag": "0007_activity_purge_and_service_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794057450026,
+      "tag": "0008_offline_payments",
+      "breakpoints": true
     }
   ]
 }

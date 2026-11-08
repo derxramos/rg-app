@@ -1,11 +1,12 @@
 import "server-only";
 
 import { and, eq, sql } from "drizzle-orm";
+import type { z } from "zod";
 
 import { phoneLast4 } from "@/lib/phone";
 import { canChangeStatus, type RequestStatus, type StatusActor } from "@/lib/status";
 import { generateTrackingCode } from "@/lib/tracking-code";
-import type { RequestDetails } from "@/lib/validation/request";
+import { requestDetailsSchema, type RequestDetails } from "@/lib/validation/request";
 import { activityLog, requestStatusEvents, requests, services } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 import { hmacHex, newToken } from "@/server/security/tokens";
@@ -14,7 +15,8 @@ export const DRAFT_LIFETIME_DAYS = 7;
 
 export class RequestError extends Error {
   constructor(
-    public code: "service-not-found" | "not-found" | "status-not-allowed" | "code-collision",
+    public code:
+      "service-not-found" | "not-found" | "status-not-allowed" | "code-collision" | "not-draft",
     message: string,
   ) {
     super(message);
@@ -187,4 +189,37 @@ export async function getRequestWithService(db: AppDb, requestId: string) {
     .where(eq(requests.id, requestId))
     .limit(1);
   return row ?? null;
+}
+
+// "Your details" can be changed while the request is still a draft (the client went back with the step bar).
+// Only these four fields may change. The service, the email and the consent stay as they are.
+export const draftDetailsSchema = requestDetailsSchema.pick({
+  fullName: true,
+  phone: true,
+  businessName: true,
+  message: true,
+});
+
+export async function updateDraftDetails(
+  db: AppDb,
+  requestId: string,
+  details: z.output<typeof draftDetailsSchema>,
+) {
+  const updated = await db
+    .update(requests)
+    .set({
+      clientFullName: details.fullName,
+      clientPhone: details.phone,
+      clientPhoneLast4: phoneLast4(details.phone),
+      businessName: details.businessName || null,
+      clientMessage: details.message || null,
+    })
+    // The status check is here too, so a request that was sent in the meantime cannot be changed.
+    .where(and(eq(requests.id, requestId), eq(requests.status, "draft")))
+    .returning({ id: requests.id });
+  if (updated.length === 0)
+    throw new RequestError(
+      "not-draft",
+      "This request was already sent and can no longer be changed.",
+    );
 }

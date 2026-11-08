@@ -39,6 +39,7 @@ async function Receipt({
   return (
     <FlowFrame
       step={flowMode(access).afterSend ? undefined : 4}
+      requestId={flowMode(access).afterSend ? undefined : id}
       wide
       title="Your receipt"
       intro="Choose your receipt screenshot. We can read it for you, or you can type the values. The picture stays on your phone. We never upload it."

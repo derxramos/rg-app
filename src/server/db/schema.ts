@@ -43,7 +43,8 @@ export const requestStatus = pgEnum("request_status", [
   "cancelled",
 ]);
 export const paymentStatus = pgEnum("payment_status", ["pending", "verified", "rejected"]);
-export const paymentEntry = pgEnum("payment_entry", ["ocr", "ocr_edited", "manual"]);
+// "offline" = recorded by staff, admin or owner for a payment made outside the website (cash, bank transfer, other).
+export const paymentEntry = pgEnum("payment_entry", ["ocr", "ocr_edited", "manual", "offline"]);
 // The ONE role of every account (docs/AUTH_AND_ROLES.md): user = client, staff = employee,
 // admin = developer, owner = business owner. The rules for each role are in src/lib/permissions.ts.
 export const accountRole = pgEnum("account_role", ["user", "staff", "admin", "owner"]);
@@ -297,9 +298,10 @@ export const payments = pgTable(
     requestId: uuid("request_id")
       .notNull()
       .references(() => requests.id, { onDelete: "restrict" }),
-    paymentMethodId: uuid("payment_method_id")
-      .notNull()
-      .references(() => paymentMethods.id, { onDelete: "restrict" }),
+    // Empty only for an offline payment (cash and so on), which has no QR payment method.
+    paymentMethodId: uuid("payment_method_id").references(() => paymentMethods.id, {
+      onDelete: "restrict",
+    }),
     // Name, account name, account number and QR path at the moment of payment.
     methodSnapshot: jsonb("method_snapshot").notNull(),
     // Normalized: only letters and digits, no spaces.
@@ -314,6 +316,10 @@ export const payments = pgTable(
     verifiedBy: uuid("verified_by").references(() => profiles.id),
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
     rejectionReason: text("rejection_reason"),
+    // Offline payments only: cash | bank_transfer | other, who recorded it, and a note.
+    offlineMethod: text("offline_method"),
+    recordedBy: uuid("recorded_by").references(() => profiles.id),
+    note: text("note"),
     createdAt: createdAt(),
   },
   (t) => [
@@ -322,6 +328,14 @@ export const payments = pgTable(
     index("payments_request_idx").on(t.requestId),
     index("payments_status_created_idx").on(t.status, t.createdAt.desc()),
     check("payments_amount_positive", sql`${t.amountCentavos} > 0`),
+    check(
+      "payments_method_or_offline",
+      sql`${t.paymentMethodId} is not null or ${t.entryMethod}::text = 'offline'`,
+    ),
+    check(
+      "payments_offline_method_values",
+      sql`${t.offlineMethod} is null or ${t.offlineMethod} in ('cash', 'bank_transfer', 'other')`,
+    ),
   ],
 ).enableRLS();
 

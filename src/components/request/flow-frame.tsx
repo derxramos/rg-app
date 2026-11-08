@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 // wide=true is for the receipt step (900 px).
 export function FlowFrame({
   step,
+  requestId,
   title,
   intro,
   wide = false,
@@ -13,6 +14,8 @@ export function FlowFrame({
 }: {
   // Leave out for a visitor who came from the tracking page (no steps to show).
   step?: number;
+  // With the request id, the steps already passed become links (go back and change something).
+  requestId?: string;
   title: string;
   intro?: string;
   wide?: boolean;
@@ -25,7 +28,7 @@ export function FlowFrame({
         wide ? "max-w-[900px]" : "max-w-[640px]",
       )}
     >
-      {step ? <Stepper current={step} /> : null}
+      {step ? <Stepper current={step} requestId={requestId} /> : null}
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-primary-ink md:text-3xl">{title}</h1>
         {intro ? <p className="text-lg text-muted-foreground">{intro}</p> : null}

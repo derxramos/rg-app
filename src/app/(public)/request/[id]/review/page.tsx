@@ -50,6 +50,7 @@ async function Review({ params }: { params: PageProps<"/request/[id]/review">["p
   return (
     <FlowFrame
       step={5}
+      requestId={id}
       title="Check and send"
       intro="Please check your details. Then send your request."
     >
@@ -69,7 +70,7 @@ async function Review({ params }: { params: PageProps<"/request/[id]/review">["p
               label="Documents"
               value={
                 files.length === 0
-                  ? "None yet. We will ask you if we need some."
+                  ? "None uploaded. You can bring your documents to our office, or we will ask you for them."
                   : `${files.length} file${files.length === 1 ? "" : "s"}`
               }
             />
@@ -77,7 +78,12 @@ async function Review({ params }: { params: PageProps<"/request/[id]/review">["p
               label="Payment"
               value={
                 paid.length === 0 ? (
-                  <PaymentStateBadge state="not_paid" />
+                  <span className="flex flex-col gap-1">
+                    <PaymentStateBadge state="not_paid" />
+                    <span className="text-sm text-muted-foreground">
+                      You can pay later from the tracking page, or at our office.
+                    </span>
+                  </span>
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {paid.map((p) => (
@@ -100,7 +106,7 @@ async function Review({ params }: { params: PageProps<"/request/[id]/review">["p
       <div className="flex flex-wrap items-center gap-3">
         <SubmitRequestButton requestId={id} />
         <Link
-          href={`/request/${id}/documents`}
+          href={`/request/${id}/payment`}
           className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
         >
           <ArrowLeft aria-hidden="true" />

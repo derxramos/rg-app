@@ -132,6 +132,35 @@ export function paymentMethodChangedOwner(i: {
   };
 }
 
+// ---------- To the owner: a payment was recorded by hand ----------
+
+// Staff recorded a cash (or other offline) payment. The owners are told, so a mistake or a misuse is noticed.
+export function offlinePaymentRecordedOwner(i: {
+  who: string;
+  trackingCode: string;
+  amount: string;
+  method: string;
+  when: string;
+  adminUrl: string;
+}): Rendered {
+  const lines = [
+    `${i.who} recorded a payment made outside the website.`,
+    `Request: ${i.trackingCode}`,
+    `Amount: ${i.amount}`,
+    `How: ${i.method}`,
+    `When: ${i.when}`,
+    "If this is not right, open the request and void the payment (owner or admin).",
+  ];
+  return {
+    subject: `Payment recorded by ${oneLine(i.who)}: ${i.trackingCode}`,
+    text: `${lines.join("\n")}\nOpen the request: ${i.adminUrl}`,
+    html: layout(
+      "Payment recorded by hand",
+      lines.map(p).join("") + button(i.adminUrl, "Open the request"),
+    ),
+  };
+}
+
 // ---------- To a person whose account was changed ----------
 
 // A change made to somebody's account (role, turned off or on, 2-step login reset). The person is told who

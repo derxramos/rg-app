@@ -211,17 +211,20 @@ Every insert/update/delete writes an `activity_log` row with before and after va
 |---|---|---|
 | id | uuid PK | |
 | request_id | uuid FK → requests, restrict | |
-| payment_method_id | uuid FK → payment_methods, restrict | |
+| payment_method_id | uuid FK → payment_methods, restrict, **nullable** | Empty only for an offline payment (check `payments_method_or_offline`). Migration 0008. |
 | method_snapshot | jsonb | name, account name, account number, QR path **at the moment of payment** (helps if a QR swap happened) |
 | reference_number | text | normalized: only digits/letters, no spaces |
 | amount_centavos | bigint, > 0 | |
 | paid_on | date | date on the receipt (Asia/Manila) |
-| entry_method | payment_entry | `ocr`, `ocr_edited`, `manual` |
+| entry_method | payment_entry | `ocr`, `ocr_edited`, `manual`, `offline` (recorded by staff, admin or owner for cash and so on) |
 | ocr_raw_values | jsonb, nullable | what OCR first read, for comparing (text only, no image) |
 | status | payment_status, default `pending` | |
 | verified_by | uuid FK → profiles, nullable | |
 | verified_at | timestamptz, nullable | |
-| rejection_reason | text, nullable | |
+| rejection_reason | text, nullable | For a voided offline payment: "Voided: <reason>" |
+| offline_method | text, nullable | `cash`, `bank_transfer` or `other` (offline payments only) |
+| recorded_by | uuid FK → profiles, nullable | Who recorded the offline payment |
+| note | text, nullable | Offline payments only ("Other" must have one) |
 | created_at | timestamptz | |
 
 Indexes: **unique `(payment_method_id, reference_number)`**; `(request_id)`; `(status, created_at desc)`.

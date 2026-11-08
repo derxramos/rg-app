@@ -66,14 +66,15 @@ As a client, I want to upload my documents so that the business can process my r
 - [ ] Server rejects wrong real type (e.g. an .exe renamed to .jpg) with a clear message.
 - [ ] Client can remove a file they just uploaded (only while status is Draft).
 - [ ] Works on slow data: one file at a time, retry button on failure.
-- [ ] Client can continue even if not all checklist items have files (the admin will ask later).
+- [ ] Uploading is **optional**. The client can continue with no file at all (the page says they may bring the documents to the office). The admin will ask later for what is missing.
 
 ### P9 — Payment step (step 3, can be skipped)
 As a client, I want to see how to pay so that I can pay with my own app.
 - [ ] Shows active payment methods in admin's order: name, QR image, account name, number, instructions.
 - [ ] Each QR has a "Save QR image" button and the account number has a "Copy" button.
 - [ ] Clear warning: "Check that the account name is **[name]** before you pay."
-- [ ] "Skip for now — I will pay later" button. Client can pay later from the tracking page.
+- [ ] "Skip for now — I will pay later" button. Client can pay later from the tracking page, or pay at the office: staff, admin or owner then record the payment (see "Record a payment" in the admin side).
+- [ ] "Back to documents" button.
 
 ### P10 — Receipt OCR and confirm (step 4)
 As a client, I want the app to read my receipt so that I type less.
@@ -86,6 +87,7 @@ As a client, I want the app to read my receipt so that I type less.
 - [ ] Full details in OCR_PAYMENTS.md.
 
 ### P11 — Submit
+- [ ] Going back: the step bar links the steps already passed (Your details, Documents, Payment, Receipt). "Your details" opens an edit page for name, mobile number, business and message while the request is still a draft (service and email do not change). Phones get a "Go back to" link.
 - [ ] Shows a summary: service, contact details, number of files, payment values (or "Not paid yet").
 - [ ] Submit sets status to **Submitted** (or **Payment submitted** if a payment was added).
 - [ ] Client sees the tracking code again and a confirmation email is sent.

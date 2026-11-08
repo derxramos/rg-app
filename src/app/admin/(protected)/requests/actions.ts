@@ -6,12 +6,19 @@ import { REQUEST_STATUSES, type RequestStatus } from "@/lib/status";
 import { withPanel, type ActionResult } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { CLIENT_FILES_BUCKET, getStorage } from "@/server/storage/storage";
-import { emailContext, notifyClientUpdate, notifyPaymentVerified } from "@/server/email/notify";
+import {
+  emailContext,
+  notifyClientUpdate,
+  notifyOfflinePaymentRecorded,
+  notifyPaymentVerified,
+} from "@/server/email/notify";
 import { EMAIL_STATUSES, retryEmail } from "@/server/email/send";
 import {
   addNote,
   eraseClientData,
   adminChangeStatus,
+  recordOfflinePayment,
+  voidOfflinePayment,
   rejectPayment,
   verifyPayment,
 } from "@/server/services/admin-requests";
@@ -87,6 +94,53 @@ export async function verifyPaymentAction(
         return { ok: false, code: "invalid", message: "This payment was already checked." };
       throw error;
     }
+  });
+}
+
+// "Record a payment" for a client who paid in the office (cash, bank transfer, other). Staff may do it.
+export async function recordOfflinePaymentAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withPanel({ action: "payments.record_offline", formData }, async ({ admin, ipHash }) => {
+    const result = await recordOfflinePayment(getDb(), admin, {
+      requestId: text(formData, "requestId"),
+      method: text(formData, "method"),
+      amount: text(formData, "amount"),
+      paidOn: text(formData, "paidOn"),
+      receiptNumber: text(formData, "receiptNumber"),
+      note: text(formData, "note"),
+      ipHash,
+    });
+    // The client gets the "payment received" email. When STAFF recorded it, every owner is told too.
+    await notifyPaymentVerified(result.requestId);
+    if (result.byStaff) {
+      await notifyOfflinePaymentRecorded({
+        who: admin.fullName,
+        requestId: result.requestId,
+        trackingCode: result.trackingCode,
+        amountCentavos: result.amountCentavos,
+        method: result.method,
+      });
+    }
+    revalidatePath(`/admin/requests/${result.requestId}`);
+    return { ok: true, message: "The payment was recorded and the request is marked as paid." };
+  });
+}
+
+// Admin and owner only: undo a wrong offline payment (with a reason).
+export async function voidOfflinePaymentAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withPanel({ action: "payments.void", formData }, async ({ admin, ipHash }) => {
+    const { requestId } = await voidOfflinePayment(getDb(), admin, {
+      paymentId: text(formData, "paymentId"),
+      reason: text(formData, "reason"),
+      ipHash,
+    });
+    revalidatePath(`/admin/requests/${requestId}`);
+    return { ok: true, message: "The payment was voided." };
   });
 }
 

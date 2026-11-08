@@ -20,6 +20,8 @@ const EXPECTED: Record<Action, Role[]> = {
   "requests.retry_email": ["staff", "admin", "owner"],
   "requests.open_file": ["staff", "admin", "owner"],
   "payments.verify": ["admin", "owner"],
+  "payments.record_offline": ["staff", "admin", "owner"],
+  "payments.void": ["admin", "owner"],
   "requests.erase_client_data": ["admin", "owner"],
   "services.view": ["staff", "admin", "owner"],
   "services.create": ["staff", "admin", "owner"],
@@ -100,6 +102,7 @@ describe("can(): every role times every action", () => {
         "checklist.reorder",
         "activity.view",
         "security.self",
+        "payments.record_offline",
       ].sort(),
     );
   });

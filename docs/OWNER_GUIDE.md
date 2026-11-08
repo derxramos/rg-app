@@ -50,6 +50,16 @@ On a phone, use the bar at the bottom: Dashboard, Requests, Settings, Activity.
 
 If you cannot find it: write a short reason and tap **Reject payment**. The client sees your reason and can send a new receipt.
 
+### A client paid in the office (cash, bank transfer, other)
+
+Some clients choose "Skip for now. I will pay later" and pay at the office. Staff, admin and owner can record this:
+
+1. Open the request. At the bottom of **Payments** find **Record a payment (cash or other)**.
+2. Choose how the client paid, type the amount, check the date, and add the receipt (OR) number. If there is no receipt number, write a note (for "Other", the note is always needed).
+3. Tap **Record payment and mark as paid**. The request becomes **Payment verified** and the client gets the payment email.
+
+Every entry is saved with the name of the person. **When staff record a payment, every owner gets an email**, so a mistake is seen. Only admin and owner can **Void** a wrong entry (with a reason). Online QR payments can still be verified only by admin and owner.
+
 ### Notes and messages
 
 - **Yellow box with a lock** = internal note. Only staff see it.

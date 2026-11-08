@@ -1,4 +1,4 @@
-import { ArrowRight, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -46,6 +46,7 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
   return (
     <FlowFrame
       step={fromTracking ? undefined : 3}
+      requestId={fromTracking ? undefined : id}
       title="Pay with a QR code"
       intro="Scan a QR code in your own GCash, Maya or bank app. You pay in your app, not on this website. You can also pay later."
     >
@@ -154,8 +155,17 @@ async function Payment({ params }: { params: PageProps<"/request/[id]/payment">[
           {fromTracking ? "Back to my request" : "Skip for now. I will pay later"}
         </Link>
         <p className="text-sm text-muted-foreground">
-          You can pay later from the tracking page, with your tracking code.
+          You can pay later from the tracking page, with your tracking code, or at our office.
         </p>
+        {fromTracking ? null : (
+          <Link
+            href={`/request/${id}/documents`}
+            className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
+          >
+            <ArrowLeft aria-hidden="true" />
+            Back to documents
+          </Link>
+        )}
       </div>
     </FlowFrame>
   );
