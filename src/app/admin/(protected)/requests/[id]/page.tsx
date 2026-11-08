@@ -81,8 +81,8 @@ export default async function AdminRequestDetailPage({
         actions={<StatusBadge status={request.status} />}
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Client</CardTitle>

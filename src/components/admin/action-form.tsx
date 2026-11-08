@@ -80,7 +80,8 @@ export function ActionForm({
       ref={form}
       onSubmit={onSubmit}
       className={cn(
-        "flex flex-col gap-4",
+        // A form never gets wider than 720 px: long inputs are hard to read and to fill in.
+        "flex max-w-[720px] flex-col gap-4",
         inline && "sm:flex-row sm:flex-wrap sm:items-end",
         className,
       )}

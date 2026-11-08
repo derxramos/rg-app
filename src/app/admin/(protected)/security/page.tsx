@@ -66,44 +66,46 @@ export default async function SecurityPage() {
         </WarningBox>
       ) : null}
 
-      <section aria-labelledby="devices" className="flex flex-col gap-3">
-        <h2 id="devices" className="text-xl font-bold">
-          Your devices
-        </h2>
-        {devices.length === 0 ? (
-          <p className="text-base text-muted-foreground">No devices yet.</p>
-        ) : (
-          <DeviceList devices={devices} />
-        )}
-      </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Add a device</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {locked ? (
-            <ActionForm action={unlockDevicesAction} submitLabel="Unlock">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="unlock-code">
-                  Enter the 6-digit code from YOUR authenticator app to add or remove devices.
-                </Label>
-                <Input
-                  id="unlock-code"
-                  name="code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={7}
-                  className="max-w-48"
-                  required
-                />
-              </div>
-            </ActionForm>
+      <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+        <section aria-labelledby="devices" className="flex flex-col gap-3">
+          <h2 id="devices" className="text-xl font-bold">
+            Your devices
+          </h2>
+          {devices.length === 0 ? (
+            <p className="text-base text-muted-foreground">No devices yet.</p>
           ) : (
-            <MfaSetup verifiedCount={verifiedCount} mode="optional" />
+            <DeviceList devices={devices} />
           )}
-        </CardContent>
-      </Card>
+        </section>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Add a device</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {locked ? (
+              <ActionForm action={unlockDevicesAction} submitLabel="Unlock">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="unlock-code">
+                    Enter the 6-digit code from YOUR authenticator app to add or remove devices.
+                  </Label>
+                  <Input
+                    id="unlock-code"
+                    name="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={7}
+                    className="max-w-48"
+                    required
+                  />
+                </div>
+              </ActionForm>
+            ) : (
+              <MfaSetup verifiedCount={verifiedCount} mode="optional" />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

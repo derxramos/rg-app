@@ -54,7 +54,7 @@ export default async function FileSettingsPage() {
         title="File settings"
         intro="Limits for uploaded documents. The free storage is 1 GB, so these protect it."
       />
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         {rows.map((r) => (
           <Card key={r.key}>
             <CardHeader>

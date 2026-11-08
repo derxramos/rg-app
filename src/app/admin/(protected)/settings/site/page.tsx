@@ -31,7 +31,7 @@ export default async function SiteContentPage() {
         title="Site content"
         intro="What visitors read on the website. Changes show at once."
       />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Contact details</CardTitle>
@@ -133,7 +133,7 @@ export default async function SiteContentPage() {
             </ActionForm>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-2">
+        <Card className="xl:col-span-2">
           <CardHeader>
             <CardTitle>Privacy notice version</CardTitle>
           </CardHeader>
