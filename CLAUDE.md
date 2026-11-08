@@ -25,7 +25,7 @@ Target cost: **$0 per month.**
 | Validation | Zod (same schemas on client and server) |
 | Database | PostgreSQL on Supabase (free plan), pooled connection |
 | ORM | Drizzle ORM with the `postgres` driver (`prepare: false`) |
-| Login | Supabase Auth: email + password, verified email. Optional Google sign in for users (not admins). Roles `user` and `admin` in the `profiles` table. Admin TOTP 2FA is behind the server-only variable `ADMIN_REQUIRE_2FA` (only the word `false` turns it off) |
+| Login | Supabase Auth: email + password, verified email. Optional Google sign in for clients only. One role column in the `profiles` table: `user` (client), `staff`, `admin` (the developer), `owner`. Staff, admin and owner use TOTP 2FA with two devices, behind the server-only variable `ADMIN_REQUIRE_2FA` (only the word `false` turns it off) |
 | Files | Private Supabase Storage bucket, signed links for admin |
 | OCR | Tesseract.js 7 in the browser only |
 | Email | Brevo transactional REST API |
@@ -43,7 +43,7 @@ Exact versions and the date we checked them are in `docs/ARCHITECTURE.md` → "V
 2. **Update `PROGRESS.md`** at the end of every work session.
 3. **Never put secrets in code.** Every environment variable is listed in `.env.example` with a short comment.
 4. **Server checks everything.** Never trust values from the browser, including OCR values. Validate with Zod on the server.
-5. **Every server action and route checks access first.** Use `requireAdmin()`, `requireUser()` / `requireVerifiedUser()` or `requireRequestAccess()` before any read or write. A page check does not protect a Server Action. The role always comes from the `profiles` table, never from the browser. `ADMIN_REQUIRE_2FA=false` skips only the 2FA code step, never a role check. Details: `docs/AUTH_AND_ROLES.md`.
+5. **Every server action and route checks access first.** Use `requirePanel(action)` / `guardPanelPage(action)` / `withPanel({ action })` (admin area), `requireUser()` / `requireVerifiedUser()` or `requireRequestAccess()` before any read or write. The action name comes from the one role table in `src/lib/permissions.ts` (`can(role, action)`). Service functions check it again (`assertCan`), and the database has triggers and Row Level Security as a second layer. A page check does not protect a Server Action. The role always comes from the `profiles` table, never from the browser. `ADMIN_REQUIRE_2FA=false` skips only the 2FA code step, never a role check. Details: `docs/AUTH_AND_ROLES.md`.
 6. **No host-only features.** Do not use Vercel-only or Netlify-only features (forms, blobs, KV, cron, edge config). Reading Vercel's built-in environment variables for the site address is the one allowed exception. Use plain Node.js and Web APIs.
 7. **Do not invent government requirements or fees.** Service checklists start empty. The owner fills them in.
 8. **Do not use government agency logos.** Text names only (SSS, Pag-IBIG, PhilHealth, BIR, etc.).
@@ -95,7 +95,8 @@ pnpm lint && pnpm typecheck
 - `docs/DATABASE.md` — tables, fields, indexes, access rules
 - `docs/FEATURES.md` — user stories with acceptance checks
 - `docs/SECURITY_AND_PRIVACY.md` — threats and fixes, Data Privacy Act basics
-- `docs/AUTH_AND_ROLES.md` — accounts, roles, guards, Supabase sign-in setup, first admin, manual test list
+- `docs/AUTH_AND_ROLES.md` — accounts, roles and the role-by-action table, guards, Supabase sign-in setup, migrations, 2-step login, manual test list
+- `docs/RECOVERY.md` — a lost authenticator: backup device, reset by another person, last resort in Supabase; recovery for clients
 - `docs/GOOGLE_SIGN_IN_SETUP.md` — beginner guide: turn on "Continue with Google" (Google Cloud + Supabase)
 - `docs/OCR_PAYMENTS.md` — receipt OCR and parser design, tests, edge cases
 - `docs/PHASES.md` — build order and "done when" checks

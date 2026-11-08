@@ -18,7 +18,7 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 
 | Item | Status | Proof |
 |---|---|---|
-| Only the **owner** role can edit payment methods | ✅ | Unit: `admin-services.test.ts` (staff refused on every payment method action); source test `admin-actions-guard.test.ts` |
+| Only **admin and owner** can edit payment methods (staff cannot) | ✅ | Unit: `admin-services.test.ts` (staff refused on every payment method action); source test `admin-actions-guard.test.ts` |
 | Changing the QR, account name or account number needs a **fresh 2FA code** (last 5 minutes) | ✅ | Unit: `admin-services.test.ts`, `admin-auth.test.ts` (cookie rules). E2E: `admin.spec.ts` (wrong code refused, right code saves). Real authenticator app: 🟡 |
 | Every change is logged with before and after | ✅ | Unit: app row `payment_method.qr_changed` and the database trigger row `payment_method.row_changed`, with the admin id. E2E: both rows appear on the activity page |
 | **Alert email to the owner** | 🟡 | Template and sending are unit tested with a fake Brevo. A real email was not sent |
@@ -33,7 +33,7 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 | Item | Status | Proof |
 |---|---|---|
 | Bucket is **private** | 🟡 | `pnpm storage:setup` creates it private. ⬜ Open the Supabase dashboard and check that `client-files` is **not** public |
-| Only the server reads files. Admin gets a **60 second signed link** after `requireAdmin()` | ✅ | Unit: `getFileLink` asks for 60 seconds. E2E: dev route needs an admin. Real signed links: 🟡 |
+| Only the server reads files. Admin gets a **60 second signed link** after `requirePanel()` | ✅ | Unit: `getFileLink` asks for 60 seconds. E2E: dev route needs an admin. Real signed links: 🟡 |
 | Each file open is logged | ✅ | Unit: `admin-services.test.ts` (`file.opened`) |
 | Tracking page never shows files or file names | ✅ | Unit: `tracking.test.ts` (the view has exactly 8 fields, no file names). E2E: `tracking.spec.ts` checks the page HTML |
 | File paths use random ids | ✅ | Unit: `files.test.ts` (path pattern, original name not in the path) |
@@ -84,7 +84,7 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 | **2-step login is ON on the live site** | ⬜ | Set `ADMIN_REQUIRE_2FA=true` (or remove it) in Vercel, then test the admin login |
 | Login rate limit and log of all logins | ✅ | Code in `(auth)/actions.ts` (5 per 15 minutes, logged). Real login: 🟡 |
 | Fresh 2FA for the riskiest actions | ✅ | See T1. Also for admin users and "delete client data" |
-| Owner can turn off a staff account at once | ✅ | Unit: an inactive profile is refused on the next request |
+| Owner or admin can turn off an account at once (also signed out everywhere and banned at Supabase) | ✅ | Unit: an inactive profile is refused on the next request |
 | Backup TOTP device | 🟡 | Screen built ("Add a backup device"). Needs the real Supabase |
 | Short admin session (for example 8 hours) | ⬜ | A Supabase setting. **Session time limits are a paid-plan feature**, so on the free plan the session follows Supabase's default |
 
@@ -94,7 +94,7 @@ Every item from `docs/SECURITY_AND_PRIVACY.md`, with its status and the proof. C
 |---|---|---|
 | OCR only helps, admin must check the real account | ✅ | E2E: the strong warning is shown above Verify |
 | Admin must tick "I found this payment in our account" | ✅ | Unit and E2E |
-| **Only the owner** can verify or reject a payment (staff cannot) | ✅ | Unit: `admin-services.test.ts` (staff get `wrong-role`) |
+| **Only admin and owner** can verify or reject a payment (staff cannot; also refused by a database trigger) | ✅ | Unit: `admin-services.test.ts` (staff get `wrong-role`) |
 | Reference unique per payment method | ✅ | Unit: `db-migrations.test.ts`, `payments.test.ts`. E2E: clear message |
 | Entry method and first OCR values saved | ✅ | Unit and E2E (admin sees "OCR first read") |
 

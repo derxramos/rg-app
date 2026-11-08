@@ -92,7 +92,7 @@ Prisma is also a good tool, but it adds more moving parts for no benefit in this
     │   └─ parsers/              gcash.ts, maya.ts, bdo.ts, index.ts, types.ts
     ├─ server/                   server-only code ("server-only" import)
     │   ├─ db/                   schema.ts, client.ts
-    │   ├─ auth/                 requireAdmin.ts, requireRequestAccess.ts
+    │   ├─ auth/                 panel.ts (requirePanel), requireRequestAccess.ts
     │   ├─ services/             requests.ts, payments.ts, files.ts, settings.ts
     │   ├─ storage/              supabase-storage.ts (one small wrapper)
     │   ├─ email/                brevo.ts, templates/
@@ -136,12 +136,13 @@ GitHub Actions ──► scripts/*.ts ──► Supabase (direct, with secret ke
 Full detail: `docs/AUTH_AND_ROLES.md`. Short version:
 
 - **Supabase Auth**, email + password, **one** sign-in page (`/login`) for users and admins. Sign-up is on and **email verification is required**. Password rule: 12 to 72 characters, not the email, not a common password (`src/lib/validation/auth.ts`).
-- **Two roles** in the `profiles` table: `user` (default, set by a database trigger) and `admin`. Nobody can change their own role. Admins also have an `admin_profiles` row (`owner` or `staff`, on/off).
-- **Access is checked in three places:** (1) `src/proxy.ts` (early redirect to `/login?next=...`, `Cache-Control: no-store`), (2) every page, Server Action and Route Handler, (3) database Row Level Security. The proxy is **not** the real check.
-- The guards, all in `src/server/auth/`: `requireUser()`, `requireVerifiedUser()` (`session.ts`), `requireAdmin()` (`admin.ts`), `requireRequestAccess()` (`request-access.ts`). They read the login with Supabase `getClaims()` / `getUser()` on the server, never from a cookie value alone.
-- `requireAdmin({ roles })` checks: a valid session, **2FA level (only while `ADMIN_REQUIRE_2FA` is not "false")**, an active `admin_profiles` row, `profiles.role = 'admin'`, then the needed owner/staff level.
+- **One role column** in the `profiles` table: `user` (default, set by a database trigger), `staff`, `admin`, `owner`. Nobody can change their own role. There is no separate admin table. Who may do what is one table in `src/lib/permissions.ts` (`can(role, action)`), shown in `docs/AUTH_AND_ROLES.md`.
+- **Access is checked in four places:** (1) `src/proxy.ts` (early redirect to `/login?next=...`, `Cache-Control: no-store`), (2) every page, Server Action and Route Handler, (3) every service function (`assertCan`), (4) the database (Row Level Security with `private.can()`, and triggers that know the acting person through `app.actor_id`). The proxy is **not** the real check. Hiding a menu item is not security.
+- The guards, all in `src/server/auth/`: `requireUser()`, `requireVerifiedUser()` (`session.ts`), `requirePanel(action)`, `guardPanelPage(action)`, `withPanel({ action })` (`panel.ts`), `requireRequestAccess()` (`request-access.ts`). They read the login with Supabase `getClaims()` / `getUser()` on the server, never from a cookie value alone.
+- `requirePanel(action)` checks: a valid session, **2FA level (only while `ADMIN_REQUIRE_2FA` is not "false")**, the account is on, the role is staff, admin or owner, no temporary password, no pending 2-step reset, the session is not older than a "sign out everywhere", then `can(role, action)`. A refused role is written to the activity log (`access.denied`).
 - **Admin 2FA (TOTP)** is behind the server-only variable `ADMIN_REQUIRE_2FA`. Only the exact word `false` turns it off; anything else means required. While it is off, a red banner shows on every admin page and the server log warns at start. It skips **only** the 2FA code check; all other checks still run.
-- **Fresh 2FA for risky actions:** changing a payment QR, account number, or admin users needs a new 6-digit code typed in the last 5 minutes (not asked while 2FA is off).
+- **Fresh confirm for risky actions:** changing a payment QR, account number, accounts, or deleting client data needs a confirm typed in the last 5 minutes: the 6-digit code of the person doing it (any of their devices), or their own password when they have no authenticator yet. It is asked even while 2FA is off.
+- **Two authenticator devices** per staff, admin and owner (an app and a backup), a Security page, and "Reset 2-step login" by another person: see `docs/AUTH_AND_ROLES.md` section 8 and `docs/RECOVERY.md`.
 - Pages for users read their data through `withUserRls()`: one transaction with `set local role authenticated` and the user's id, so the database filters the rows as well.
 - Sign out is a plain `<form method="post" action="/auth/sign-out">` with a full page redirect, so the Back button cannot show private pages.
 
@@ -181,7 +182,7 @@ Another signed-in user gets the same answer as for a request that does not exist
 ```
 
 - Why through our server: so the server can check the real type before the file is saved. A 3 MB file fits inside the request size limits of Vercel (about 4.5 MB for a function request body) and other hosts.
-- **Admin opens a file:** the server checks `requireAdmin()`, writes an `activity_log` row ("file opened"), and returns a **signed link that works for 60 seconds**.
+- **Admin opens a file:** the server checks `requirePanel("requests.open_file")`, writes an `activity_log` row ("file opened"), and returns a **signed link that works for 60 seconds**.
 - Clients cannot open or download files after upload. They see only the file name and size in the flow.
 
 ---

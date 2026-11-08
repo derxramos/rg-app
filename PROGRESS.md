@@ -44,7 +44,7 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - [x] Phase 3 — Staff menu and page guards (the browser checks for staff come in phase 7)
 - [x] Phase 4 — Accounts table and role dialog (the Reset 2-step login menu item is a disabled placeholder until phase 5)
 - [x] Phase 5 — Backup device and reset by another person (the real Supabase calls are NOT run here: unit tests use fakes, see the report)
-- [ ] Phase 6 — RECOVERY.md and docs
+- [x] Phase 6 — RECOVERY.md and docs
 - [ ] Phase 7 — Final tests, lint, build
 
 ### Phase 2 report (2026-11-08)
@@ -87,6 +87,13 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - **Found while building:** a helper exported from a "use server" file would have become a public endpoint. The device log writer is in its own file (`src/server/auth/device-log.ts`), and a test pins the exported functions of that file.
 - **NOT verified here (needs a Supabase project):** the real enroll, verify, unenroll and `admin.mfa.deleteFactor` calls, and what Supabase does to sessions. The rules are proven with fakes (`tests/unit/mfa-devices.test.ts`, `accounts-reset.test.ts`). Please run the manual checks in docs/AUTH_AND_ROLES.md on a TEST project.
 - Tests: 745 unit tests pass (new: devices, reset, emails to all owners). Browser tests for the Security page and the reset dialog pass on phone and desktop (local database; the test account has the role **staff**, local only). Lint, type check and build pass.
+
+### Phase 6 report (2026-11-08)
+- **New:** `docs/RECOVERY.md` (layer 1 backup device, layer 2 reset by another person, layer 3 last resort in the Supabase dashboard with exact steps, who may do it, how to confirm the person by phone or in person, and recovery for clients).
+- **Rewritten:** `docs/AUTH_AND_ROLES.md` (the four roles, the full role-by-action table, where access is checked, the migration steps and how old accounts are mapped, the fresh confirm, 2-step login with two devices, the long manual test list including every check you asked for).
+- **Updated:** CLAUDE.md (rule 5, the stack row, the docs list; the git rules were done in phase 0), `docs/DATABASE.md` (one role column, `private.can`, the actor triggers, the removed `admin_profiles` table), `docs/FEATURES.md`, `docs/SECURITY_AND_PRIVACY.md` (T6, T13, new T14), `docs/SECURITY_CHECKLIST.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN_HANDOFF.md` (accounts table, Actions menu, role dialog, reset dialog, Security page, two-step setup, not-allowed page, staff menu), `docs/OWNER_GUIDE.md` (roles, lost phone).
+- **`.env.example`:** no new variable was needed. `ADMIN_REQUIRE_2FA` stays as it was, and the red banner and the "Before launch" item above stay.
+- `docs/PHASES.md` is the old build plan and still names `requireAdmin()` in its history. I left it as it was.
 
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.

@@ -23,7 +23,7 @@ Fixes:
 ### T2 — Someone opens client files without permission
 Fixes:
 - Bucket is **private**. No public URLs.
-- Only the server (secret key) can read files. Admin gets a **signed link that works 60 seconds**, after `requireAdmin()`.
+- Only the server (secret key) can read files. Staff, admin and owner get a **signed link that works 60 seconds**, after `requirePanel("requests.open_file")`.
 - Each file open is logged.
 - Tracking page never shows files or file names.
 - File paths use random ids, so they cannot be guessed.
@@ -60,12 +60,16 @@ Fixes:
 ### T6 — Admin account takeover
 Fixes:
 - Strong password (12+ chars), required TOTP 2FA, sessions at AAL2 for all admin pages.
-- Admins are made only by an owner ("Make admin" or invite). A new sign-up is always a normal user.
+- Staff, admin and owner accounts are made only by an owner or an admin (Invite). A new sign-up is always a normal user (role `user`).
+- **Least power:** staff can use only Requests, Services and checklists (words only), and Activity (read only). They cannot verify a payment, change a fee, hide or delete anything, see the Dashboard, Payment methods, Site content, File settings, Admin users or Export, and cannot create accounts. This is checked in the page, the Server Action or route, the service function, and the database (triggers and Row Level Security). A try to open a hidden address is written to the activity log (`access.denied`).
+- Nobody can change, turn off or reset their own account. There is always at least one active owner. Only an owner can change an owner (an admin may only reset an owner's 2-step login, and then every owner gets an email).
 - The 2-step login can be switched off for now with `ADMIN_REQUIRE_2FA=false`. This is shown by a red banner on every admin page and a log warning, and must be switched on before real clients use the site (PROGRESS.md "Before launch"). Role checks and database rules stay on either way.
 - Login rate limit and log of all logins.
-- Fresh 2FA code for the most risky actions (payment methods, admin users).
-- Owner can turn off a staff account at once.
-- Backup TOTP device instead of recovery codes (Supabase does not give recovery codes).
+- **Fresh confirm** for the most risky actions (payment methods, accounts, deleting client data): the 6-digit code of the person doing the action (any of their devices), or their own password if they have no authenticator yet. It is asked even while `ADMIN_REQUIRE_2FA` is "false". 5 wrong tries per 15 minutes.
+- Owner or admin can turn an account off at once: the person is signed out everywhere and cannot sign in (also blocked at Supabase).
+- **Lost phone, without making 2-step login useless:** a backup device is required at setup (two devices); removing a device needs a code from another device and the last device can never be removed; an owner or admin can reset another person's 2-step login (their own confirm, the other person's email typed, everything logged, the person and, for an owner, every owner emailed); the last resort is the developer in the Supabase dashboard after confirming the person by phone or in person (`docs/RECOVERY.md`). **No email code, PIN or recovery code can skip 2-step login.**
+- The Supabase secret key is used only on the server (to remove another person's devices, turn a login off, invite). It is never in the browser.
+- A device can only be added at the higher login level (after a code), so a stolen password alone cannot add an attacker's device.
 - Short admin session (for example 8 hours, then log in again).
 
 ### T11 — Account takeover (a client account)
@@ -83,12 +87,19 @@ Fixes:
 - Files are in a private bucket under `users/{userId}/requests/{requestId}/`; the browser never gets a file link; storage rules match the folder.
 - Private columns (draft token, storage paths, internal notes) are hidden from the user role by column rights.
 
-### T13 — A user makes themselves an admin
+### T13 — A user makes themselves staff, admin or owner
 Fixes:
 - The user role has no right to write the role column, a trigger refuses any role change that does not come from our server or the database owner, and the profile form has no role field.
-- `requireAdmin` needs BOTH `profiles.role = 'admin'` and an active `admin_profiles` row.
-- Only an owner can make or remove an admin (fresh 2FA while 2FA is on); each change is logged.
-- Tests: `tests/unit/accounts-rls.test.ts`, `tests/unit/admin-roles.test.ts`.
+- The role is one column in `profiles`, read from the database on every admin request. A turned-off account is refused at once.
+- Only an owner or an admin can change a role (only an owner can make or change an owner); nobody changes their own; each change needs a fresh confirm and is logged and emailed. The database also refuses a role change by staff, by anyone on their own account, and by an admin on an owner (`profiles_guard_changes`).
+- Tests: `tests/unit/accounts-rls.test.ts`, `roles-db.test.ts`, `accounts.test.ts`.
+
+### T14 — Staff do more than they should
+Fixes:
+- One permission table (`src/lib/permissions.ts`) used by menus, pages, actions and services, mirrored in SQL (`private.role_can`) and compared cell by cell in a test.
+- Staff cannot verify or reject a payment, change a fee, hide, show or reorder a service, choose payment QR codes, delete anything, create accounts, or open Payment methods, Site content, File settings, Admin users, Export or the Dashboard. The database triggers refuse the write side even if the code forgot a check.
+- Staff opening a client document is allowed, and every open is logged (`file.opened`).
+- Tests: `src/lib/permissions.test.ts`, `tests/unit/admin-services.test.ts`, `roles-db.test.ts`, `admin-actions-guard.test.ts`.
 
 ### T7 — Fake payment receipts
 Fixes:

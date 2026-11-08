@@ -148,9 +148,10 @@ As a client, I want an account so I can send requests and follow them.
 ## Admin side
 
 ### A1 — Login with 2FA
-As an admin, I want a safe login so that only we can see client data.
-- [ ] Email + password on the shared `/login` page (users and admins). Admins are made by an owner ("Make admin" or invite), never by sign-up.
-- [ ] While `ADMIN_REQUIRE_2FA` is "false": password only, and a red banner shows on every admin page. Otherwise: after password, asks for 6-digit TOTP code. First login forces 2FA setup (QR code for the authenticator app) and asks to add a backup device.
+As staff, admin or owner, I want a safe login so that only we can see client data.
+- [ ] Email + password on the shared `/login` page. Staff, admin and owner accounts are made by an owner or admin (Invite), never by sign-up.
+- [ ] While `ADMIN_REQUIRE_2FA` is "false": password only, and a red banner shows on every admin page. Otherwise: after password, asks for 6-digit TOTP code (from any of my devices). First login (and the first login after a reset) forces two steps: an authenticator app, then a backup device. The admin area stays closed until both exist.
+- [ ] Staff land on Requests. Owner and admin land on the Dashboard. The header shows Owner, Admin or Staff.
 - [ ] 5 wrong logins from one IP in 15 min → slowed down/blocked for 15 min.
 - [ ] Login success and failure are logged.
 - [ ] Inactive admins cannot log in.
@@ -176,14 +177,14 @@ As an admin, I want a safe login so that only we can see client data.
 - [ ] Internal notes (staff only) and client messages (shown on tracking + emailed).
 - [ ] Change status: only allowed next statuses are offered. Optional message to client.
 
-### A5 — Mark payment verified
-- [ ] Button on each pending payment.
+### A5 — Mark payment verified (admin and owner; not staff)
+- [ ] Button on each pending payment. Staff do not see it, and the server and the database refuse it for staff.
 - [ ] A clear box above it: "**Check this payment in your own GCash / Maya / BDO app first.** The values here were typed or read by OCR from the client's screenshot. They can be wrong or fake."
 - [ ] Admin must tick "I found this payment in our account" before the button works.
 - [ ] Reject option with a reason (client sees a simple message).
 - [ ] Both actions are logged.
 
-### A6 — Settings: payment methods (owner only)
+### A6 — Settings: payment methods (admin and owner)
 - [ ] List, add, edit, turn on/off, reorder, delete (delete only if no payments use it; otherwise turn off).
 - [ ] Fields: name, parser (GCash/Maya/BDO/none), QR image, account name, number, instructions.
 - [ ] Changing QR image, account name, or account number needs a fresh 2FA code.
@@ -191,32 +192,44 @@ As an admin, I want a safe login so that only we can see client data.
 - [ ] Preview of how the client will see it.
 
 ### A7 — Settings: services and checklists
-- [ ] Add, edit, turn on/off, reorder services.
-- [ ] Add, edit, delete, reorder checklist items per service.
+- [ ] Staff, admin and owner: add a service, edit names and descriptions, add, edit and move checklist items. A service added by staff starts hidden and with no fee.
+- [ ] Admin and owner only: change the fee, turn on/off, reorder services, choose the payment QR codes, delete a checklist item.
+- [ ] Staff see a staff menu with Services opening this page directly (no Settings page).
 - [ ] New services start with an empty checklist.
 - [ ] Public pages update after saving.
 
-### A8 — Settings: site content
+### A8 — Settings: site content (admin and owner)
 - [ ] Contact details, business hours, Messenger and Viber links, home page texts, privacy notice text and version.
 - [ ] File settings: retention days, max files per request, max file size, storage warning %.
 - [ ] Every change logged.
 
-### A9 — Admin users (also: Make admin, Remove admin)
-- [ ] Owner only, fresh 2FA code (while 2FA is on). "Make admin" turns an existing account into an admin (staff or owner). "Remove admin" turns the person back into a normal user. Both are logged as `role.changed`. The last active owner can never be removed.
+### A9 — Roles and permissions
+- [ ] Four roles in one column: `user`, `staff`, `admin`, `owner`. One table of who may do what (`src/lib/permissions.ts`, shown in `docs/AUTH_AND_ROLES.md`).
+- [ ] Staff may use only Requests (view, change status, add notes, view client documents, every document open is logged), Services and checklists (names, descriptions and checklist words; no fee, no hide, no delete) and Activity (view only). Staff may not verify a payment.
+- [ ] A staff member who opens a hidden address sees "Not allowed", and the try is written to the activity log.
+- [ ] Nobody can change, turn off or reset their own account. There is always one active owner. Only an owner can invite, promote, demote or turn off an owner.
 
-### A9a — Admin users (invite) (owner only)
-- [ ] Invite staff by email, set role, turn off access.
-- [ ] Cannot turn off the last active owner.
-- [ ] Needs a fresh 2FA code.
+### A9a — Admin users: the table (owner and admin)
+- [ ] A table: Name, Email, Role, Status (Active, Turned off, Invited with temporary password, Email not verified), 2-step login (On or Off for staff, admin, owner), Joined, Actions. Cards on a phone.
+- [ ] Search by name or email, filter by role and status, rows per page 10, 25 or 50. Page, search and filters are in the web address and run on the server.
+- [ ] Invite button: staff or admin (owner only when an owner invites), by email or with a temporary password.
+- [ ] Actions menu: Change role, Reset 2-step login, Turn account off or on, Resend invite. No delete.
+- [ ] Change role is one dialog with one confirm: the code of the person making the change.
+- [ ] Every role change, turn off and reset is written to the activity log (who, whom, old and new value, time) and the affected person gets an email.
+
+### A9b — Security page and recovery (every staff, admin and owner)
+- [ ] My devices: name and date added. Add a backup device. Remove a device only with a code from another device. The last device can never be removed.
+- [ ] Reset 2-step login for another person (owner and admin, also on each other): confirm with my own code and type the other person's email. Removes their devices, signs them out everywhere, logs it, emails them (and every owner, for an owner). They must set up two new devices at the next sign in.
+- [ ] Last resort: `docs/RECOVERY.md`.
 
 ### A10 — Activity log
-- [ ] List of actions with who, what, when. Filters: action type, admin, date.
+- [ ] List of actions with who, what, when. Filters: action type, person, date. Staff may view it (read only). It includes refused tries (`access.denied`).
 - [ ] Payment method changes are highlighted.
 - [ ] Read-only. Nobody can edit or delete entries from the app.
 
 ### A11 — CSV export
 - [ ] Export requests and payments as CSV, with date range.
-- [ ] Owner only (staff if the owner allows — open question).
+- [ ] Owner and admin only. Staff cannot export.
 - [ ] Each export is logged.
 - [ ] CSV is safe against "formula injection" (values starting with `=`, `+`, `-`, `@` are escaped).
 - [ ] Reminder text on dashboard: "Export a backup every week."

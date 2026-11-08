@@ -12,7 +12,7 @@ For the owner and staff of RG'S Bookkeeping and Accounting Services. Plain words
 2. Type your **email** and **password**.
 3. Open your **authenticator app** on your phone and type the **6-digit code**.
 
-**The first time:** the site shows a picture (a QR code). Scan it with an authenticator app (Google Authenticator or Microsoft Authenticator). Type the first code to finish. Then add a **second device** as a backup. If you lose your only phone, you cannot log in, and there are no recovery codes.
+**The first time:** the site shows a picture (a QR code). Scan it with an authenticator app (Google Authenticator or Microsoft Authenticator). Type the first code. Then the site asks for a **second device as a backup** (step 2 of 2). You must do both before you can use the admin area. You can scan the same QR code on two phones. If you lose your only phone, there is no recovery code, so the backup device matters. Manage your devices any time on the **Security** page (the Security link at the top).
 
 **Five wrong passwords** from one place block that place for 15 minutes.
 
@@ -69,18 +69,28 @@ On the tracking page a client sees only: the service, the status, a timeline, **
 
 ## 4. Settings
 
-### Services and checklists (owner and staff)
+### Roles: who can do what
 
-- Add a service. A new service starts with an **empty checklist**.
+| Role | Who | What they can use |
+|---|---|---|
+| **Owner** | You | Everything |
+| **Admin** | The developer | Everything an owner can do, except changing an owner account |
+| **Staff** | An employee | Only **Requests** (change status, notes, open client documents), **Services and checklists** (words only) and **Activity** (read only) |
+
+Staff **cannot**: verify a payment, change a fee, hide or delete a service, delete anything, see the Dashboard, Payment methods, Site content, File settings, Admin users or Export, or make accounts. If staff try to open a page that is not for them, they see "Not allowed" and the try is written in the Activity page. Staff see a smaller menu: Requests, Services, Activity.
+
+### Services and checklists (owner, admin and staff)
+
+- Add a service. A service added by **staff** starts hidden and with no fee. An owner or admin sets the fee and shows it. A new service starts with an **empty checklist**.
 - Add only the documents you are **sure** about. Clients read them. If the list is empty, clients see "Please contact us for the list of requirements."
 - Do not write fees or government rules you are not sure about.
 - Changes show on the website at once.
 
-### Site content (owner and staff)
+### Site content (owner and admin)
 
 Phone, email, address, hours, the **Messenger** and **Viber** links, and the home page text. An empty link hides its button. Links must start with `https://`.
 
-### Payment methods (owner only)
+### Payment methods (owner and admin)
 
 - Clients see the **active** methods in the order you set.
 - **Be very careful here.** A wrong QR code or account number sends clients' money to the wrong place.
@@ -88,13 +98,20 @@ Phone, email, address, hours, the **Messenger** and **Viber** links, and the hom
 - You cannot delete a method that was used for a payment. Turn it off instead.
 - The first methods shipped with the app are marked **SAMPLE, not real**. Replace them before you turn them on.
 
-### File settings (owner only)
+### File settings (owner and admin)
 
 How many days files are kept after a request is Completed or Cancelled (start: 30), the most files per request (15), the biggest file (3 MB), and the storage warning (80 percent).
 
-### Admin users (owner only)
+### Admin users (owner and admin)
 
-Invite staff by email, change a role, or turn an account off. Each change needs a fresh code. There must always be at least one active owner.
+A table of every account. Search by name or email, filter by role and status, choose how many rows per page.
+
+- **Invite** a person as staff or admin (only an owner can invite an owner). By email, or with a temporary password that the person must change at the first sign in.
+- **Actions** on a row: **Change role**, **Reset 2-step login**, **Turn account off or on**, **Resend invite**. There is no delete.
+- Every change needs **your own** code from your authenticator app. The person gets an email, and the change is in the Activity page.
+- You cannot change, turn off or reset your own account. There is always at least one active owner. Only an owner can change an owner.
+
+**A colleague lost their phone?** First make sure it is really them (call them). Then use **Reset 2-step login** on their row. Type their email to confirm. They are signed out everywhere and must set up a new app and a backup device. If the colleague is an owner, every owner gets an email.
 
 ---
 
@@ -125,7 +142,7 @@ Open the request. Use **Delete client data (privacy request)**. Type **DELETE** 
 | What you see | What to do |
 |---|---|
 | **A payment method changed and you did not do it** | Turn off that method. Check the activity log for who. Turn off that account. Change the password. Tell the developer. Think about which clients paid since the change |
-| **You lost your phone (the authenticator)** | Use your backup device. If you have none, ask the developer to reset your 2FA in Supabase |
+| **You lost your phone (the authenticator)** | Use your backup device, then add a new device on the **Security** page. If you have none, ask another owner or the admin to **Reset 2-step login** for you. If nobody can, the developer can do it in Supabase (see docs/RECOVERY.md) after calling you to check it is really you |
 | **A cleanup or keep-alive job says "check the job"** | Open GitHub > Actions > Scheduled jobs > Run workflow. If it fails, send the error to the developer |
 | **Storage is red** | Lower the days files are kept, or ask the developer to clean up. New uploads stop at 95 percent |
 | **The site says it cannot send emails** | Clients and you can still use Messenger and Viber. Tell the developer |

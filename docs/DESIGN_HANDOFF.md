@@ -128,7 +128,15 @@ Night rules (tested in `tests/unit/hero-palette.test.ts`): every shape is at lea
 | A11 | Edit service + checklist | `/admin/settings/services/[id]` | service form, checklist items add/edit/reorder/delete, empty checklist state |
 | A12 | Site content | `/admin/settings/site` | contact, hours, social links, home texts, privacy notice |
 | A13 | File settings | `/admin/settings/files` | retention days, max files, max size, warning % |
-| A14 | Admin users | `/admin/settings/users` | list, invite dialog, role, turn off, "last owner" blocked state |
+| A14 | Admin users (accounts table) | `/admin/settings/users` | table from 768 px (Name, Email, Role, Status, 2-step login, Joined, Actions), stacked cards on a phone; toolbar (search, role filter, status filter, rows per page 10, 25, 50); pagination "Page X of Y" with Previous and Next; empty state "No accounts found"; Invite button above the table |
+| A14a | Actions menu | (menu on each row) | Change role, Reset 2-step login, Turn account off or on, Resend invite. Never a delete. A row you may not touch shows "–"; your own row has no menu |
+| A14b | Change role dialog | (dialog on A14) | ONE role dropdown, ONE confirm: "Enter the 6-digit code from YOUR authenticator app." (or the password field when the person has no authenticator yet). Says the person gets an email |
+| A14c | Reset 2-step login dialog | (dialog on A14) | Explains what happens (devices removed, signed out everywhere, new device and backup needed, email; "and so does every owner" for an owner), the confirm field, and a field to type the person's email; red "Reset 2-step login" button |
+| A14d | Turn off or on dialog, Resend invite dialog, Invite dialog | (dialogs on A14) | Same confirm. Invite: name, email, role (Staff, Admin, Owner only for an owner), method (email invitation or temporary password) |
+| A18 | Security page | `/admin/security` | "Your devices" (name, date added, Remove), warning "You have only one device", "Add a device" (QR, secret text, code), unlock box when a code is needed first, "Not available here" without Supabase |
+| A19 | 2-step setup (two steps) | `/admin/mfa/setup` | "Step 1 of 2: your authenticator app", "Step 2 of 2: a backup device", device name field, hint "scan the same QR code on two phones", done screen with "Go to the admin area" |
+| A20 | Not allowed | `/admin/not-allowed` | "Not allowed" for a client; with `?reason=role` for staff: "This try was written to the activity log", button "Go to Requests" |
+| A21 | Staff menu | (sidebar and bottom bar) | Only Requests, Services, Activity (3 items on a phone). Services opens the services page directly. A "Security" link sits in the header for every role. The header shows Owner, Admin or Staff |
 | A15 | Activity log | `/admin/activity` | list, filters, highlighted payment-method rows, empty |
 | A16 | Export | `/admin/export` | date range, two buttons, "exporting" state, backup reminder |
 | A17 | Fresh 2FA dialog | (shared dialog) | used before risky actions |
@@ -158,6 +166,7 @@ Night rules (tested in `tests/unit/hero-palette.test.ts`): every shape is at lea
 | Storage meter | normal, warning, danger |
 | Stat card | number + label (dashboard) |
 | Data table / card list | desktop table, phone cards, empty, loading skeleton |
+| Dropdown menu | closed button "Actions", open list of items (each at least 44 px tall), keyboard and Escape |
 | Dialog / sheet | confirm, form, danger |
 | Toast | success, error |
 | Empty state | icon + text + optional action |
