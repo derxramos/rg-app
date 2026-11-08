@@ -18,9 +18,11 @@ export type UserSession = {
   email: string;
   // Only the development test login is trusted to say "verified" without asking Supabase.
   source: "supabase" | "dev";
+  // The Supabase session id (from the token claims). Used to find out when a session started.
+  sessionId?: string | null;
 };
 
-export type UserAuthCode = "no-session" | "not-verified";
+export type UserAuthCode = "no-session" | "not-verified" | "turned-off";
 
 export class UserAuthError extends Error {
   constructor(public code: UserAuthCode) {
@@ -51,6 +53,8 @@ export async function checkUser(
 ): Promise<Profile> {
   if (!session) throw new UserAuthError("no-session");
   const profile = await ensureProfile(db, session);
+  // A turned-off account is blocked at once, even if the session is still valid.
+  if (!profile.isActive) throw new UserAuthError("turned-off");
   if (options.emailVerified === false) throw new UserAuthError("not-verified");
   return profile;
 }

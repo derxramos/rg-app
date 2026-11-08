@@ -1,6 +1,6 @@
 // A safety net for CLAUDE.md rule 5: "Every server action and route checks access first."
 // It reads the source files and checks that every exported Server Action in the protected admin area
-// goes through withAdmin() / requireAdmin(), and every admin API route calls requireAdmin().
+// goes through withPanel() / requirePanel(), and every admin API route calls requirePanel().
 // A new action that forgets the check makes this test fail.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -40,30 +40,51 @@ describe("admin actions and routes check access first", () => {
       expect(source.trimStart().startsWith('"use server"')).toBe(true);
     });
     for (const fn of exportedFunctions(source)) {
-      it(`${rel}: ${fn.name}() calls withAdmin or requireAdmin`, () => {
-        expect(/withAdmin\(|requireAdmin\(/.test(fn.body)).toBe(true);
+      it(`${rel}: ${fn.name}() calls withPanel or requirePanel`, () => {
+        expect(/withPanel\(|requirePanel\(/.test(fn.body)).toBe(true);
       });
     }
   }
 
   for (const file of adminRoutes) {
-    it(`${path.relative(ROOT, file)} calls requireAdmin`, () => {
-      expect(readFileSync(file, "utf8")).toContain("requireAdmin(");
+    it(`${path.relative(ROOT, file)} calls requirePanel`, () => {
+      expect(readFileSync(file, "utf8")).toContain("requirePanel(");
     });
   }
 
-  it("owner-only actions say so (roles: OWNER_ONLY)", () => {
-    for (const rel of [
-      "app/admin/(protected)/settings/payments/actions.ts",
-      "app/admin/(protected)/settings/users/actions.ts",
-    ]) {
-      const source = readFileSync(path.join(ROOT, rel), "utf8");
-      for (const fn of exportedFunctions(source))
-        expect(fn.body, `${rel} ${fn.name}`).toContain("OWNER_ONLY");
+  it("every withPanel call names its action from the role table (src/lib/permissions.ts)", () => {
+    for (const file of protectedActions) {
+      const source = readFileSync(file, "utf8");
+      for (const call of source.matchAll(/withPanel\(\s*\{([^}]*)\}/g)) {
+        expect(call[1], `${path.relative(ROOT, file)}`).toMatch(/\baction\s*[:,]/);
+      }
     }
   });
 
-  it("the development bypass is only read in admin.ts, and only with a development check", () => {
+  it("the payment method and account actions use their own permission names", () => {
+    const expected: Record<string, RegExp> = {
+      "app/admin/(protected)/settings/payments/actions.ts": /payment_methods.manage/,
+      "app/admin/(protected)/settings/users/actions.ts": /accounts./,
+    };
+    for (const [rel, pattern] of Object.entries(expected)) {
+      const source = readFileSync(path.join(ROOT, rel), "utf8");
+      for (const fn of exportedFunctions(source))
+        expect(fn.body, `${rel} ${fn.name}`).toMatch(pattern);
+    }
+  });
+
+  it("no code still uses the old role lists (OWNER_ONLY, hasRole, PAYMENT_VERIFY_ROLES)", () => {
+    for (const file of walk(ROOT).filter((f) => /.(ts|tsx)$/.test(f))) {
+      const text = readFileSync(file, "utf8");
+      // The table itself keeps a private list with a similar name.
+      if (file.endsWith(path.join("lib", "permissions.ts"))) continue;
+      expect(text, path.relative(ROOT, file)).not.toMatch(
+        /OWNER_ONLY|hasRole|PAYMENT_VERIFY_ROLES|adminProfiles/,
+      );
+    }
+  });
+
+  it("the development bypass is only read in panel.ts, and only with a development check", () => {
     const offenders = walk(ROOT).filter(
       (f) => /\.(ts|tsx)$/.test(f) && readFileSync(f, "utf8").includes("DEV_ADMIN_BYPASS_EMAIL"),
     );
@@ -71,8 +92,8 @@ describe("admin actions and routes check access first", () => {
     // Allowed: the session code, a comment in the core, and a comment in the development route.
     expect(rels.sort()).toEqual([
       "app/api/dev-login/route.ts",
-      "server/auth/admin-core.ts",
-      "server/auth/admin.ts",
+      "server/auth/panel-core.ts",
+      "server/auth/panel.ts",
       "server/auth/session.ts",
     ]);
   });

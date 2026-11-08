@@ -132,6 +132,27 @@ export function paymentMethodChangedOwner(i: {
   };
 }
 
+// ---------- To a person whose account was changed ----------
+
+// A change made to somebody's account (role, turned off or on, 2-step login reset). The person is told who
+// did it and when, so a change nobody expected is noticed at once. No secrets are ever put in this email.
+export function accountChanged(i: {
+  title: string;
+  name: string;
+  lines: string[];
+  when: string;
+  loginUrl: string;
+}): Rendered {
+  const lines = [`Hello ${i.name || "there"}.`, ...i.lines, `When: ${i.when}`];
+  const warning =
+    "If you did not expect this change, contact the owner or the developer right away.";
+  return {
+    subject: oneLine(i.title),
+    text: `${lines.join("\n")}\n\n${warning}\nSign in: ${i.loginUrl}`,
+    html: layout(i.title, [...lines, warning].map(p).join("") + button(i.loginUrl, "Sign in")),
+  };
+}
+
 // ---------- To the client ----------
 
 export function requestSubmittedClient(i: {

@@ -2,9 +2,10 @@ import "server-only";
 
 // Admin changes to services, checklists, site settings and payment methods.
 // Roles (CLAUDE.md rule 5, docs/FEATURES.md A6 to A8):
-//   - payment methods: OWNER only, and a fresh 2FA code for the risky fields (QR, account name, account number)
-//   - file settings: owner only
-//   - services, checklists and site content: owner and staff (assumption, see PROGRESS.md)
+// Who may do what is in the role table (src/lib/permissions.ts). Each function here checks it again with
+// assertCan, even though the Server Action already did (CLAUDE.md rule 5).
+//   - payment methods, site content, file settings: admin and owner (fresh 2FA for the risky payment fields)
+//   - services and checklists: staff may change words only. No fee, no hide, no delete.
 
 import { and, asc, count, eq, sql } from "drizzle-orm";
 
@@ -12,7 +13,8 @@ import { formatFee } from "@/lib/money";
 
 import { slugify } from "@/lib/slug";
 import { parseSetting, type SettingKey, type SettingValue } from "@/lib/validation/settings";
-import { AdminAuthError, OWNER_ONLY, hasRole, type AdminProfile } from "@/server/auth/admin-core";
+import { PanelAuthError, assertCan, type PanelUser } from "@/server/auth/panel-core";
+import { setActor } from "@/server/db/actor";
 import {
   activityLog,
   paymentMethods,
@@ -33,7 +35,7 @@ type Log = {
   ipHash?: string | null;
 };
 
-async function log(db: Pick<AppDb, "insert">, actor: AdminProfile, entry: Log) {
+async function log(db: Pick<AppDb, "insert">, actor: PanelUser, entry: Log) {
   await db.insert(activityLog).values({
     actorType: "admin",
     actorId: actor.id,
@@ -56,7 +58,7 @@ export class SettingsError extends Error {
 
 // ---------- Site settings ----------
 
-const OWNER_SETTING_KEYS: readonly SettingKey[] = [
+export const OWNER_SETTING_KEYS: readonly SettingKey[] = [
   "file_retention_days",
   "max_files_per_request",
   "max_file_size_mb",
@@ -73,18 +75,18 @@ const EDITABLE_SETTING_KEYS: readonly SettingKey[] = [
 
 export async function saveSetting<K extends SettingKey>(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   key: K,
   value: unknown,
   ipHash?: string | null,
 ): Promise<SettingValue<K>> {
   if (!EDITABLE_SETTING_KEYS.includes(key))
     throw new SettingsError("invalid", "That setting cannot be changed here.");
-  if (OWNER_SETTING_KEYS.includes(key) && !hasRole(actor, OWNER_ONLY))
-    throw new AdminAuthError("wrong-role");
+  assertCan(actor, OWNER_SETTING_KEYS.includes(key) ? "file_settings.edit" : "site_content.edit");
 
   const parsed = parseSetting(key, value); // throws a ZodError for a bad value
   await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
     const [before] = await tx
       .select({ value: siteSettings.value })
       .from(siteSettings)
@@ -128,7 +130,8 @@ type ServiceInput = {
   name: string;
   shortDescription: string;
   description: string;
-  isActive: boolean;
+  // Left out (undefined) means "keep the current value". Staff may not send it (services.set_visibility).
+  isActive?: boolean;
   // Whole centavos, or null for "no fee yet". Left out (undefined) means "keep the current fee".
   feeCentavos?: number | null;
   // The payment methods this service shows. Empty means "all active methods". Left out means "keep".
@@ -170,15 +173,21 @@ export async function listPaymentMethodChoices(db: AppDb) {
 // New services start with an EMPTY checklist (docs/FEATURES.md A7).
 export async function createService(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: ServiceInput,
   ipHash?: string | null,
 ) {
+  assertCan(actor, "services.create");
+  // Staff add a service that is hidden and has no fee. An admin or owner can set both.
+  if (input.isActive === true) assertCan(actor, "services.set_visibility");
+  if (input.feeCentavos !== undefined && input.feeCentavos !== null)
+    assertCan(actor, "services.edit_fee");
   const clean = checkService(input);
   const slug = slugify(clean.name);
   if (!slug) throw new SettingsError("invalid", "The name must have letters or numbers.");
   try {
     return await db.transaction(async (tx) => {
+      await setActor(tx, actor.id);
       const [{ max }] = await tx
         .select({ max: sql<number>`coalesce(max(${services.sortOrder}), 0)::int` })
         .from(services);
@@ -190,7 +199,7 @@ export async function createService(
           shortDescription: clean.shortDescription,
           description: clean.description,
           feeCentavos: clean.feeCentavos ?? null,
-          isActive: clean.isActive,
+          isActive: clean.isActive ?? false,
           sortOrder: max + 1,
         })
         .returning({ id: services.id });
@@ -212,22 +221,31 @@ export async function createService(
 
 export async function updateService(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   serviceId: string,
   input: ServiceInput,
   ipHash?: string | null,
 ) {
+  assertCan(actor, "services.edit_text");
   const clean = checkService(input);
   await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
     const [before] = await tx.select().from(services).where(eq(services.id, serviceId)).limit(1);
     if (!before) throw new SettingsError("not-found", "Service not found.");
+    // A field that CHANGES needs its own permission (staff can send the same value, but not a new one).
+    if (clean.feeCentavos !== undefined && clean.feeCentavos !== before.feeCentavos)
+      assertCan(actor, "services.edit_fee");
+    if (clean.isActive !== undefined && clean.isActive !== before.isActive)
+      assertCan(actor, "services.set_visibility");
+    if (clean.paymentMethodIds !== undefined) assertCan(actor, "services.payment_links");
+    const isActive = clean.isActive ?? before.isActive;
     await tx
       .update(services)
       .set({
         name: clean.name,
         shortDescription: clean.shortDescription,
         description: clean.description,
-        isActive: clean.isActive,
+        isActive,
         ...(clean.feeCentavos !== undefined ? { feeCentavos: clean.feeCentavos } : {}),
       })
       .where(eq(services.id, serviceId));
@@ -248,7 +266,7 @@ export async function updateService(
         before: { name: before.name, isActive: before.isActive, fee: feeText(before.feeCentavos) },
         after: {
           name: clean.name,
-          isActive: clean.isActive,
+          isActive,
           fee: feeText(clean.feeCentavos === undefined ? before.feeCentavos : clean.feeCentavos),
           ...(clean.paymentMethodIds !== undefined
             ? { paymentMethodIds: clean.paymentMethodIds }
@@ -278,11 +296,13 @@ async function swapOrder<T extends { id: string; sortOrder: number }>(
 
 export async function moveService(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   serviceId: string,
   direction: "up" | "down",
 ) {
+  assertCan(actor, "services.reorder");
   await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
     const rows = await tx
       .select({ id: services.id, sortOrder: services.sortOrder })
       .from(services)
@@ -311,12 +331,14 @@ function checkRequirement(input: RequirementInput) {
 
 export async function addRequirement(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   serviceId: string,
   input: RequirementInput,
 ) {
+  assertCan(actor, "checklist.add");
   const clean = checkRequirement(input);
   await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
     const [{ max }] = await tx
       .select({ max: sql<number>`coalesce(max(${serviceRequirements.sortOrder}), 0)::int` })
       .from(serviceRequirements)
@@ -333,10 +355,11 @@ export async function addRequirement(
 
 export async function updateRequirement(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   requirementId: string,
   input: RequirementInput,
 ) {
+  assertCan(actor, "checklist.edit");
   const clean = checkRequirement(input);
   await db.update(serviceRequirements).set(clean).where(eq(serviceRequirements.id, requirementId));
   await log(db, actor, {
@@ -347,23 +370,29 @@ export async function updateRequirement(
   });
 }
 
-export async function deleteRequirement(db: AppDb, actor: AdminProfile, requirementId: string) {
-  await db.delete(serviceRequirements).where(eq(serviceRequirements.id, requirementId));
-  await log(db, actor, {
-    action: "requirement.deleted",
-    entityType: "service_requirement",
-    entityId: requirementId,
+export async function deleteRequirement(db: AppDb, actor: PanelUser, requirementId: string) {
+  assertCan(actor, "checklist.delete");
+  await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
+    await tx.delete(serviceRequirements).where(eq(serviceRequirements.id, requirementId));
+    await log(tx, actor, {
+      action: "requirement.deleted",
+      entityType: "service_requirement",
+      entityId: requirementId,
+    });
   });
 }
 
 export async function moveRequirement(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   serviceId: string,
   requirementId: string,
   direction: "up" | "down",
 ) {
+  assertCan(actor, "checklist.reorder");
   await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
     const rows = await tx
       .select({ id: serviceRequirements.id, sortOrder: serviceRequirements.sortOrder })
       .from(serviceRequirements)
@@ -409,11 +438,11 @@ export async function getPaymentMethod(db: AppDb, id: string) {
 // Changing the QR, account name or account number (or adding a method) needs a fresh 2FA code.
 export async function savePaymentMethod(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: PaymentMethodInput,
   context: { fresh2fa: boolean; ipHash?: string | null },
 ) {
-  if (!hasRole(actor, OWNER_ONLY)) throw new AdminAuthError("wrong-role");
+  assertCan(actor, "payment_methods.manage");
 
   const name = input.name.trim();
   const accountName = input.accountName.trim();
@@ -435,7 +464,7 @@ export async function savePaymentMethod(
     before.accountName !== accountName ||
     before.accountNumber !== accountNumber ||
     (input.newQrImagePath !== undefined && input.newQrImagePath !== before.qrImagePath);
-  if (risky && !context.fresh2fa) throw new AdminAuthError("needs-fresh-2fa");
+  if (risky && !context.fresh2fa) throw new PanelAuthError("needs-fresh-2fa");
 
   const values = {
     name,
@@ -449,7 +478,7 @@ export async function savePaymentMethod(
   };
 
   return db.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('app.actor_id', ${actor.id}, true)`);
+    await setActor(tx, actor.id);
     let id: string;
     if (before) {
       await tx.update(paymentMethods).set(values).where(eq(paymentMethods.id, before.id));
@@ -498,13 +527,13 @@ export async function savePaymentMethod(
 
 export async function setPaymentMethodActive(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   id: string,
   isActive: boolean,
 ) {
-  if (!hasRole(actor, OWNER_ONLY)) throw new AdminAuthError("wrong-role");
+  assertCan(actor, "payment_methods.manage");
   await db.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('app.actor_id', ${actor.id}, true)`);
+    await setActor(tx, actor.id);
     await tx
       .update(paymentMethods)
       .set({ isActive, updatedBy: actor.id })
@@ -514,13 +543,13 @@ export async function setPaymentMethodActive(
 
 export async function movePaymentMethod(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   id: string,
   direction: "up" | "down",
 ) {
-  if (!hasRole(actor, OWNER_ONLY)) throw new AdminAuthError("wrong-role");
+  assertCan(actor, "payment_methods.manage");
   await db.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('app.actor_id', ${actor.id}, true)`);
+    await setActor(tx, actor.id);
     const rows = await tx
       .select({ id: paymentMethods.id, sortOrder: paymentMethods.sortOrder })
       .from(paymentMethods)
@@ -534,12 +563,12 @@ export async function movePaymentMethod(
 // Delete is allowed only when no payment used the method. Otherwise: turn it off.
 export async function deletePaymentMethod(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   id: string,
   context: { fresh2fa: boolean },
 ) {
-  if (!hasRole(actor, OWNER_ONLY)) throw new AdminAuthError("wrong-role");
-  if (!context.fresh2fa) throw new AdminAuthError("needs-fresh-2fa");
+  assertCan(actor, "payment_methods.manage");
+  if (!context.fresh2fa) throw new PanelAuthError("needs-fresh-2fa");
   const [{ used }] = await db
     .select({ used: count() })
     .from(payments)
@@ -547,7 +576,7 @@ export async function deletePaymentMethod(
   if (used > 0)
     throw new SettingsError("in-use", "This method is used by payments. Turn it off instead.");
   await db.transaction(async (tx) => {
-    await tx.execute(sql`select set_config('app.actor_id', ${actor.id}, true)`);
+    await setActor(tx, actor.id);
     await tx.delete(paymentMethods).where(and(eq(paymentMethods.id, id)));
   });
 }

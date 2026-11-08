@@ -172,33 +172,33 @@ describe("payment_methods changes are logged", () => {
   });
 });
 
-describe("admin_profiles keeps at least one active owner", () => {
+describe("profiles keeps at least one active owner", () => {
   const owner1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const owner2 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
   it("blocks removing, demoting or turning off the last active owner", async () => {
     await db.query(
-      `insert into admin_profiles (id, full_name, email, role) values ($1, 'Owner One', 'zolb-test+o1@example.com', 'owner')`,
+      `insert into profiles (id, full_name, email, role) values ($1, 'Owner One', 'zolb-test+o1@example.com', 'owner')`,
       [owner1],
     );
-    expect(await fails(`delete from admin_profiles where id = $1`, [owner1])).toMatch(
+    expect(await fails(`delete from profiles where id = $1`, [owner1])).toMatch(
       /at least one active owner/,
     );
-    expect(await fails(`update admin_profiles set role = 'staff' where id = $1`, [owner1])).toMatch(
+    expect(await fails(`update profiles set role = 'staff' where id = $1`, [owner1])).toMatch(
       /at least one active owner/,
     );
-    expect(
-      await fails(`update admin_profiles set is_active = false where id = $1`, [owner1]),
-    ).toMatch(/at least one active owner/);
+    expect(await fails(`update profiles set is_active = false where id = $1`, [owner1])).toMatch(
+      /at least one active owner/,
+    );
   });
 
   it("allows it when another active owner exists, and still protects the new last one", async () => {
     await db.query(
-      `insert into admin_profiles (id, full_name, email, role) values ($1, 'Owner Two', 'zolb-test+o2@example.com', 'owner')`,
+      `insert into profiles (id, full_name, email, role) values ($1, 'Owner Two', 'zolb-test+o2@example.com', 'owner')`,
       [owner2],
     );
-    await db.query(`update admin_profiles set is_active = false where id = $1`, [owner1]);
-    expect(await fails(`update admin_profiles set role = 'staff' where id = $1`, [owner2])).toMatch(
+    await db.query(`update profiles set is_active = false where id = $1`, [owner1]);
+    expect(await fails(`update profiles set role = 'staff' where id = $1`, [owner2])).toMatch(
       /at least one active owner/,
     );
   });
@@ -206,11 +206,11 @@ describe("admin_profiles keeps at least one active owner", () => {
   it("lets staff accounts be changed freely", async () => {
     const staff = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
     await db.query(
-      `insert into admin_profiles (id, full_name, email, role) values ($1, 'Staff', 'zolb-test+s@example.com', 'staff')`,
+      `insert into profiles (id, full_name, email, role) values ($1, 'Staff', 'zolb-test+s@example.com', 'staff')`,
       [staff],
     );
-    await db.query(`update admin_profiles set is_active = false where id = $1`, [staff]);
-    await db.query(`delete from admin_profiles where id = $1`, [staff]);
+    await db.query(`update profiles set is_active = false where id = $1`, [staff]);
+    await db.query(`delete from profiles where id = $1`, [staff]);
   });
 });
 

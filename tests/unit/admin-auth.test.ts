@@ -1,25 +1,28 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
-  AdminAuthError,
+  PanelAuthError,
   FRESH_2FA_SECONDS,
-  OWNER_ONLY,
-  checkAdmin,
+  checkPanel,
   devBypassSession,
   isFresh2faValid,
   makeFresh2faValue,
-  type AdminSession,
-} from "@/server/auth/admin-core";
-import { adminProfiles, profiles } from "@/server/db/schema";
+  type PanelSession,
+} from "@/server/auth/panel-core";
+import { profiles } from "@/server/db/schema";
 
 import { createTestDb } from "../helpers/test-db";
 
 const OWNER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const STAFF = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const OFF = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
-// Has an active admin_profiles row, but the account role is only "user". Must be refused.
+// A client (role user). Must be refused by the admin area.
 const MISMATCH = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
-const session = (userId: string, aal: AdminSession["aal"] = "aal2"): AdminSession => ({
+const ADMIN = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+const MUST_SET_UP = "12121212-1212-4212-8212-121212121212";
+const SIGNED_OUT = "34343434-3434-4434-8434-343434343434";
+const REVOKED_AT = new Date("2026-01-01T12:00:00Z");
+const session = (userId: string, aal: PanelSession["aal"] = "aal2"): PanelSession => ({
   userId,
   email: "zolb-test+a@example.com",
   aal,
@@ -28,18 +31,32 @@ const session = (userId: string, aal: AdminSession["aal"] = "aal2"): AdminSessio
 let t: Awaited<ReturnType<typeof createTestDb>>;
 beforeAll(async () => {
   t = await createTestDb();
-  await t.db.insert(adminProfiles).values([
+  await t.db.insert(profiles).values([
     { id: OWNER, fullName: "Owner", email: "zolb-test+o@example.com", role: "owner" },
     { id: STAFF, fullName: "Staff", email: "zolb-test+s@example.com", role: "staff" },
-    { id: OFF, fullName: "Off", email: "zolb-test+x@example.com", role: "staff", isActive: false },
-    { id: MISMATCH, fullName: "Mismatch", email: "zolb-test+m@example.com", role: "owner" },
-  ]);
-  // The account role. Everyone above is "admin" except MISMATCH.
-  await t.db.insert(profiles).values([
-    { id: OWNER, email: "zolb-test+o@example.com", role: "admin" },
-    { id: STAFF, email: "zolb-test+s@example.com", role: "admin" },
-    { id: OFF, email: "zolb-test+x@example.com", role: "admin" },
-    { id: MISMATCH, email: "zolb-test+m@example.com", role: "user" },
+    { id: ADMIN, fullName: "Admin", email: "zolb-test+ad@example.com", role: "admin" },
+    {
+      id: OFF,
+      fullName: "Off",
+      email: "zolb-test+x@example.com",
+      role: "staff",
+      isActive: false,
+    },
+    { id: MISMATCH, fullName: "Client", email: "zolb-test+m@example.com", role: "user" },
+    {
+      id: MUST_SET_UP,
+      fullName: "Reset",
+      email: "zolb-test+r@example.com",
+      role: "staff",
+      mfaResetRequired: true,
+    },
+    {
+      id: SIGNED_OUT,
+      fullName: "Signed out",
+      email: "zolb-test+so@example.com",
+      role: "staff",
+      sessionsRevokedAt: REVOKED_AT,
+    },
   ]);
 }, 60_000);
 afterAll(async () => t.close());
@@ -47,66 +64,109 @@ afterAll(async () => t.close());
 const code = (promise: Promise<unknown>) =>
   promise.then(
     () => "ok",
-    (e) => (e as AdminAuthError).code,
+    (e) => (e as PanelAuthError).code,
   );
 
-describe("checkAdmin", () => {
+describe("checkPanel", () => {
   it("lets an active owner and an active staff member in with 2FA", async () => {
-    expect((await checkAdmin(t.db, session(OWNER))).role).toBe("owner");
-    expect((await checkAdmin(t.db, session(STAFF))).role).toBe("staff");
+    expect((await checkPanel(t.db, session(OWNER))).role).toBe("owner");
+    expect((await checkPanel(t.db, session(STAFF))).role).toBe("staff");
   });
   it("refuses a logged-out visitor", async () => {
-    expect(await code(checkAdmin(t.db, null))).toBe("no-session");
+    expect(await code(checkPanel(t.db, null))).toBe("no-session");
   });
   it("refuses a session that has only a password (no 2FA code)", async () => {
-    expect(await code(checkAdmin(t.db, session(OWNER, "aal1")))).toBe("needs-2fa");
+    expect(await code(checkPanel(t.db, session(OWNER, "aal1")))).toBe("needs-2fa");
   });
   it("refuses a login that is not an admin", async () => {
-    expect(await code(checkAdmin(t.db, session("dddddddd-dddd-4ddd-8ddd-dddddddddddd")))).toBe(
+    expect(await code(checkPanel(t.db, session("dddddddd-dddd-4ddd-8ddd-dddddddddddd")))).toBe(
       "not-admin",
     );
   });
   it("refuses a turned-off admin at once", async () => {
-    expect(await code(checkAdmin(t.db, session(OFF)))).toBe("inactive");
+    expect(await code(checkPanel(t.db, session(OFF)))).toBe("inactive");
   });
-  it("refuses an account whose role is only user, even with an admin_profiles row", async () => {
-    expect(await code(checkAdmin(t.db, session(MISMATCH)))).toBe("not-admin");
+  it("refuses a client account (role user)", async () => {
+    expect(await code(checkPanel(t.db, session(MISMATCH)))).toBe("not-admin");
   });
-  it("keeps staff out of owner-only actions (payment methods, users, export)", async () => {
-    expect(await code(checkAdmin(t.db, session(STAFF), { roles: OWNER_ONLY }))).toBe("wrong-role");
-    expect(await code(checkAdmin(t.db, session(OWNER), { roles: OWNER_ONLY }))).toBe("ok");
+  it("keeps staff out of admin actions (payment methods, accounts, export, dashboard)", async () => {
+    for (const action of [
+      "payment_methods.manage",
+      "accounts.view",
+      "export.csv",
+      "dashboard.view",
+      "payments.verify",
+    ] as const) {
+      expect(await code(checkPanel(t.db, session(STAFF), { action }))).toBe("wrong-role");
+      expect(await code(checkPanel(t.db, session(OWNER), { action }))).toBe("ok");
+      expect(await code(checkPanel(t.db, session(ADMIN), { action }))).toBe("ok");
+    }
+    expect(await code(checkPanel(t.db, session(STAFF), { action: "requests.view" }))).toBe("ok");
+  });
+  it("lets only an owner manage owner accounts", async () => {
+    const action = "accounts.manage_owner" as const;
+    expect(await code(checkPanel(t.db, session(OWNER), { action }))).toBe("ok");
+    expect(await code(checkPanel(t.db, session(ADMIN), { action }))).toBe("wrong-role");
+  });
+  it("sends an account with a pending 2-step reset to the setup (needs-mfa-setup)", async () => {
+    expect(await code(checkPanel(t.db, session(MUST_SET_UP)))).toBe("needs-mfa-setup");
+    // The setup pages themselves call it with twoFactorRequired false, so they stay reachable.
+    expect(
+      await code(checkPanel(t.db, session(MUST_SET_UP, "aal1"), { twoFactorRequired: false })),
+    ).toBe("ok");
+  });
+  it("signs out everywhere: a session older than the mark is refused, a newer one is fine", async () => {
+    const old = { ...session(SIGNED_OUT), startedAt: REVOKED_AT.getTime() - 1000 };
+    const fresh = { ...session(SIGNED_OUT), startedAt: REVOKED_AT.getTime() + 1000 };
+    expect(await code(checkPanel(t.db, old))).toBe("session-revoked");
+    expect(await code(checkPanel(t.db, fresh))).toBe("ok");
+    // Start time unknown and not found by the lookup = refused (fails closed).
+    expect(await code(checkPanel(t.db, session(SIGNED_OUT)))).toBe("session-revoked");
+    const lookup = async () => REVOKED_AT.getTime() + 5000;
+    expect(
+      await code(
+        checkPanel(
+          t.db,
+          { ...session(SIGNED_OUT), sessionId: "s1" },
+          { lookupSessionStart: lookup },
+        ),
+      ),
+    ).toBe("ok");
   });
 });
 
-describe("checkAdmin with the 2FA flag OFF (twoFactorRequired: false)", () => {
+describe("checkPanel with the 2FA flag OFF (twoFactorRequired: false)", () => {
   const off = { twoFactorRequired: false };
   it("lets an admin in with a password-only session", async () => {
-    expect((await checkAdmin(t.db, session(OWNER, "aal1"), off)).role).toBe("owner");
+    expect((await checkPanel(t.db, session(OWNER, "aal1"), off)).role).toBe("owner");
   });
   it("still refuses a logged-out visitor", async () => {
-    expect(await code(checkAdmin(t.db, null, off))).toBe("no-session");
+    expect(await code(checkPanel(t.db, null, off))).toBe("no-session");
   });
   it("still refuses a login that is not an admin", async () => {
     const stranger = session("dddddddd-dddd-4ddd-8ddd-dddddddddddd", "aal1");
-    expect(await code(checkAdmin(t.db, stranger, off))).toBe("not-admin");
+    expect(await code(checkPanel(t.db, stranger, off))).toBe("not-admin");
   });
   it("still refuses a turned-off admin", async () => {
-    expect(await code(checkAdmin(t.db, session(OFF, "aal1"), off))).toBe("inactive");
+    expect(await code(checkPanel(t.db, session(OFF, "aal1"), off))).toBe("inactive");
   });
   it("still refuses an account with the role user", async () => {
-    expect(await code(checkAdmin(t.db, session(MISMATCH, "aal1"), off))).toBe("not-admin");
+    expect(await code(checkPanel(t.db, session(MISMATCH, "aal1"), off))).toBe("not-admin");
   });
-  it("still keeps staff out of owner-only actions", async () => {
+  it("still keeps staff out of admin actions", async () => {
     const result = await code(
-      checkAdmin(t.db, session(STAFF, "aal1"), { ...off, roles: OWNER_ONLY }),
+      checkPanel(t.db, session(STAFF, "aal1"), { ...off, action: "payment_methods.manage" }),
     );
     expect(result).toBe("wrong-role");
   });
+  it("still refuses a turned-off account and a signed-out-everywhere session", async () => {
+    expect(await code(checkPanel(t.db, session(SIGNED_OUT, "aal1"), off))).toBe("session-revoked");
+  });
   it("still needs 2FA when the option is true or not given", async () => {
-    expect(await code(checkAdmin(t.db, session(OWNER, "aal1"), { twoFactorRequired: true }))).toBe(
+    expect(await code(checkPanel(t.db, session(OWNER, "aal1"), { twoFactorRequired: true }))).toBe(
       "needs-2fa",
     );
-    expect(await code(checkAdmin(t.db, session(OWNER, "aal1"), {}))).toBe("needs-2fa");
+    expect(await code(checkPanel(t.db, session(OWNER, "aal1"), {}))).toBe("needs-2fa");
   });
 });
 
@@ -146,7 +206,7 @@ describe("fresh 2FA cookie", () => {
 
 describe("isTwoFactorRequired", () => {
   it("is required unless the setting is the word false", async () => {
-    const { isTwoFactorRequired } = await import("@/server/auth/admin-core");
+    const { isTwoFactorRequired } = await import("@/server/auth/panel-core");
     expect(isTwoFactorRequired(undefined)).toBe(true);
     expect(isTwoFactorRequired("")).toBe(true);
     expect(isTwoFactorRequired("true")).toBe(true);

@@ -15,6 +15,20 @@ export const FAKE_SUPABASE_SQL = [
      raw_user_meta_data jsonb NOT NULL DEFAULT '{}'::jsonb,
      email_confirmed_at timestamptz
    )`,
+  // The authenticator devices (TOTP factors) and the login sessions, as Supabase stores them.
+  `CREATE TABLE auth.mfa_factors (
+     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id uuid NOT NULL,
+     friendly_name text,
+     factor_type text NOT NULL DEFAULT 'totp',
+     status text NOT NULL DEFAULT 'unverified',
+     created_at timestamptz NOT NULL DEFAULT now()
+   )`,
+  `CREATE TABLE auth.sessions (
+     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id uuid NOT NULL,
+     created_at timestamptz NOT NULL DEFAULT now()
+   )`,
   `CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$
      SELECT coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
    $$`,

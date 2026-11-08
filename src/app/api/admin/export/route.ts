@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 
-import { OWNER_ONLY, AdminAuthError } from "@/server/auth/admin-core";
-import { requireAdmin } from "@/server/auth/admin";
+import { PanelAuthError } from "@/server/auth/panel-core";
+import { requirePanel } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
 import { exportCsv } from "@/server/services/admin-overview";
@@ -12,9 +12,9 @@ import { exportCsv } from "@/server/services/admin-overview";
 export async function GET(request: Request) {
   let admin;
   try {
-    admin = await requireAdmin({ roles: OWNER_ONLY });
+    admin = await requirePanel("export.csv");
   } catch (error) {
-    if (error instanceof AdminAuthError) return new NextResponse("Not allowed", { status: 403 });
+    if (error instanceof PanelAuthError) return new NextResponse("Not allowed", { status: 403 });
     throw error;
   }
   const params = new URL(request.url).searchParams;

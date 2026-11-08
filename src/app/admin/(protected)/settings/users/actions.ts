@@ -2,146 +2,131 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ROLES, isPanelRole, type PanelRole, type Role } from "@/lib/permissions";
+import { withPanel, type ActionResult } from "@/server/auth/panel";
 import { createAuthAdminApi, createAuthPasswordApi } from "@/server/auth/supabase-admin";
-import { OWNER_ONLY } from "@/server/auth/admin-core";
-import { withAdmin, type ActionResult } from "@/server/auth/admin";
 import { getDb } from "@/server/db/client";
+import { notifyAccountChange } from "@/server/email/notify";
 import {
-  createAdminWithPassword,
-  inviteAdmin,
-  promoteToAdmin,
-  removeAdmin,
-  setAccountRole,
-  updateAdmin,
-} from "@/server/services/admin-users";
+  changeRole,
+  createAccountWithPassword,
+  inviteAccount,
+  resendInvite,
+  setAccountActive,
+} from "@/server/services/accounts";
 
 const text = (formData: FormData, name: string) => String(formData.get(name) ?? "");
+const roleOf = (formData: FormData, name: string): Role =>
+  (ROLES as readonly string[]).includes(text(formData, name))
+    ? (text(formData, name) as Role)
+    : "user";
+const panelRoleOf = (formData: FormData, name: string): PanelRole => {
+  const role = roleOf(formData, name);
+  return isPanelRole(role) ? role : "staff";
+};
 
-// "Existing accounts": the User / Admin dropdown and Save. OWNER ONLY and a fresh 2FA code.
-export async function setAccountRoleAction(
+// The "Invite" button above the table. The chosen role decides if an owner is needed (checked again inside).
+// Two ways: an email invitation, or a temporary password the person must change at the first sign in.
+export async function inviteAccountAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
-    const role = text(formData, "role") === "admin" ? "admin" : "user";
-    const result = await setAccountRole(
-      getDb(),
-      admin,
-      { accountId: text(formData, "id"), role },
-      { fresh2fa, ipHash },
-    );
-    revalidatePath("/admin/settings/users");
-    return {
-      ok: true,
-      message:
-        result === "same"
-          ? "No change. The account already has that role."
-          : role === "admin"
-            ? "That account is now an admin."
-            : "That account is now a normal user.",
+  return withPanel({ action: "accounts.invite", formData }, async ({ admin, ipHash, fresh2fa }) => {
+    const input = {
+      email: text(formData, "email"),
+      fullName: text(formData, "fullName"),
+      role: panelRoleOf(formData, "role"),
     };
-  });
-}
-
-// "New admin account": makes a verified login with a temporary password. OWNER ONLY and a fresh 2FA code.
-export async function createAdminWithPasswordAction(
-  _previous: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
-    await createAdminWithPassword(
-      getDb(),
-      admin,
-      createAuthPasswordApi(),
-      {
-        email: text(formData, "email"),
-        fullName: text(formData, "fullName"),
-        role: text(formData, "level") === "owner" ? "owner" : "staff",
-        temporaryPassword: text(formData, "temporaryPassword"),
-      },
-      { fresh2fa, ipHash },
-    );
-    revalidatePath("/admin/settings/users");
-    return {
-      ok: true,
-      message:
-        "The admin account was made. Give the person the temporary password in a safe way. They must choose their own password at the first sign in.",
-    };
-  });
-}
-
-// Invite an admin. OWNER ONLY and a fresh 2FA code.
-export async function inviteAdminAction(
-  _previous: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
-    await inviteAdmin(
-      getDb(),
-      admin,
-      createAuthAdminApi(),
-      {
-        email: text(formData, "email"),
-        fullName: text(formData, "fullName"),
-        role: text(formData, "role") === "owner" ? "owner" : "staff",
-      },
-      { fresh2fa, ipHash },
-    );
+    if (text(formData, "method") === "password") {
+      await createAccountWithPassword(
+        getDb(),
+        admin,
+        createAuthPasswordApi(),
+        { ...input, temporaryPassword: text(formData, "temporaryPassword") },
+        { fresh2fa, ipHash },
+      );
+      revalidatePath("/admin/settings/users");
+      return {
+        ok: true,
+        message:
+          "The account was made. Give the person the temporary password in a safe way (in person or by phone). They must choose their own password at the first sign in.",
+      };
+    }
+    await inviteAccount(getDb(), admin, createAuthAdminApi(), input, { fresh2fa, ipHash });
     revalidatePath("/admin/settings/users");
     return { ok: true, message: "Invitation sent." };
   });
 }
 
-// Change a role, or turn an account on or off. OWNER ONLY and a fresh 2FA code.
-export async function updateAdminAction(
+// The "Change role" dialog: ONE role choice and ONE confirm (the code or password of the person making the change).
+export async function changeRoleAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
-    const intent = text(formData, "intent");
-    await updateAdmin(
-      getDb(),
-      admin,
-      {
-        adminId: text(formData, "id"),
-        ...(intent === "owner" || intent === "staff" ? { role: intent } : {}),
-        ...(intent === "on" ? { isActive: true } : intent === "off" ? { isActive: false } : {}),
-      },
-      { fresh2fa, ipHash },
-    );
-    revalidatePath("/admin/settings/users");
-    return { ok: true, message: "Saved." };
-  });
+  return withPanel(
+    { action: "accounts.change_role", formData },
+    async ({ admin, ipHash, fresh2fa }) => {
+      const change = await changeRole(
+        getDb(),
+        admin,
+        { accountId: text(formData, "id"), role: roleOf(formData, "role") },
+        { fresh2fa, ipHash },
+      );
+      revalidatePath("/admin/settings/users");
+      if (!change) return { ok: true, message: "No change. The account already has that role." };
+      await notifyAccountChange({ kind: "role_changed", ...change, actorName: admin.fullName });
+      return { ok: true, message: "The role was changed. The person was told by email." };
+    },
+  );
 }
 
-// Make an existing account an admin. OWNER ONLY and a fresh 2FA code.
-export async function promoteAdminAction(
+// Turn an account off or on. Off = cannot sign in, and is signed out everywhere.
+export async function setActiveAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
-    await promoteToAdmin(
-      getDb(),
-      admin,
-      {
-        email: text(formData, "email"),
-        role: text(formData, "role") === "owner" ? "owner" : "staff",
-      },
-      { fresh2fa, ipHash },
-    );
-    revalidatePath("/admin/settings/users");
-    return { ok: true, message: "That person is now an admin." };
-  });
+  return withPanel(
+    { action: "accounts.turn_off", formData },
+    async ({ admin, ipHash, fresh2fa }) => {
+      const change = await setAccountActive(
+        getDb(),
+        admin,
+        createAuthAdminApi(),
+        { accountId: text(formData, "id"), active: text(formData, "intent") === "on" },
+        { fresh2fa, ipHash },
+      );
+      revalidatePath("/admin/settings/users");
+      if (!change) return { ok: true, message: "No change." };
+      await notifyAccountChange({
+        kind: change.active ? "turned_on" : "turned_off",
+        ...change,
+        actorName: admin.fullName,
+      });
+      return {
+        ok: true,
+        message: change.active ? "The account is on again." : "The account is turned off.",
+      };
+    },
+  );
 }
 
-// Take the admin role away. OWNER ONLY and a fresh 2FA code.
-export async function removeAdminAction(
+// Send the invitation (or the confirmation link) again.
+export async function resendInviteAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
-    await removeAdmin(getDb(), admin, { adminId: text(formData, "id") }, { fresh2fa, ipHash });
-    revalidatePath("/admin/settings/users");
-    return { ok: true, message: "The admin role was removed." };
-  });
+  return withPanel(
+    { action: "accounts.resend_invite", formData },
+    async ({ admin, ipHash, fresh2fa }) => {
+      await resendInvite(
+        getDb(),
+        admin,
+        createAuthAdminApi(),
+        { accountId: text(formData, "id") },
+        { fresh2fa, ipHash },
+      );
+      revalidatePath("/admin/settings/users");
+      return { ok: true, message: "The email was sent again." };
+    },
+  );
 }

@@ -13,6 +13,7 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { isPanelRole } from "@/lib/permissions";
 import { landingPathFor } from "@/lib/safe-next";
 import { isTwoFactorRequired } from "@/lib/two-factor-flag";
 import {
@@ -22,13 +23,13 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from "@/lib/validation/auth";
-import { afterLoginDestination } from "@/server/auth/admin-core";
+import { afterLoginDestination } from "@/server/auth/panel-core";
 import { logAuthEvent } from "@/server/auth/auth-log";
 import { ensureProfile } from "@/server/auth/session-core";
 import { getSession } from "@/server/auth/session";
 import { createSupabaseServer, supabaseAuthConfigured } from "@/server/auth/supabase-server";
 import { getDb } from "@/server/db/client";
-import { adminProfiles } from "@/server/db/schema";
+import { profiles } from "@/server/db/schema";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
 import { rateLimit } from "@/server/security/rate-limit";
 import { hmacHex } from "@/server/security/tokens";
@@ -111,20 +112,14 @@ export async function loginAction(_previous: AuthState, formData: FormData): Pro
     email: data.user.email ?? email,
     source: "supabase",
   });
-  const [adminRow] =
-    profile.role === "admin"
-      ? await db
-          .select({ isActive: adminProfiles.isActive })
-          .from(adminProfiles)
-          .where(eq(adminProfiles.id, profile.id))
-          .limit(1)
-      : [];
-  const isAdmin = Boolean(adminRow?.isActive);
+  // A turned-off account cannot sign in (Supabase also refuses it: the account is banned there).
+  if (!profile.isActive) {
+    await supabase.auth.signOut();
+    return { ok: false, message: "This account is turned off. Please contact us." };
+  }
+  const isAdmin = isPanelRole(profile.role);
   if (isAdmin) {
-    await db
-      .update(adminProfiles)
-      .set({ lastLoginAt: new Date() })
-      .where(eq(adminProfiles.id, profile.id));
+    await db.update(profiles).set({ lastLoginAt: new Date() }).where(eq(profiles.id, profile.id));
   }
   await logAuthEvent(db, { action: "auth.login.success", userId: profile.id, isAdmin, ipHash });
 
@@ -142,7 +137,9 @@ export async function loginAction(_previous: AuthState, formData: FormData): Pro
   }
   redirect(
     afterLoginDestination({
-      isActiveAdmin: isAdmin,
+      role: profile.role,
+      isActive: profile.isActive,
+      mfaResetRequired: profile.mfaResetRequired,
       twoFactorRequired,
       hasVerifiedFactor,
       next: String(formData.get("next") ?? ""),
@@ -316,7 +313,7 @@ export async function resetPasswordAction(
   await logAuthEvent(db, {
     action: "auth.password_reset",
     userId: profile.id,
-    isAdmin: profile.role === "admin",
+    isAdmin: isPanelRole(profile.role),
     ipHash,
   });
   redirect(landingPathFor(profile.role));

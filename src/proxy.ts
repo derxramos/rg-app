@@ -9,7 +9,7 @@ import { loginUrlFor } from "@/lib/safe-next";
 //   3. tells the browser not to keep private pages (Cache-Control: no-store), so the Back button
 //      after sign out cannot show them again
 // It is NOT the real security check. Every page, route and Server Action checks access again
-// (requireUser / requireAdmin / requireRequestAccess), because a Server Action can be called directly.
+// (requireUser / requirePanel / requireRequestAccess), because a Server Action can be called directly.
 
 // /admin/login only redirects to /login, so it must stay open.
 const PUBLIC_ADMIN_PAGES = new Set(["/admin/login"]);

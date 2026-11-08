@@ -2,12 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { requestDetailsSchema } from "@/lib/validation/request";
-import { AdminAuthError, type AdminProfile } from "@/server/auth/admin-core";
+import { PanelAuthError, type PanelUser } from "@/server/auth/panel-core";
+import { setActor } from "@/server/db/actor";
 import {
   activityLog,
-  adminProfiles,
   paymentMethods,
-  profiles,
   payments,
   requestFiles,
   requests,
@@ -28,6 +27,7 @@ import {
   addRequirement,
   createService,
   deletePaymentMethod,
+  deleteRequirement,
   getServiceWithRequirements,
   moveService,
   movePaymentMethod,
@@ -35,18 +35,19 @@ import {
   saveSetting,
   setPaymentMethodActive,
   SettingsError,
+  updateService,
 } from "@/server/services/admin-settings";
-import { inviteAdmin, updateAdmin, UserAdminError } from "@/server/services/admin-users";
 import { csvCell, toCsv } from "@/server/services/csv";
 import { savePayment } from "@/server/services/payments";
 import { changeStatus, createDraft } from "@/server/services/requests";
 
+import { insertPanelUsers } from "../helpers/panel-users";
 import { createTestDb } from "../helpers/test-db";
 
 let t: Awaited<ReturnType<typeof createTestDb>>;
-let owner: AdminProfile;
-let owner2: AdminProfile;
-let staff: AdminProfile;
+let owner: PanelUser;
+let admin: PanelUser;
+let staff: PanelUser;
 let methodId: string;
 
 const pmInput = (o: Record<string, unknown> = {}) => ({
@@ -83,30 +84,27 @@ const rejects = (p: Promise<unknown>) =>
 
 beforeAll(async () => {
   t = await createTestDb();
-  const rows = await t.db
-    .insert(adminProfiles)
-    .values([
-      {
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        fullName: "Owner One",
-        email: "zolb-test+o1@example.com",
-        role: "owner",
-      },
-      {
-        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        fullName: "Owner Two",
-        email: "zolb-test+o2@example.com",
-        role: "owner",
-      },
-      {
-        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        fullName: "Staff One",
-        email: "zolb-test+s@example.com",
-        role: "staff",
-      },
-    ])
-    .returning();
-  [owner, owner2, staff] = rows;
+  const rows = await insertPanelUsers(t.db, [
+    {
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      fullName: "Owner One",
+      email: "zolb-test+o1@example.com",
+      role: "owner",
+    },
+    {
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      fullName: "Admin One",
+      email: "zolb-test+a1@example.com",
+      role: "admin",
+    },
+    {
+      id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      fullName: "Staff One",
+      email: "zolb-test+s@example.com",
+      role: "staff",
+    },
+  ]);
+  [owner, admin, staff] = rows;
   await t.db.insert(services).values({ slug: "svc", name: "Service" });
   [{ id: methodId }] = await t.db
     .insert(paymentMethods)
@@ -121,7 +119,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => t.close());
 
-describe("permissions: staff are refused on owner-only actions", () => {
+describe("permissions: staff are refused on admin and owner actions", () => {
   it("payment methods", async () => {
     expect(
       await rejects(savePaymentMethod(t.db, staff, pmInput({ id: methodId }), { fresh2fa: true })),
@@ -158,32 +156,93 @@ describe("permissions: staff are refused on owner-only actions", () => {
       "pending",
     );
   });
-  it("admin users, export and file settings", async () => {
-    expect(
-      await rejects(
-        inviteAdmin(
-          t.db,
-          staff,
-          { invite: async () => ({ id: "x" }) },
-          { email: "zolb-test+n@example.com", fullName: "New", role: "staff" },
-          { fresh2fa: true },
-        ),
-      ),
-    ).toBe("wrong-role");
-    expect(
-      await rejects(
-        updateAdmin(t.db, staff, { adminId: staff.id, isActive: false }, { fresh2fa: true }),
-      ),
-    ).toBe("wrong-role");
+  it("export, file settings and site content", async () => {
     expect(await rejects(exportCsv(t.db, staff, { type: "requests" }))).toBe("wrong-role");
     expect(await rejects(saveSetting(t.db, staff, "max_file_size_mb", 5))).toBe("wrong-role");
+    expect(
+      await rejects(
+        saveSetting(t.db, staff, "contact", { phone: "+63 900 000 0000", email: "", address: "" }),
+      ),
+    ).toBe("wrong-role");
   });
-  it("staff may change site content", async () => {
-    await saveSetting(t.db, staff, "contact", {
+  it("an admin has the same power as the owner here", async () => {
+    await saveSetting(t.db, admin, "contact", {
       phone: "+63 900 000 0000",
       email: "",
       address: "",
     });
+  });
+  it("services: staff may change words only (no fee, no hide, no payment links, no delete, no reorder)", async () => {
+    const id = await createService(t.db, owner, {
+      name: "Staff Rules Service",
+      shortDescription: "",
+      description: "",
+      isActive: true,
+      feeCentavos: 100000,
+    });
+    const keep = {
+      name: "Staff Rules Service",
+      shortDescription: "new words",
+      description: "",
+    };
+    // Same fee and visibility (left out) = fine.
+    await updateService(t.db, staff, id, keep);
+    expect(await rejects(updateService(t.db, staff, id, { ...keep, feeCentavos: 5 }))).toBe(
+      "wrong-role",
+    );
+    expect(await rejects(updateService(t.db, staff, id, { ...keep, isActive: false }))).toBe(
+      "wrong-role",
+    );
+    expect(await rejects(updateService(t.db, staff, id, { ...keep, paymentMethodIds: [] }))).toBe(
+      "wrong-role",
+    );
+    expect(await rejects(moveService(t.db, staff, id, "up"))).toBe("wrong-role");
+    await addRequirement(t.db, staff, id, { label: "Item", details: "", isRequired: true });
+    const [item] = (await getServiceWithRequirements(t.db, id))!.requirements;
+    expect(await rejects(deleteRequirement(t.db, staff, item.id))).toBe("wrong-role");
+    await deleteRequirement(t.db, admin, item.id);
+    const [after] = await t.db.select().from(services).where(eq(services.id, id));
+    expect(after.feeCentavos).toBe(100000);
+    expect(after.isActive).toBe(true);
+  });
+  it("services: staff can add a service, but it starts hidden and with no fee", async () => {
+    expect(
+      await rejects(
+        createService(t.db, staff, {
+          name: "Visible By Staff",
+          shortDescription: "",
+          description: "",
+          isActive: true,
+        }),
+      ),
+    ).toBe("wrong-role");
+    expect(
+      await rejects(
+        createService(t.db, staff, {
+          name: "Fee By Staff",
+          shortDescription: "",
+          description: "",
+          feeCentavos: 500,
+        }),
+      ),
+    ).toBe("wrong-role");
+    const id = await createService(t.db, staff, {
+      name: "Hidden By Staff",
+      shortDescription: "",
+      description: "",
+    });
+    const [row] = await t.db.select().from(services).where(eq(services.id, id));
+    expect(row.isActive).toBe(false);
+    expect(row.feeCentavos).toBeNull();
+  });
+  it("the database itself refuses a staff fee change or payment verify (second layer)", async () => {
+    // Even if the code forgot the check, the trigger knows who is acting (app.actor_id).
+    const [svc] = await t.db.select().from(services).limit(1);
+    const attempt = t.db.transaction(async (tx) => {
+      await setActor(tx, staff.id);
+      await tx.update(services).set({ feeCentavos: 1 }).where(eq(services.id, svc.id));
+    });
+    await expect(attempt).rejects.toThrow();
   });
 });
 
@@ -462,7 +521,6 @@ describe("services and checklists", () => {
       name: "Brand New Service",
       shortDescription: "",
       description: "",
-      isActive: true,
     });
     expect((await getServiceWithRequirements(t.db, a))?.requirements).toHaveLength(0);
     await addRequirement(t.db, staff, a, { label: "Requirement 1", details: "", isRequired: true });
@@ -474,56 +532,13 @@ describe("services and checklists", () => {
         name: "Brand New Service",
         shortDescription: "",
         description: "",
-        isActive: true,
       }),
     ).rejects.toBeInstanceOf(SettingsError);
-    await moveService(t.db, staff, a, "up");
-    const order = (await t.db.select().from(services).orderBy(services.sortOrder)).map(
-      (s) => s.slug,
-    );
-    expect(order[0]).toBe("brand-new-service");
-  });
-});
-
-describe("admin users", () => {
-  it("invites with a fresh code only, and logs it", async () => {
-    const api = { invite: async () => ({ id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" }) };
-    const input = {
-      email: "zolb-test+new@example.com",
-      fullName: "New Staff",
-      role: "staff" as const,
-    };
-    expect(await rejects(inviteAdmin(t.db, owner, api, input, { fresh2fa: false }))).toBe(
-      "needs-fresh-2fa",
-    );
-    await inviteAdmin(t.db, owner, api, input, { fresh2fa: true });
-    // The account role is "admin" too, because requireAdmin checks both records.
-    const [account] = await t.db
-      .select({ role: profiles.role })
-      .from(profiles)
-      .where(eq(profiles.id, "dddddddd-dddd-4ddd-8ddd-dddddddddddd"));
-    expect(account.role).toBe("admin");
-    expect(await rejects(inviteAdmin(t.db, owner, api, input, { fresh2fa: true }))).toBe("exists");
-    expect(
-      await rejects(inviteAdmin(t.db, owner, api, { ...input, email: "bad" }, { fresh2fa: true })),
-    ).toBe("invalid");
-  });
-  it("blocks removing the last active owner, and self demotion", async () => {
-    expect(
-      await rejects(
-        updateAdmin(t.db, owner, { adminId: owner.id, isActive: false }, { fresh2fa: true }),
-      ),
-    ).toBe("self");
-    await updateAdmin(t.db, owner, { adminId: owner2.id, isActive: false }, { fresh2fa: true });
-    // owner is now the only active owner. Another owner cannot be created here, so test via owner2 acting is blocked (inactive).
-    const err = await updateAdmin(
-      t.db,
-      { ...owner2, role: "owner" } as AdminProfile,
-      { adminId: owner.id, role: "staff" },
-      { fresh2fa: true },
-    ).catch((e) => e);
-    expect(err).toBeInstanceOf(UserAdminError);
-    expect(err.code).toBe("last-owner");
+    const slugs = async () =>
+      (await t.db.select().from(services).orderBy(services.sortOrder)).map((s) => s.slug);
+    const before = (await slugs()).indexOf("brand-new-service");
+    await moveService(t.db, owner, a, "up");
+    expect((await slugs()).indexOf("brand-new-service")).toBe(before - 1);
   });
 });
 
@@ -603,4 +618,4 @@ describe("csv", () => {
   });
 });
 
-void AdminAuthError;
+void PanelAuthError;

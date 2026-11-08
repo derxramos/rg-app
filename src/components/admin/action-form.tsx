@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { notify } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
-import { useTwoFactorRequired } from "@/components/admin/two-factor-context";
-import type { ActionResult } from "@/server/auth/admin";
+import { useTwoFactorInfo } from "@/components/admin/two-factor-context";
+import type { ActionResult } from "@/server/auth/panel";
 
 type Props = {
   action: (previous: ActionResult | null, formData: FormData) => Promise<ActionResult>;
@@ -17,7 +17,8 @@ type Props = {
   submitLabel: string;
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
-  // Shows a field for a fresh 6-digit code (risky actions: payment methods, admin users).
+  // Shows the fresh confirm field (risky actions: payment methods, accounts): the person's OWN 6-digit code,
+  // or their own password when they have no authenticator app yet.
   fresh?: boolean;
   // Empty the fields after a good save (for "add" forms).
   resetOnSuccess?: boolean;
@@ -48,7 +49,7 @@ export function ActionForm({
 }: Props) {
   const [state, run, pending] = useActionState(action, null);
   const [, startTransition] = useTransition();
-  const twoFactorRequired = useTwoFactorRequired();
+  const { mode } = useTwoFactorInfo();
   const form = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -83,18 +84,35 @@ export function ActionForm({
           ))
         : null}
       {children}
-      {fresh && twoFactorRequired ? (
+      {fresh ? (
         <div className="flex flex-col gap-2">
-          <Label htmlFor={id}>Your 6-digit code (from your authenticator app)</Label>
-          <Input
-            id={id}
-            name="fresh2faCode"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={7}
-            className="max-w-48"
-            placeholder="123456"
-          />
+          {mode === "code" ? (
+            <>
+              <Label htmlFor={id}>Enter the 6-digit code from YOUR authenticator app.</Label>
+              <Input
+                id={id}
+                name="fresh2faCode"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={7}
+                className="max-w-48"
+                placeholder="123456"
+              />
+            </>
+          ) : (
+            <>
+              <Label htmlFor={id}>
+                You have no authenticator app yet. Enter your own account password.
+              </Label>
+              <Input
+                id={id}
+                name="confirmPassword"
+                type="password"
+                autoComplete="current-password"
+                className="max-w-72"
+              />
+            </>
+          )}
         </div>
       ) : null}
       {failed ? (

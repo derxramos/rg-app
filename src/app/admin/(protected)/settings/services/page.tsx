@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatFee } from "@/lib/money";
-import { guardAdminPage } from "@/server/auth/admin";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { listAllServices } from "@/server/services/admin-settings";
 
@@ -21,7 +21,7 @@ import { createServiceAction, serviceListAction } from "../actions";
 export const metadata: Metadata = { title: "Services" };
 
 export default async function ServicesSettingsPage() {
-  await guardAdminPage();
+  await guardPanelPage("services.view", "/admin/settings/services");
   const list = await listAllServices(getDb());
   return (
     <>

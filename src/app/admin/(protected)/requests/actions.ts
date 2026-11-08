@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { REQUEST_STATUSES, type RequestStatus } from "@/lib/status";
-import { withAdmin, type ActionResult } from "@/server/auth/admin";
-import { OWNER_ONLY } from "@/server/auth/admin-core";
+import { withPanel, type ActionResult } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { CLIENT_FILES_BUCKET, getStorage } from "@/server/storage/storage";
 import { emailContext, notifyClientUpdate, notifyPaymentVerified } from "@/server/email/notify";
@@ -23,7 +22,7 @@ export async function changeStatusAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin, ipHash }) => {
+  return withPanel({ action: "requests.change_status", formData }, async ({ admin, ipHash }) => {
     const to = text(formData, "to") as RequestStatus;
     if (!REQUEST_STATUSES.includes(to))
       return { ok: false, code: "invalid", message: "Please choose a status." };
@@ -47,7 +46,7 @@ export async function addNoteAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin }) => {
+  return withPanel({ action: "requests.add_note", formData }, async ({ admin }) => {
     const visibility = text(formData, "visibility") === "client" ? "client" : "internal";
     const requestId = text(formData, "requestId");
     await addNote(getDb(), admin, { requestId, visibility, body: text(formData, "body") });
@@ -65,7 +64,7 @@ export async function verifyPaymentAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin, ipHash }) => {
+  return withPanel({ action: "payments.verify", formData }, async ({ admin, ipHash }) => {
     try {
       const { requestId } = await verifyPayment(getDb(), admin, {
         paymentId: text(formData, "paymentId"),
@@ -95,7 +94,7 @@ export async function rejectPaymentAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin, ipHash }) => {
+  return withPanel({ action: "payments.verify", formData }, async ({ admin, ipHash }) => {
     try {
       const { requestId } = await rejectPayment(getDb(), admin, {
         paymentId: text(formData, "paymentId"),
@@ -124,7 +123,7 @@ export async function retryEmailAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async () => {
+  return withPanel({ action: "requests.retry_email", formData }, async () => {
     const result = await retryEmail(getDb(), emailContext(), text(formData, "logId"));
     revalidatePath(`/admin/requests/${text(formData, "requestId")}`);
     return result.ok
@@ -143,22 +142,25 @@ export async function eraseClientDataAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, ipHash, fresh2fa }) => {
-    if (text(formData, "confirm").trim() !== "DELETE") {
-      return {
-        ok: false,
-        code: "invalid",
-        message: "Please type the word DELETE (in capital letters) to confirm.",
-      };
-    }
-    const requestId = text(formData, "requestId");
-    const { filesDeleted } = await eraseClientData(getDb(), getStorage(), admin, {
-      requestId,
-      bucket: CLIENT_FILES_BUCKET(),
-      fresh2fa,
-      ipHash,
-    });
-    revalidatePath(`/admin/requests/${requestId}`);
-    return { ok: true, message: `The client's data was deleted (${filesDeleted} files).` };
-  });
+  return withPanel(
+    { action: "requests.erase_client_data", formData },
+    async ({ admin, ipHash, fresh2fa }) => {
+      if (text(formData, "confirm").trim() !== "DELETE") {
+        return {
+          ok: false,
+          code: "invalid",
+          message: "Please type the word DELETE (in capital letters) to confirm.",
+        };
+      }
+      const requestId = text(formData, "requestId");
+      const { filesDeleted } = await eraseClientData(getDb(), getStorage(), admin, {
+        requestId,
+        bucket: CLIENT_FILES_BUCKET(),
+        fresh2fa,
+        ipHash,
+      });
+      revalidatePath(`/admin/requests/${requestId}`);
+      return { ok: true, message: `The client's data was deleted (${filesDeleted} files).` };
+    },
+  );
 }

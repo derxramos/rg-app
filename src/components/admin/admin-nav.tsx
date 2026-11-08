@@ -1,19 +1,64 @@
 "use client";
 
-import { Download, History, Inbox, LayoutDashboard, Settings, type LucideIcon } from "lucide-react";
+import {
+  Briefcase,
+  Download,
+  History,
+  Inbox,
+  LayoutDashboard,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { STAFF_SETTINGS_PATH, can, type Action, type Role } from "@/lib/permissions";
 import { cn, focusRing } from "@/lib/utils";
 
-type Item = { href: string; label: string; icon: LucideIcon; ownerOnly?: boolean; phone?: boolean };
+// Each item shows only when the role may do its action (src/lib/permissions.ts). Hiding an item is not
+// security: every page, action and route checks again, and so does the database.
+type Item = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  action: Action;
+  phone?: boolean;
+  // Shown only for roles that do NOT have this action (staff get "Services" instead of "Settings").
+  unless?: Action;
+};
 
 const ITEMS: Item[] = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, phone: true },
-  { href: "/admin/requests", label: "Requests", icon: Inbox, phone: true },
-  { href: "/admin/settings", label: "Settings", icon: Settings, phone: true },
-  { href: "/admin/activity", label: "Activity", icon: History, phone: true },
-  { href: "/admin/export", label: "Export", icon: Download, ownerOnly: true },
+  {
+    href: "/admin",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    action: "dashboard.view",
+    phone: true,
+  },
+  { href: "/admin/requests", label: "Requests", icon: Inbox, action: "requests.view", phone: true },
+  {
+    href: "/admin/settings",
+    label: "Settings",
+    icon: Settings,
+    action: "accounts.view",
+    phone: true,
+  },
+  {
+    href: STAFF_SETTINGS_PATH,
+    label: "Services",
+    icon: Briefcase,
+    action: "services.view",
+    phone: true,
+    unless: "accounts.view",
+  },
+  {
+    href: "/admin/activity",
+    label: "Activity",
+    icon: History,
+    action: "activity.view",
+    phone: true,
+  },
+  { href: "/admin/export", label: "Export", icon: Download, action: "export.csv" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -23,21 +68,21 @@ function isActive(pathname: string, href: string) {
 }
 
 // Sidebar from 1024 px. On a phone: a bottom bar with 4 items, 60 px tall.
-export function AdminNav({
-  isOwner,
-  variant,
-}: {
-  isOwner: boolean;
-  variant: "sidebar" | "bottom";
-}) {
+export function AdminNav({ role, variant }: { role: Role; variant: "sidebar" | "bottom" }) {
   const pathname = usePathname();
-  const items = ITEMS.filter((i) => (variant === "bottom" ? i.phone : !i.ownerOnly || isOwner));
+  const items = ITEMS.filter(
+    (i) =>
+      can(role, i.action) &&
+      !(i.unless && can(role, i.unless)) &&
+      (variant === "bottom" ? i.phone : true),
+  );
 
   if (variant === "bottom") {
     return (
       <nav
         aria-label="Admin"
-        className="fixed inset-x-0 bottom-0 z-40 grid h-[60px] grid-cols-4 border-t bg-background lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid h-[60px] border-t bg-background lg:hidden"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
       >
         {items.map(({ href, label, icon: Icon }) => (
           <Link

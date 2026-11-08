@@ -12,8 +12,8 @@ import {
 } from "@/server/services/tracking";
 import { changeStatus, createDraft } from "@/server/services/requests";
 import { addNote } from "@/server/services/admin-requests";
-import { adminProfiles } from "@/server/db/schema";
 
+import { insertPanelUsers } from "../helpers/panel-users";
 import { createTestDb } from "../helpers/test-db";
 
 let t: Awaited<ReturnType<typeof createTestDb>>;
@@ -139,15 +139,14 @@ describe("attemptTracking", () => {
 describe("getTrackingView: the minimal view", () => {
   it("shows only service, status, timeline, the admin message and a payment summary", async () => {
     const r = await sentRequest("9179998888", "Very Private Person");
-    const [admin] = await t.db
-      .insert(adminProfiles)
-      .values({
+    const [admin] = await insertPanelUsers(t.db, [
+      {
         id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         fullName: "Staff",
         email: "zolb-test+s@example.com",
         role: "staff",
-      })
-      .returning();
+      },
+    ]);
     await addNote(t.db, admin, { requestId: r.id, visibility: "internal", body: "INTERNAL ONLY" });
     await addNote(t.db, admin, {
       requestId: r.id,

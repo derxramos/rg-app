@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { REQUEST_STATUSES, STATUS_LABELS, type RequestStatus } from "@/lib/status";
 import { formatManilaDate } from "@/lib/time";
-import { guardAdminPage } from "@/server/auth/admin";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { listRequests } from "@/server/services/admin-requests";
 import { listAllServices } from "@/server/services/admin-settings";
@@ -32,7 +32,7 @@ const one = (value: string | string[] | undefined) =>
   typeof value === "string" && value ? value : undefined;
 
 export default async function AdminRequestsPage({ searchParams }: PageProps<"/admin/requests">) {
-  await guardAdminPage();
+  await guardPanelPage("requests.view", "/admin/requests");
   const query = await searchParams;
   const status = one(query.status) as RequestStatus | undefined;
   const filters = {

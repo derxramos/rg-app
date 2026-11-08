@@ -12,8 +12,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { qrImageUrl } from "@/lib/qr-url";
-import { guardAdminPage } from "@/server/auth/admin";
-import { OWNER_ONLY } from "@/server/auth/admin-core";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { getPaymentMethod } from "@/server/services/admin-settings";
 import { PARSERS } from "@/ocr/parsers";
@@ -25,7 +24,7 @@ export const metadata: Metadata = { title: "Edit payment method" };
 export default async function EditPaymentMethodPage({
   params,
 }: PageProps<"/admin/settings/payments/[id]">) {
-  const admin = await guardAdminPage({ roles: OWNER_ONLY });
+  const admin = await guardPanelPage("payment_methods.manage", "/admin/settings/payments/[id]");
   const { id } = await params;
   const isNew = id === "new";
   const method = isNew

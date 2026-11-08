@@ -5,13 +5,11 @@ import Link from "next/link";
 import { ActionForm } from "@/components/admin/action-form";
 import { AdminTitle } from "@/components/admin/bits";
 import { EmptyState } from "@/components/shared/empty-state";
-import { WarningBox } from "@/components/shared/warning-box";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatManilaDateTime } from "@/lib/time";
-import { guardAdminPage } from "@/server/auth/admin";
-import { OWNER_ONLY } from "@/server/auth/admin-core";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { listAllPaymentMethods } from "@/server/services/admin-settings";
 
@@ -20,17 +18,7 @@ import { paymentMethodListAction } from "./actions";
 export const metadata: Metadata = { title: "Payment methods" };
 
 export default async function PaymentMethodsPage() {
-  const admin = await guardAdminPage();
-  if (!OWNER_ONLY.includes(admin.role)) {
-    return (
-      <>
-        <AdminTitle title="Payment methods" />
-        <WarningBox variant="info" title="Only the owner can change payment methods">
-          This protects clients from a changed QR code. Please ask the owner.
-        </WarningBox>
-      </>
-    );
-  }
+  await guardPanelPage("payment_methods.manage", "/admin/settings/payments");
   const methods = await listAllPaymentMethods(getDb());
 
   return (

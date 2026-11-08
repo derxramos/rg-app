@@ -3,7 +3,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 import type { AuthDeleteApi } from "@/server/services/account";
-import type { AuthAdminApi, AuthPasswordApi } from "@/server/services/admin-users";
+import type { AuthAdminApi, AuthPasswordApi } from "@/server/services/accounts";
 
 import { getBaseUrl } from "@/lib/site-url";
 
@@ -31,6 +31,29 @@ export function createAuthAdminApi(): AuthAdminApi {
           code: "invalid",
         });
       return { id: data.user.id };
+    },
+    async resendInvite(email) {
+      // Inviting an address that has not opened its first invitation sends a new invitation.
+      const { error } = await client.auth.admin.inviteUserByEmail(email, {
+        redirectTo: `${getBaseUrl()}/login`,
+      });
+      if (!error) return;
+      // A person who signed up themselves gets the confirmation link again.
+      const { error: resendError } = await client.auth.resend({ type: "signup", email });
+      if (resendError)
+        throw Object.assign(new Error(`Could not send the email: ${resendError.message}`), {
+          code: "invalid",
+        });
+    },
+    async setBanned(userId, banned) {
+      // "none" lifts the ban. A very long time is "turned off until someone turns it on".
+      const { error } = await client.auth.admin.updateUserById(userId, {
+        ban_duration: banned ? "876000h" : "none",
+      });
+      if (error)
+        throw Object.assign(new Error(`Could not update the login: ${error.message}`), {
+          code: "invalid",
+        });
     },
   };
 }

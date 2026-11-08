@@ -7,15 +7,11 @@ import { and, asc, desc, eq, gte, ilike, inArray, isNull, lt, ne, or, sql } from
 
 import type { RequestStatus } from "@/lib/status";
 import { addDaysToIsoDate } from "@/lib/time";
-import {
-  PAYMENT_VERIFY_ROLES,
-  AdminAuthError,
-  hasRole,
-  type AdminProfile,
-} from "@/server/auth/admin-core";
+import { PanelAuthError, assertCan, type PanelUser } from "@/server/auth/panel-core";
+import { setActor } from "@/server/db/actor";
 import {
   activityLog,
-  adminProfiles,
+  profiles,
   emailLog,
   payments,
   requestFiles,
@@ -143,10 +139,10 @@ export async function getRequestDetail(db: AppDb, requestId: string) {
         fromStatus: requestStatusEvents.fromStatus,
         toStatus: requestStatusEvents.toStatus,
         createdAt: requestStatusEvents.createdAt,
-        changedByName: adminProfiles.fullName,
+        changedByName: profiles.fullName,
       })
       .from(requestStatusEvents)
-      .leftJoin(adminProfiles, eq(adminProfiles.id, requestStatusEvents.changedBy))
+      .leftJoin(profiles, eq(profiles.id, requestStatusEvents.changedBy))
       .where(eq(requestStatusEvents.requestId, requestId))
       .orderBy(asc(requestStatusEvents.createdAt)),
     db
@@ -155,10 +151,10 @@ export async function getRequestDetail(db: AppDb, requestId: string) {
         visibility: requestNotes.visibility,
         body: requestNotes.body,
         createdAt: requestNotes.createdAt,
-        authorName: adminProfiles.fullName,
+        authorName: profiles.fullName,
       })
       .from(requestNotes)
-      .innerJoin(adminProfiles, eq(adminProfiles.id, requestNotes.authorId))
+      .innerJoin(profiles, eq(profiles.id, requestNotes.authorId))
       .where(eq(requestNotes.requestId, requestId))
       .orderBy(desc(requestNotes.createdAt)),
   ]);
@@ -169,7 +165,7 @@ export async function getRequestDetail(db: AppDb, requestId: string) {
 // Internal notes are for staff only. Client notes are shown on the tracking page (and emailed in Phase 6).
 export async function addNote(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: { requestId: string; visibility: "internal" | "client"; body: string },
 ) {
   const body = input.body.trim();
@@ -203,7 +199,7 @@ export async function addNote(
 // Changes the status, with an optional message that the client will see.
 export async function adminChangeStatus(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: { requestId: string; to: RequestStatus; message?: string; ipHash?: string | null },
 ) {
   const result = await changeStatus(db, {
@@ -234,13 +230,14 @@ export class PaymentActionFailure extends Error {
 // The admin must tick "I found this payment in our account" first (docs/FEATURES.md A5).
 export async function verifyPayment(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: { paymentId: string; foundInAccount: boolean; ipHash?: string | null },
 ) {
-  if (!hasRole(actor, PAYMENT_VERIFY_ROLES)) throw new AdminAuthError("wrong-role");
+  assertCan(actor, "payments.verify");
   if (input.foundInAccount !== true) throw new PaymentActionFailure("confirm-needed");
 
   const payment = await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
     const [row] = await tx
       .select()
       .from(payments)
@@ -289,14 +286,15 @@ export async function verifyPayment(
 
 export async function rejectPayment(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: { paymentId: string; reason: string; ipHash?: string | null },
 ) {
-  if (!hasRole(actor, PAYMENT_VERIFY_ROLES)) throw new AdminAuthError("wrong-role");
+  assertCan(actor, "payments.verify");
   const reason = input.reason.trim();
   if (reason.length < 3 || reason.length > 300) throw new PaymentActionFailure("reason-needed");
 
   const payment = await db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
     const [row] = await tx
       .select()
       .from(payments)
@@ -346,7 +344,7 @@ export async function rejectPayment(
 export async function getFileLink(
   db: AppDb,
   storage: StorageDriver,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: { fileId: string; bucket: string; ipHash?: string | null },
 ): Promise<string | null> {
   const [file] = await db
@@ -380,11 +378,11 @@ export type EraseActor = { type: "admin" | "client"; id: string | null };
 export async function eraseClientData(
   db: AppDb,
   storage: StorageDriver,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: { requestId: string; bucket: string; fresh2fa: boolean; ipHash?: string | null },
 ) {
-  if (actor.role !== "owner") throw new AdminAuthError("wrong-role");
-  if (!input.fresh2fa) throw new AdminAuthError("needs-fresh-2fa");
+  assertCan(actor, "requests.erase_client_data");
+  if (!input.fresh2fa) throw new PanelAuthError("needs-fresh-2fa");
   return eraseRequestData(db, storage, {
     requestId: input.requestId,
     bucket: input.bucket,

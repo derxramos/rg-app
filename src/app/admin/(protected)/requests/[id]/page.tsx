@@ -17,8 +17,8 @@ import { formatFileSize } from "@/lib/image-compress";
 import { formatPesos } from "@/lib/money";
 import { STATUS_LABELS, nextStatusesFor } from "@/lib/status";
 import { formatManilaDate, formatManilaDateTime } from "@/lib/time";
-import { guardAdminPage } from "@/server/auth/admin";
-import { PAYMENT_VERIFY_ROLES, hasRole } from "@/server/auth/admin-core";
+import { guardPanelPage } from "@/server/auth/panel";
+import { can } from "@/lib/permissions";
 import { getDb } from "@/server/db/client";
 import { listEmailsForRequest } from "@/server/email/send";
 import { getRequestDetail } from "@/server/services/admin-requests";
@@ -56,7 +56,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default async function AdminRequestDetailPage({
   params,
 }: PageProps<"/admin/requests/[id]">) {
-  const admin = await guardAdminPage();
+  const admin = await guardPanelPage("requests.view", "/admin/requests/[id]");
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const detail = await getRequestDetail(getDb(), id);
@@ -64,7 +64,7 @@ export default async function AdminRequestDetailPage({
   const emails = await listEmailsForRequest(getDb(), id);
   const { request, files, payments, events, notes } = detail;
   const nextStatuses = nextStatusesFor("admin", request.status);
-  const canVerify = hasRole(admin, PAYMENT_VERIFY_ROLES);
+  const canVerify = can(admin.role, "payments.verify");
 
   return (
     <>

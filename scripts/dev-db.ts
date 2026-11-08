@@ -48,6 +48,15 @@ async function main() {
     await applyMigrations(db, { fromFile: "0002" });
   }
 
+  // A local database made before the single role column (migration 0006) gets it once.
+  const hasAccountRole = await db.query<{ exists: boolean }>(
+    `select to_regtype('public.account_role') is not null as exists`,
+  );
+  if (!hasAccountRole.rows[0].exists) {
+    console.log("Adding the roles migration (0006 and later)...");
+    await applyMigrations(db, { fromFile: "0006" });
+  }
+
   const server = new PGLiteSocketServer({ db, port: PORT, host: "127.0.0.1", maxConnections: 3 });
   await server.start();
   console.log(`Local database is ready on postgres://postgres:postgres@127.0.0.1:${PORT}/postgres`);

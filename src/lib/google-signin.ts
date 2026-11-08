@@ -1,4 +1,5 @@
 // Rules for "Continue with Google". Pure functions, so they are easy to test.
+import { isPanelRole, type Role } from "@/lib/permissions";
 import { landingPathFor, safeNextPath } from "@/lib/safe-next";
 
 // The button shows only when the owner has finished the Google setup and set GOOGLE_SIGNIN_ENABLED=true.
@@ -10,11 +11,9 @@ export function isGoogleSignInEnabled(value: string | undefined): boolean {
 // has extra checks (spam check, rate limit and the 2-step code) and Google would skip them.
 export type GoogleLanding = { ok: true; path: string } | { ok: false; reason: "admin" };
 
-export function googleLanding(
-  role: "user" | "admin",
-  next: string | null | undefined,
-): GoogleLanding {
-  if (role === "admin") return { ok: false, reason: "admin" };
+export function googleLanding(role: Role, next: string | null | undefined): GoogleLanding {
+  // Staff, admin and owner accounts are refused.
+  if (isPanelRole(role)) return { ok: false, reason: "admin" };
   return { ok: true, path: safeNextPath(next, landingPathFor("user")) };
 }
 

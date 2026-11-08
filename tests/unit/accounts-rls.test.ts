@@ -51,10 +51,8 @@ beforeAll(async () => {
       ('${B}', 'zolb-test+b@example.com', '{"full_name":"User B","role":"admin"}'),
       ('${ADMIN}', 'zolb-test+admin@example.com', '{"full_name":"Admin"}'),
       ('${IDLE_ADMIN}', 'zolb-test+idle@example.com', '{"full_name":"Idle admin"}');
-    update profiles set role = 'admin' where id in ('${ADMIN}', '${IDLE_ADMIN}');
-    insert into admin_profiles (id, full_name, email, role, is_active) values
-      ('${ADMIN}', 'Admin', 'zolb-test+admin@example.com', 'owner', true),
-      ('${IDLE_ADMIN}', 'Idle admin', 'zolb-test+idle@example.com', 'staff', false);
+    update profiles set role = 'owner' where id = '${ADMIN}';
+    update profiles set role = 'staff', is_active = false where id = '${IDLE_ADMIN}';
     insert into services (slug, name) values ('svc', 'Sample service');
     insert into payment_methods (name, account_name, account_number) values ('Sample', 'Sample Name', '0000');
   `);
@@ -172,7 +170,7 @@ describe("a user sees only their own data", () => {
     );
   });
   it("cannot read tables meant for admins only", async () => {
-    for (const table of ["admin_profiles", "activity_log", "payment_methods", "email_log"]) {
+    for (const table of ["activity_log", "payment_methods", "email_log"]) {
       expect((await asUser(A, `select 1 from ${table}`)).error, table).toMatch(
         /permission denied/i,
       );
@@ -256,10 +254,11 @@ describe("the anon role", () => {
 });
 
 describe("an admin", () => {
-  it("is_admin() is true only for an active admin_profiles row with role admin", async () => {
-    expect((await asUser(ADMIN, `select public.is_admin() as ok`)).rows[0].ok).toBe(true);
-    expect((await asUser(IDLE_ADMIN, `select public.is_admin() as ok`)).rows[0].ok).toBe(false);
-    expect((await asUser(A, `select public.is_admin() as ok`)).rows[0].ok).toBe(false);
+  it("private.can() is true only for an active staff, admin or owner account", async () => {
+    const can = (id: string) => asUser(id, `select private.can('requests.view') as ok`);
+    expect((await can(ADMIN)).rows[0].ok).toBe(true);
+    expect((await can(IDLE_ADMIN)).rows[0].ok).toBe(false);
+    expect((await can(A)).rows[0].ok).toBe(false);
   });
   it("sees all requests, including guest requests, and internal notes", async () => {
     expect((await asUser(ADMIN, `select id from requests`)).rows).toHaveLength(3);

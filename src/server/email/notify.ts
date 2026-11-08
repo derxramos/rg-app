@@ -4,11 +4,13 @@ import { eq, and } from "drizzle-orm";
 
 import { getBaseUrl } from "@/lib/site-url";
 import { getDb } from "@/server/db/client";
-import { adminProfiles } from "@/server/db/schema";
+import { profiles } from "@/server/db/schema";
 import { formatManilaDateTime } from "@/lib/time";
 
 import { deliver, sendRequestEmail, type EmailContext } from "./send";
-import { paymentMethodChangedOwner, contactFormAdmin } from "./templates";
+import { ROLE_LABELS, type Role } from "@/lib/permissions";
+
+import { accountChanged, paymentMethodChangedOwner, contactFormAdmin } from "./templates";
 
 // The settings come from the environment (docs/ARCHITECTURE.md, "Environment variables").
 export function emailContext(): EmailContext {
@@ -58,9 +60,9 @@ export async function notifyPaymentMethodChanged(change: { who: string; what: st
   const db = getDb();
   const ctx = emailContext();
   const owners = await db
-    .select({ email: adminProfiles.email })
-    .from(adminProfiles)
-    .where(and(eq(adminProfiles.role, "owner"), eq(adminProfiles.isActive, true)));
+    .select({ email: profiles.email })
+    .from(profiles)
+    .where(and(eq(profiles.role, "owner"), eq(profiles.isActive, true)));
   for (const owner of owners) {
     await deliver(db, ctx, {
       template: "payment_method_changed_owner",
@@ -73,6 +75,101 @@ export async function notifyPaymentMethodChanged(change: { who: string; what: st
         }),
       },
     });
+  }
+}
+
+// Tells a person that their account was changed, and by whom. Used for a role change, turn off / on, and a
+// 2-step login reset. When the changed account is an OWNER, every active owner gets the 2-step reset email too.
+export type AccountChangeNotice = {
+  kind: "role_changed" | "turned_off" | "turned_on" | "2fa_reset";
+  id: string;
+  email: string;
+  fullName: string;
+  actorName: string;
+  from?: Role;
+  to?: Role;
+  role?: Role;
+};
+
+export async function notifyAccountChange(change: AccountChangeNotice): Promise<void> {
+  const db = getDb();
+  const ctx = emailContext();
+  const when = formatManilaDateTime(new Date());
+  const loginUrl = `${ctx.baseUrl}/login`;
+  const byWho = `Changed by: ${change.actorName}`;
+
+  const content: Record<
+    AccountChangeNotice["kind"],
+    { template: Parameters<typeof deliver>[2]["template"]; title: string; lines: string[] }
+  > = {
+    role_changed: {
+      template: "account_role_changed",
+      title: "Your role was changed",
+      lines: [
+        `Your role changed from ${ROLE_LABELS[change.from ?? "user"]} to ${ROLE_LABELS[change.to ?? "user"]}.`,
+        byWho,
+      ],
+    },
+    turned_off: {
+      template: "account_turned_off",
+      title: "Your account was turned off",
+      lines: ["Your account was turned off. You cannot sign in now.", byWho],
+    },
+    turned_on: {
+      template: "account_turned_on",
+      title: "Your account was turned on",
+      lines: ["Your account was turned on again. You can sign in.", byWho],
+    },
+    "2fa_reset": {
+      template: "account_2fa_reset",
+      title: "Your 2-step login was reset",
+      lines: [
+        "Your 2-step login (authenticator app) was removed, and you were signed out everywhere.",
+        "At your next sign in you must add a new authenticator app and a backup device.",
+        byWho,
+      ],
+    },
+  };
+  const item = content[change.kind];
+  await deliver(db, ctx, {
+    template: item.template,
+    message: {
+      to: { email: change.email, name: change.fullName || undefined },
+      ...accountChanged({
+        title: item.title,
+        name: change.fullName,
+        lines: item.lines,
+        when,
+        loginUrl,
+      }),
+    },
+  });
+
+  // An owner's 2-step login was reset: every active owner must know (the person may be an owner too).
+  if (change.kind === "2fa_reset" && change.role === "owner") {
+    const owners = await db
+      .select({ email: profiles.email, fullName: profiles.fullName })
+      .from(profiles)
+      .where(and(eq(profiles.role, "owner"), eq(profiles.isActive, true)));
+    for (const owner of owners) {
+      if (owner.email === change.email) continue; // the target already got their own email
+      await deliver(db, ctx, {
+        template: "account_2fa_reset_owners",
+        message: {
+          to: { email: owner.email, name: owner.fullName || undefined },
+          ...accountChanged({
+            title: "An owner's 2-step login was reset",
+            name: owner.fullName,
+            lines: [
+              `The 2-step login of the owner ${change.fullName || change.email} was reset.`,
+              byWho,
+            ],
+            when,
+            loginUrl,
+          }),
+        },
+      });
+    }
   }
 }
 

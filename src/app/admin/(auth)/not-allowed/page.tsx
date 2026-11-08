@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = { title: "Not allowed" };
 
 // Shown to a logged-in person who is not an (active) admin and opens /admin.
-// It is a plain page with no private data. The real check is requireAdmin() on every admin page and action.
+// It is a plain page with no private data. The real check is requirePanel() on every admin page and action.
 export default function NotAllowedPage() {
   return (
     <div className="flex flex-col gap-5">

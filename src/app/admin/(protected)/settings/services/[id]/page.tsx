@@ -12,7 +12,7 @@ import { Checkbox, CheckboxRow } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { guardAdminPage } from "@/server/auth/admin";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { centavosToPesoInput } from "@/lib/money";
 import {
@@ -28,7 +28,7 @@ export const metadata: Metadata = { title: "Edit service" };
 export default async function EditServicePage({
   params,
 }: PageProps<"/admin/settings/services/[id]">) {
-  await guardAdminPage();
+  await guardPanelPage("services.view", "/admin/settings/services");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const found = await getServiceWithRequirements(getDb(), id);

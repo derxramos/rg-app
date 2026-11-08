@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { MfaSetup } from "@/components/admin/mfa-setup";
 import { Skeleton } from "@/components/ui/skeleton";
-import { guardMfaPage } from "@/server/auth/admin";
+import { guardMfaPage } from "@/server/auth/panel";
 
 export const metadata: Metadata = { title: "Set up 2FA" };
 

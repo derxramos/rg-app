@@ -6,17 +6,11 @@ import { Logo } from "@/components/shared/logo";
 import { ReloadOnRestore } from "@/components/shared/reload-on-restore";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
-import type { AdminProfile } from "@/server/auth/admin-core";
+import { ROLE_LABELS } from "@/lib/permissions";
+import type { PanelUser } from "@/server/auth/panel-core";
 
 // Header (64 px), sidebar from 1024 px, bottom bar on phones. Wide pages scroll inside the main area.
-export function AdminShell({
-  admin,
-  children,
-}: {
-  admin: AdminProfile;
-  children: React.ReactNode;
-}) {
-  const isOwner = admin.role === "owner";
+export function AdminShell({ admin, children }: { admin: PanelUser; children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-surface-subtle">
       <ReloadOnRestore />
@@ -31,7 +25,7 @@ export function AdminShell({
         <div className="flex items-center gap-3">
           <span className="hidden min-w-0 text-right text-sm sm:block">
             <span className="block truncate font-bold">{admin.fullName}</span>
-            <span className="block text-muted-foreground">{isOwner ? "Owner" : "Staff"}</span>
+            <span className="block text-muted-foreground">{ROLE_LABELS[admin.role]}</span>
           </span>
           <ThemeToggle />
           {/* Same plain form POST as the public header: ends the session on the server, then loads the home page. */}
@@ -44,12 +38,12 @@ export function AdminShell({
         </div>
       </header>
       <div className="flex flex-1">
-        <AdminNav isOwner={isOwner} variant="sidebar" />
+        <AdminNav role={admin.role} variant="sidebar" />
         <main id="main-content" className="min-w-0 flex-1 px-4 py-6 pb-24 md:px-8 lg:pb-10">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">{children}</div>
         </main>
       </div>
-      <AdminNav isOwner={isOwner} variant="bottom" />
+      <AdminNav role={admin.role} variant="bottom" />
     </div>
   );
 }

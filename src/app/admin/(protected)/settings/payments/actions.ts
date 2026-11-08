@@ -5,8 +5,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { OWNER_ONLY } from "@/server/auth/admin-core";
-import { withAdmin, type ActionResult } from "@/server/auth/admin";
+import { withPanel, type ActionResult } from "@/server/auth/panel";
 import { notifyPaymentMethodChanged } from "@/server/email/notify";
 import { getDb } from "@/server/db/client";
 import { detectFileType } from "@/server/security/file-type";
@@ -28,8 +27,8 @@ export async function savePaymentMethodAction(
   formData: FormData,
 ): Promise<ActionResult> {
   let newId: string | null = null;
-  const result = await withAdmin(
-    { roles: OWNER_ONLY, formData },
+  const result = await withPanel(
+    { action: "payment_methods.manage", formData },
     async ({ admin, ipHash, fresh2fa }) => {
       let newQrImagePath: string | undefined;
       const file = formData.get("qr");
@@ -94,7 +93,7 @@ export async function paymentMethodListAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin }) => {
+  return withPanel({ action: "payment_methods.manage", formData }, async ({ admin }) => {
     const db = getDb();
     const id = text(formData, "id");
     const intent = text(formData, "intent");
@@ -112,11 +111,14 @@ export async function deletePaymentMethodAction(
   formData: FormData,
 ): Promise<ActionResult> {
   let deleted = false;
-  const result = await withAdmin({ roles: OWNER_ONLY, formData }, async ({ admin, fresh2fa }) => {
-    await deletePaymentMethod(getDb(), admin, text(formData, "id"), { fresh2fa });
-    deleted = true;
-    return { ok: true, message: "Deleted." };
-  });
+  const result = await withPanel(
+    { action: "payment_methods.manage", formData },
+    async ({ admin, fresh2fa }) => {
+      await deletePaymentMethod(getDb(), admin, text(formData, "id"), { fresh2fa });
+      deleted = true;
+      return { ok: true, message: "Deleted." };
+    },
+  );
   if (deleted) redirect("/admin/settings/payments");
   return result;
 }

@@ -1,14 +1,14 @@
 "use server";
 
 // The 2FA code steps. Sign in and sign out are in src/app/auth/actions.ts (one login for everyone).
-// These run BEFORE a person is fully an admin, so they do not use requireAdmin.
+// These run BEFORE a person is fully an admin, so they do not use requirePanel.
 // Everything else in the admin area does (see tests/unit/admin-actions-guard.test.ts).
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AdminAuthError } from "@/server/auth/admin-core";
-import { requireAdminPendingMfa, type ActionResult } from "@/server/auth/admin";
+import { PanelAuthError } from "@/server/auth/panel-core";
+import { requirePanelPendingMfa, type ActionResult } from "@/server/auth/panel";
 import { createSupabaseServer, supabaseAuthConfigured } from "@/server/auth/supabase-server";
 import { getDb } from "@/server/db/client";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
@@ -20,10 +20,10 @@ const NOT_ALLOWED = "This account is not allowed here.";
 // cannot enroll an authenticator or try codes here.
 async function adminPending(): Promise<boolean> {
   try {
-    await requireAdminPendingMfa();
+    await requirePanelPendingMfa();
     return true;
   } catch (error) {
-    if (error instanceof AdminAuthError) return false;
+    if (error instanceof PanelAuthError) return false;
     throw error;
   }
 }

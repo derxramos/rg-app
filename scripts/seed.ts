@@ -11,13 +11,7 @@ import postgres from "postgres";
 
 import { SETTING_KEYS, DEFAULT_SETTINGS, parseSetting } from "../src/lib/validation/settings";
 import { slugify } from "../src/lib/slug";
-import {
-  adminProfiles,
-  paymentMethods,
-  profiles,
-  services,
-  siteSettings,
-} from "../src/server/db/schema";
+import { paymentMethods, profiles, services, siteSettings } from "../src/server/db/schema";
 import { SAMPLE_ACCOUNT, SAMPLE_PAYMENT_METHODS } from "./seed-data/payment-methods";
 import { SEED_SERVICES } from "./seed-data/services";
 import { loadEnv, readSeedOwner, requireEnv } from "./lib/env";
@@ -114,25 +108,16 @@ async function seedOwner(db: ReturnType<typeof drizzle>) {
     created = true;
   }
 
-  await db
-    .insert(adminProfiles)
-    .values({
-      id: userId,
-      fullName: owner.SEED_OWNER_NAME,
-      email: owner.SEED_OWNER_EMAIL,
-      role: "owner",
-    })
-    .onConflictDoNothing();
-  // The account role must also be "admin" (requireAdmin checks both).
+  // One role column for everybody (docs/AUTH_AND_ROLES.md): the first account is the business owner.
   await db
     .insert(profiles)
     .values({
       id: userId,
       fullName: owner.SEED_OWNER_NAME,
       email: owner.SEED_OWNER_EMAIL,
-      role: "admin",
+      role: "owner",
     })
-    .onConflictDoUpdate({ target: profiles.id, set: { role: "admin" } });
+    .onConflictDoUpdate({ target: profiles.id, set: { role: "owner", isActive: true } });
 
   console.log("");
   console.log("==================================================================");

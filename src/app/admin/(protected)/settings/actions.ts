@@ -5,11 +5,13 @@ import { redirect } from "next/navigation";
 
 import { safeContactUrl } from "@/lib/contact-links";
 import { parsePesosToCentavos } from "@/lib/money";
+import { can, type Action, type Role } from "@/lib/permissions";
 import type { SettingKey } from "@/lib/validation/settings";
-import { withAdmin, type ActionResult } from "@/server/auth/admin";
+import { withPanel, type ActionResult } from "@/server/auth/panel";
 import { CACHE_TAGS } from "@/server/cache-tags";
 import { getDb } from "@/server/db/client";
 import {
+  OWNER_SETTING_KEYS,
   addRequirement,
   createService,
   deleteRequirement,
@@ -51,8 +53,12 @@ export async function saveSettingAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin, ipHash }) => {
-    const key = text(formData, "key") as SettingKey;
+  const key = text(formData, "key") as SettingKey;
+  // File settings and site content are different actions in the role table.
+  const action: Action = OWNER_SETTING_KEYS.includes(key)
+    ? "file_settings.edit"
+    : "site_content.edit";
+  return withPanel({ action, formData }, async ({ admin, ipHash }) => {
     if (key === "social_links") {
       // Only safe link types may be saved (src/lib/contact-links.ts).
       for (const name of ["messenger", "viber"]) {
@@ -76,9 +82,13 @@ export async function saveSettingAction(
 // ---------- Services ----------
 
 // The fee box holds pesos ("5000"). A bad value stops the save with a clear message.
-function serviceInput(formData: FormData) {
-  const feeCentavos = parsePesosToCentavos(text(formData, "fee"));
-  if (Number.isNaN(feeCentavos))
+// Only the fields the role may change are read. Staff forms have no fee, no on/off box and no QR choices,
+// so those fields stay out (undefined = keep the current value). The service layer checks the role again.
+function serviceInput(formData: FormData, role: Role) {
+  const feeCentavos = can(role, "services.edit_fee")
+    ? parsePesosToCentavos(text(formData, "fee"))
+    : undefined;
+  if (feeCentavos !== undefined && Number.isNaN(feeCentavos))
     throw new SettingsError("invalid", "The service fee must be a number of pesos, like 5000.");
   const paymentMethodIds = formData
     .getAll("paymentMethodIds")
@@ -88,10 +98,12 @@ function serviceInput(formData: FormData) {
     name: text(formData, "name"),
     shortDescription: text(formData, "shortDescription"),
     description: text(formData, "description"),
-    isActive: flag(formData, "isActive"),
+    ...(can(role, "services.set_visibility") ? { isActive: flag(formData, "isActive") } : {}),
     feeCentavos,
     // Only the edit page has the QR checkboxes. The "add" form leaves them out.
-    ...(formData.get("hasPaymentChoices") ? { paymentMethodIds } : {}),
+    ...(can(role, "services.payment_links") && formData.get("hasPaymentChoices")
+      ? { paymentMethodIds }
+      : {}),
   };
 }
 
@@ -100,11 +112,14 @@ export async function createServiceAction(
   formData: FormData,
 ): Promise<ActionResult> {
   let createdId: string | null = null;
-  const result = await withAdmin({ formData }, async ({ admin, ipHash }) => {
-    createdId = await createService(getDb(), admin, serviceInput(formData), ipHash);
-    updateTag(CACHE_TAGS.services);
-    return { ok: true, message: "Service created." };
-  });
+  const result = await withPanel(
+    { action: "services.create", formData },
+    async ({ admin, ipHash }) => {
+      createdId = await createService(getDb(), admin, serviceInput(formData, admin.role), ipHash);
+      updateTag(CACHE_TAGS.services);
+      return { ok: true, message: "Service created." };
+    },
+  );
   if (result.ok && createdId) redirect(`/admin/settings/services/${createdId}`);
   return result;
 }
@@ -113,8 +128,14 @@ export async function updateServiceAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin, ipHash }) => {
-    await updateService(getDb(), admin, text(formData, "id"), serviceInput(formData), ipHash);
+  return withPanel({ action: "services.edit_text", formData }, async ({ admin, ipHash }) => {
+    await updateService(
+      getDb(),
+      admin,
+      text(formData, "id"),
+      serviceInput(formData, admin.role),
+      ipHash,
+    );
     updateTag(CACHE_TAGS.services);
     revalidatePath("/admin/settings/services");
     return { ok: true, message: "Saved. The website shows it now." };
@@ -126,10 +147,14 @@ export async function serviceListAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin, ipHash }) => {
+  // On/off and moving are different actions in the role table.
+  const listIntent = text(formData, "intent");
+  const listAction: Action =
+    listIntent === "on" || listIntent === "off" ? "services.set_visibility" : "services.reorder";
+  return withPanel({ action: listAction, formData }, async ({ admin, ipHash }) => {
     const db = getDb();
     const id = text(formData, "id");
-    const intent = text(formData, "intent");
+    const intent = listIntent;
     if (intent === "up" || intent === "down") await moveService(db, admin, id, intent);
     else if (intent === "on" || intent === "off") {
       const { getServiceWithRequirements } = await import("@/server/services/admin-settings");
@@ -161,11 +186,19 @@ export async function requirementAction(
   _previous: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  return withAdmin({ formData }, async ({ admin }) => {
+  const intent = text(formData, "intent");
+  const requirementPermission: Action =
+    intent === "add"
+      ? "checklist.add"
+      : intent === "delete"
+        ? "checklist.delete"
+        : intent === "up" || intent === "down"
+          ? "checklist.reorder"
+          : "checklist.edit";
+  return withPanel({ action: requirementPermission, formData }, async ({ admin }) => {
     const db = getDb();
     const serviceId = text(formData, "serviceId");
     const id = text(formData, "id");
-    const intent = text(formData, "intent");
     const input = {
       label: text(formData, "label"),
       details: text(formData, "details"),

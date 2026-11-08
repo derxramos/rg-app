@@ -3,7 +3,7 @@
 Update this file at the end of every work session.
 
 **Current status:** All 8 phases are built and each is committed. The accounts and roles work (branch `feat/auth-roles`, merged into `main`, not pushed) is built too: see "Accounts and roles work" below and docs/AUTH_AND_ROLES.md. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
-**Last updated:** 2026-11-07
+**Last updated:** 2026-11-08
 
 **Next step:** Owner: answer the open questions, set up the real accounts, and run the live checklist. Then deploy a preview.
 
@@ -31,6 +31,42 @@ Plan: user accounts (role `user`) and admin accounts (role `admin`). Phases:
 - [x] Phase 9 — 2FA ON path (last) (tested for both flag values; the live check is in "Before launch")
 
 Note: for this run the owner asked me to go on without stopping after each phase, and to stop only if blocked.
+
+---
+
+## Roles, accounts table and 2-step login recovery (branch `feat/roles-accounts-recovery`)
+
+Plan approved on 2026-11-08. One role column for everybody: `user`, `staff`, `admin`, `owner` (see `src/lib/permissions.ts`).
+Each phase ends with lint, type check, tests and build, then `git merge --ff-only` into `main`. Nothing is pushed. **Nothing was run on the live database.**
+
+- [x] Phase 1 — Plan and data mapping (the owner runs the read-only query M1 before the migration, see below)
+- [x] Phase 2 — Role model, permission function, database policies and triggers (migration `drizzle/0006_single_role.sql`, NOT applied anywhere live)
+- [ ] Phase 3 — Staff menu and page guards (menu, header label and guards are in; the browser checks for staff come in phase 7)
+- [ ] Phase 4 — Accounts table and role dialog (service, actions and emails are in; the table screen is still a plain list)
+- [ ] Phase 5 — Backup device and reset by another person
+- [ ] Phase 6 — RECOVERY.md and docs
+- [ ] Phase 7 — Final tests, lint, build
+
+### Phase 2 report (2026-11-08)
+- **Permission table:** `src/lib/permissions.ts` (`can(role, action)`). 136 unit tests: every role times every action. `OWNER_ONLY`, `PAYMENT_VERIFY_ROLES` and `hasRole` are gone (a test fails if they come back).
+- **Checks in three places:** pages and actions (`guardPanelPage(action)`, `withPanel({ action })`, `requirePanel(action)` in `src/server/auth/panel.ts`), every service function (`assertCan`), and the database (`private.can()` for Row Level Security, plus triggers that read `app.actor_id`).
+- **Database:** `admin_profiles` is removed. `profiles` now has `role` (new type `account_role`), `is_active`, `last_login_at`, `mfa_reset_required`, `sessions_revoked_at`. The last-owner rule is a trigger on `profiles`. `public.is_admin()` is replaced by `private.can()` (schema `private`, not exposed to the Data API). The snapshot and journal for 0006 are made by a script, and `drizzle-kit generate` reports "No schema changes".
+- **Bug found by a test while building:** the guard triggers first ran as the signed-in client role, which cannot use the `private` schema, so a client could not even change their own name. The trigger functions are now `security definer`.
+- **Bug fixed in passing:** `passwordIsRight()` signed the person out of ALL devices after a correct password (Supabase default scope is global). It now closes only its own throwaway session.
+- **Fresh confirm, even with the flag off:** a risky action asks for the code of the person doing it (any of their devices). If the person has no authenticator yet (only possible while `ADMIN_REQUIRE_2FA=false`), it asks for their own account password instead. Wrong tries: 5 per 15 minutes. Before, the flag-off state skipped this step completely.
+- **Sessions:** "turned off" and "signed out everywhere" (`sessions_revoked_at`) are checked on every admin request.
+- **Local test accounts:** the browser tests still use ONE test account with the role **owner** (`zolb-test+owner@example.com`) in the LOCAL database only. No other test account was made in this phase.
+- **Tests:** 705+ unit tests pass (new: `roles-db`, `accounts`, `permissions`). Build passes against the local test database (it needs `experimental.staticGenerationMaxConcurrency: 1` for that database, which I set only for the run and did not commit).
+
+### How to apply migration 0006 later (you run it, not me)
+1. In the admin area open **Export** and download both CSV files.
+2. In the Supabase SQL editor run this READ-ONLY query and send me the rows. It changes nothing:
+   `select p.email, p.full_name, p.role as account_role, a.role as level, a.is_active from public.profiles p left join public.admin_profiles a on a.id = p.id where p.role = 'admin' or a.id is not null order by p.email;`
+3. Expected mapping: Rosemarie Gallego -> owner, Derx Ramos -> owner first, then admin by one hand line (below), staff -> staff, clients -> user. Any other admin-level account: tell me what it should become.
+4. On the TEST project first: `pnpm db:migrate` (this also applies 0004 and 0005 if they are still waiting), then `pnpm db:check`.
+5. Check: `select role, is_active, count(*) from profiles group by 1,2;` and make sure there is at least one active owner.
+6. Make the developer an admin (works only while another active owner exists): `update public.profiles set role = 'admin' where email = '<DERX EMAIL>';`
+7. Run the manual checks in docs/AUTH_AND_ROLES.md, then repeat on the live project.
 
 ---
 

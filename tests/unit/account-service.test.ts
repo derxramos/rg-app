@@ -72,8 +72,7 @@ beforeAll(async () => {
       ('${B}', 'zolb-test+b@example.com', '{"full_name":"User B"}'),
       ('${C}', 'zolb-test+c@example.com', '{"full_name":"User C"}'),
       ('${ADMIN}', 'zolb-test+admin@example.com', '{"full_name":"Admin"}');
-    update profiles set role = 'admin' where id = '${ADMIN}';
-    insert into admin_profiles (id, full_name, email, role) values ('${ADMIN}', 'Admin', 'zolb-test+admin@example.com', 'owner');
+    update profiles set role = 'owner' where id = '${ADMIN}';
     insert into services (slug, name) values ('svc', 'Sample service');
   `);
   serviceId = (await t.pg.query<{ id: string }>(`select id from services`)).rows[0].id;

@@ -6,10 +6,10 @@ import { and, count, desc, eq, gte, inArray, isNull, like, lt } from "drizzle-or
 import type { RequestStatus } from "@/lib/status";
 import { addDaysToIsoDate } from "@/lib/time";
 import { DEFAULT_SETTINGS, parseSetting } from "@/lib/validation/settings";
-import { AdminAuthError, OWNER_ONLY, hasRole, type AdminProfile } from "@/server/auth/admin-core";
+import { assertCan, type PanelUser } from "@/server/auth/panel-core";
 import {
   activityLog,
-  adminProfiles,
+  profiles,
   emailLog,
   payments,
   requestFiles,
@@ -75,9 +75,9 @@ export async function getDashboard(db: AppDb, now: Date = new Date()) {
     .where(and(gte(emailLog.createdAt, dayStart), eq(emailLog.status, "sent")));
 
   const [lastMethodChange] = await db
-    .select({ createdAt: activityLog.createdAt, name: adminProfiles.fullName })
+    .select({ createdAt: activityLog.createdAt, name: profiles.fullName })
     .from(activityLog)
-    .leftJoin(adminProfiles, eq(adminProfiles.id, activityLog.actorId))
+    .leftJoin(profiles, eq(profiles.id, activityLog.actorId))
     .where(like(activityLog.action, "payment_method.%"))
     .orderBy(desc(activityLog.createdAt))
     .limit(1);
@@ -140,12 +140,12 @@ export async function listActivity(db: AppDb, filters: ActivityFilters = {}) {
       entityType: activityLog.entityType,
       entityId: activityLog.entityId,
       actorType: activityLog.actorType,
-      actorName: adminProfiles.fullName,
+      actorName: profiles.fullName,
       details: activityLog.details,
       createdAt: activityLog.createdAt,
     })
     .from(activityLog)
-    .leftJoin(adminProfiles, eq(adminProfiles.id, activityLog.actorId))
+    .leftJoin(profiles, eq(profiles.id, activityLog.actorId))
     .where(where)
     .orderBy(desc(activityLog.id))
     .limit(ACTIVITY_PAGE_SIZE)
@@ -160,10 +160,10 @@ export type ExportType = "requests" | "payments";
 
 export async function exportCsv(
   db: AppDb,
-  actor: AdminProfile,
+  actor: PanelUser,
   input: { type: ExportType; from?: string; to?: string; ipHash?: string | null },
 ): Promise<string> {
-  if (!hasRole(actor, OWNER_ONLY)) throw new AdminAuthError("wrong-role");
+  assertCan(actor, "export.csv");
 
   const range = (column: typeof requests.createdAt | typeof payments.createdAt) => [
     ...(input.from ? [gte(column, manilaStart(input.from))] : []),

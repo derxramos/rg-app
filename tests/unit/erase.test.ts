@@ -2,10 +2,9 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { requestDetailsSchema } from "@/lib/validation/request";
-import { AdminAuthError, type AdminProfile } from "@/server/auth/admin-core";
+import { PanelAuthError, type PanelUser } from "@/server/auth/panel-core";
 import {
   activityLog,
-  adminProfiles,
   emailLog,
   paymentMethods,
   payments,
@@ -20,10 +19,11 @@ import { attemptTracking } from "@/server/services/tracking";
 import type { StorageDriver } from "@/server/storage/types";
 
 import { createTestDb } from "../helpers/test-db";
+import { insertPanelUsers } from "../helpers/panel-users";
 
 let t: Awaited<ReturnType<typeof createTestDb>>;
-let owner: AdminProfile;
-let staff: AdminProfile;
+let owner: PanelUser;
+let staff: PanelUser;
 const files = new Set<string>();
 let failStorage = false;
 const storage: StorageDriver = {
@@ -88,23 +88,20 @@ async function setup() {
 beforeAll(async () => {
   t = await createTestDb();
   await t.db.insert(services).values({ slug: "svc", name: "Service" });
-  [owner, staff] = await t.db
-    .insert(adminProfiles)
-    .values([
-      {
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        fullName: "Owner",
-        email: "zolb-test+o@example.com",
-        role: "owner",
-      },
-      {
-        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        fullName: "Staff",
-        email: "zolb-test+s@example.com",
-        role: "staff",
-      },
-    ])
-    .returning();
+  [owner, staff] = await insertPanelUsers(t.db, [
+    {
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      fullName: "Owner",
+      email: "zolb-test+o@example.com",
+      role: "owner",
+    },
+    {
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      fullName: "Staff",
+      email: "zolb-test+s@example.com",
+      role: "staff",
+    },
+  ]);
 }, 60_000);
 afterAll(async () => t.close());
 
@@ -165,7 +162,7 @@ describe("delete client data (privacy request)", () => {
 
   it("needs the owner and a fresh 2FA code", async () => {
     const r = await setup();
-    const err = (p: Promise<unknown>) => p.catch((e) => (e as AdminAuthError).code);
+    const err = (p: Promise<unknown>) => p.catch((e) => (e as PanelAuthError).code);
     expect(
       await err(
         eraseClientData(t.db, storage, staff, { requestId: r.id, bucket: "b", fresh2fa: true }),

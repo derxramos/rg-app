@@ -3,7 +3,7 @@ import "server-only";
 // The Data Access Layer for logged-in people (Next.js authentication guide): ONE place that answers
 // "who is this, and what may they do?". Pages, Server Actions and Route Handlers all call it, because
 // a page check does not protect a Server Action (it can be called with a direct POST request).
-// Admin checks are in admin.ts (requireAdmin).
+// Admin checks are in admin.ts (requirePanel).
 
 import { eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -15,10 +15,11 @@ import { cache } from "react";
 import { loginUrlFor } from "@/lib/safe-next";
 import { getDb } from "@/server/db/client";
 import type { AppDb } from "@/server/db/types";
-import { adminProfiles } from "@/server/db/schema";
+import { profiles } from "@/server/db/schema";
+import type { Role } from "@/lib/permissions";
 import { hashIp, readClientIp } from "@/server/security/client-ip";
 
-import { devBypassSession } from "./admin-core";
+import { devBypassSession } from "./panel-core";
 import {
   DEV_USER_COOKIE,
   UserAuthError,
@@ -58,11 +59,13 @@ export const getSession = cache(async (): Promise<UserSession | null> => {
   });
   if (adminBypass) {
     const [row] = await getDb()
-      .select({ id: adminProfiles.id })
-      .from(adminProfiles)
-      .where(eq(adminProfiles.email, adminBypass.email))
+      .select({ id: profiles.id, role: profiles.role })
+      .from(profiles)
+      .where(eq(profiles.email, adminBypass.email))
       .limit(1);
-    return row ? { userId: row.id, email: adminBypass.email, source: "dev" } : null;
+    return row && row.role !== "user"
+      ? { userId: row.id, email: adminBypass.email, source: "dev" }
+      : null;
   }
 
   if (!supabaseAuthConfigured()) return null;
@@ -70,7 +73,8 @@ export const getSession = cache(async (): Promise<UserSession | null> => {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return null;
-  return { userId: claims.sub, email: claims.email ?? "", source: "supabase" };
+  const sessionId = typeof claims.session_id === "string" ? claims.session_id : null;
+  return { userId: claims.sub, email: claims.email ?? "", source: "supabase", sessionId };
 });
 
 export type AuthContext = { session: UserSession; profile: Profile };
@@ -98,8 +102,8 @@ export async function requireVerifiedUser(): Promise<AuthContext> {
 }
 
 // What the header shows. Role comes from the database, never from the browser.
-export type Viewer =
-  { kind: "visitor" } | { kind: "user" | "admin"; profile: Profile; email: string };
+// `kind` is "visitor" (not signed in) or the account role: user, staff, admin or owner.
+export type Viewer = { kind: "visitor" } | { kind: Role; profile: Profile; email: string };
 
 // Cached for the request: the header asks twice (desktop bar and phone menu), the database is asked once.
 export const getViewer = cache(async (): Promise<Viewer> => {
@@ -170,6 +174,7 @@ export type UserContext = AuthContext & { ipHash: string };
 
 const MESSAGES: Record<UserAuthCode, string> = {
   "no-session": "Please sign in again.",
+  "turned-off": "This account is turned off. Please contact us.",
   "not-verified": "Please verify your email first. Check your inbox for our message.",
 };
 

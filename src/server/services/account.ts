@@ -9,6 +9,7 @@ import "server-only";
 
 import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 
+import { isPanelRole } from "@/lib/permissions";
 import { STATUS_LABELS, type RequestStatus } from "@/lib/status";
 import { logAuthEvent } from "@/server/auth/auth-log";
 import {
@@ -317,7 +318,7 @@ export async function deleteMyAccount(
 ) {
   const [profile] = await db.select().from(profiles).where(eq(profiles.id, input.userId)).limit(1);
   if (!profile) throw new AccountError("not-found", "Account not found.");
-  if (profile.role === "admin")
+  if (isPanelRole(profile.role))
     throw new AccountError("is-admin", "An admin account cannot be deleted here.");
 
   const mine = await db

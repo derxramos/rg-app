@@ -18,6 +18,7 @@ export async function passwordIsRight(session: UserSession, password: string): P
   const { data, error } = await client.auth.signInWithPassword({ email: session.email, password });
   if (error || data.user?.id !== session.userId) return false;
   // Close the throwaway session again.
-  await client.auth.signOut().catch(() => {});
+  // "local" closes only this throwaway session. The default ("global") would sign the person out of every device.
+  await client.auth.signOut({ scope: "local" }).catch(() => {});
   return true;
 }

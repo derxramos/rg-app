@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { formatManilaDateTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { guardAdminPage } from "@/server/auth/admin";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { listActivity } from "@/server/services/admin-overview";
-import { listAdmins } from "@/server/services/admin-users";
+import { listPanelPeople } from "@/server/services/accounts";
 
 export const metadata: Metadata = { title: "Activity log" };
 
@@ -31,7 +31,7 @@ const GROUPS = [
 const one = (v: string | string[] | undefined) => (typeof v === "string" && v ? v : undefined);
 
 export default async function ActivityPage({ searchParams }: PageProps<"/admin/activity">) {
-  await guardAdminPage();
+  await guardPanelPage("activity.view", "/admin/activity");
   const q = await searchParams;
   const filters = {
     action: one(q.action),
@@ -43,7 +43,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/admin/a
   const db = getDb();
   const [{ rows, total, page, pageCount }, admins] = await Promise.all([
     listActivity(db, filters),
-    listAdmins(db),
+    listPanelPeople(db),
   ]);
 
   return (

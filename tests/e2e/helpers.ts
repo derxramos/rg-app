@@ -105,13 +105,10 @@ export const E2E_ADMIN_EMAIL = "zolb-test+owner@example.com";
 export async function ensureTestAdmin() {
   const sql = testSql();
   try {
-    await sql`insert into admin_profiles (id, full_name, email, role, is_active)
-              values (${E2E_ADMIN_ID}, 'Test Owner', ${E2E_ADMIN_EMAIL}, 'owner', true)
-              on conflict (id) do update set is_active = true, role = 'owner'`;
-    // requireAdmin also needs the account role "admin".
-    await sql`insert into profiles (id, email, full_name, role)
-              values (${E2E_ADMIN_ID}, ${E2E_ADMIN_EMAIL}, 'Test Owner', 'admin')
-              on conflict (id) do update set role = 'admin'`;
+    // One role column for everybody: this test account is an OWNER (called out in PROGRESS.md).
+    await sql`insert into profiles (id, email, full_name, role, is_active)
+              values (${E2E_ADMIN_ID}, ${E2E_ADMIN_EMAIL}, 'Test Owner', 'owner', true)
+              on conflict (id) do update set role = 'owner', is_active = true`;
   } finally {
     await sql.end();
   }
@@ -121,15 +118,14 @@ export async function removeTestAdmin() {
   const sql = testSql();
   try {
     // The "last owner" rule would block this, so it is switched off for this one clean-up (test database only).
-    await sql`alter table admin_profiles disable trigger admin_profiles_protect_last_owner`;
+    await sql`alter table profiles disable trigger profiles_protect_last_owner`;
     await sql`delete from request_notes where author_id = ${E2E_ADMIN_ID}`;
     await sql`update payments set verified_by = null where verified_by = ${E2E_ADMIN_ID}`;
     await sql`update request_status_events set changed_by = null where changed_by = ${E2E_ADMIN_ID}`;
     await sql`update payment_methods set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;
     await sql`update site_settings set updated_by = null where updated_by = ${E2E_ADMIN_ID}`;
-    await sql`delete from admin_profiles where id = ${E2E_ADMIN_ID}`;
     await sql`delete from profiles where id = ${E2E_ADMIN_ID}`;
-    await sql`alter table admin_profiles enable trigger admin_profiles_protect_last_owner`;
+    await sql`alter table profiles enable trigger profiles_protect_last_owner`;
   } finally {
     await sql.end();
   }

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { guardAdminPage } from "@/server/auth/admin";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { readSetting } from "@/server/services/settings";
 
@@ -15,7 +15,7 @@ import { saveSettingAction } from "../actions";
 export const metadata: Metadata = { title: "Site content" };
 
 export default async function SiteContentPage() {
-  await guardAdminPage();
+  await guardPanelPage("site_content.edit", "/admin/settings/site");
   const db = getDb();
   const [contact, hours, social, home, version] = await Promise.all([
     readSetting(db, "contact"),
@@ -106,8 +106,8 @@ export default async function SiteContentPage() {
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                The Messenger button is hidden when its link is empty. Viber shows the number only (no
-                button). Leave it empty to hide it.
+                The Messenger button is hidden when its link is empty. Viber shows the number only
+                (no button). Leave it empty to hide it.
               </p>
             </ActionForm>
           </CardContent>

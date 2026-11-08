@@ -6,7 +6,7 @@ import { ActionForm } from "@/components/admin/action-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { guardMfaPage } from "@/server/auth/admin";
+import { guardMfaPage } from "@/server/auth/panel";
 
 import { verifyMfaAction } from "../actions";
 

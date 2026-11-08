@@ -44,9 +44,9 @@ export const requestStatus = pgEnum("request_status", [
 ]);
 export const paymentStatus = pgEnum("payment_status", ["pending", "verified", "rejected"]);
 export const paymentEntry = pgEnum("payment_entry", ["ocr", "ocr_edited", "manual"]);
-export const adminRole = pgEnum("admin_role", ["owner", "staff"]);
-// The login role of every account. "admin" people also have an admin_profiles row (owner or staff).
-export const appRole = pgEnum("app_role", ["user", "admin"]);
+// The ONE role of every account (docs/AUTH_AND_ROLES.md): user = client, staff = employee,
+// admin = developer, owner = business owner. The rules for each role are in src/lib/permissions.ts.
+export const accountRole = pgEnum("account_role", ["user", "staff", "admin", "owner"]);
 export const noteVisibility = pgEnum("note_visibility", ["internal", "client"]);
 export const actorType = pgEnum("actor_type", ["admin", "client", "system"]);
 export const emailStatus = pgEnum("email_status", ["sent", "failed"]);
@@ -57,22 +57,10 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultN
 // A database trigger (see the SQL migration) also keeps updated_at fresh on every update.
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull();
 
-// ---------- admin_profiles ----------
-// Same id as auth.users.id. The link to auth.users is added in the SQL migration.
-export const adminProfiles = pgTable("admin_profiles", {
-  id: uuid("id").primaryKey(),
-  fullName: text("full_name").notNull(),
-  email: text("email").notNull(),
-  role: adminRole("role").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-}).enableRLS();
-
 // ---------- profiles ----------
 // One row for every login (same id as auth.users.id). A database trigger makes it with role "user"
-// when someone signs up. A user can never change their own role (see drizzle/0003_*.sql).
+// when someone signs up. A user can never change their own role (see drizzle/0003_*.sql and 0006_*.sql).
+// This table also holds the staff, admin and owner accounts (there is no separate admin table any more).
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
   // A copy of the login email, for display and for the data download.
@@ -80,10 +68,18 @@ export const profiles = pgTable("profiles", {
   fullName: text("full_name").notNull().default(""),
   // Format: +63XXXXXXXXXX
   phone: text("phone"),
-  role: appRole("role").notNull().default("user"),
+  role: accountRole("role").notNull().default("user"),
+  // False = "Turned off". The person cannot use the site or the admin area.
+  isActive: boolean("is_active").notNull().default(true),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   // True when an admin made this account with a temporary password. The person must choose their own
   // password before they can use the admin area. Only our server changes this (users cannot).
   mustChangePassword: boolean("must_change_password").notNull().default(false),
+  // True after another person reset the 2-step login. The next sign in must set up a new device and a
+  // backup device before the admin area opens.
+  mfaResetRequired: boolean("mfa_reset_required").notNull().default(false),
+  // "Signed out everywhere": a session that started before this time is not accepted any more.
+  sessionsRevokedAt: timestamp("sessions_revoked_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }).enableRLS();
@@ -209,7 +205,7 @@ export const requestStatusEvents = pgTable(
     fromStatus: requestStatus("from_status"),
     toStatus: requestStatus("to_status").notNull(),
     // Null means the client or the system made the change.
-    changedBy: uuid("changed_by").references(() => adminProfiles.id),
+    changedBy: uuid("changed_by").references(() => profiles.id),
     createdAt: createdAt(),
   },
   (t) => [index("request_status_events_request_idx").on(t.requestId, t.createdAt)],
@@ -259,7 +255,7 @@ export const requestNotes = pgTable(
       .references(() => requests.id, { onDelete: "cascade" }),
     authorId: uuid("author_id")
       .notNull()
-      .references(() => adminProfiles.id),
+      .references(() => profiles.id),
     visibility: noteVisibility("visibility").notNull(),
     body: text("body").notNull(),
     createdAt: createdAt(),
@@ -286,7 +282,7 @@ export const paymentMethods = pgTable(
     qrImagePath: text("qr_image_path"),
     isActive: boolean("is_active").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
-    updatedBy: uuid("updated_by").references(() => adminProfiles.id),
+    updatedBy: uuid("updated_by").references(() => profiles.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -315,7 +311,7 @@ export const payments = pgTable(
     // What OCR first read, for comparison. Text only. Never the image.
     ocrRawValues: jsonb("ocr_raw_values"),
     status: paymentStatus("status").notNull().default("pending"),
-    verifiedBy: uuid("verified_by").references(() => adminProfiles.id),
+    verifiedBy: uuid("verified_by").references(() => profiles.id),
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
     rejectionReason: text("rejection_reason"),
     createdAt: createdAt(),
@@ -334,7 +330,7 @@ export const payments = pgTable(
 export const siteSettings = pgTable("site_settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),
-  updatedBy: uuid("updated_by").references(() => adminProfiles.id),
+  updatedBy: uuid("updated_by").references(() => profiles.id),
   updatedAt: updatedAt(),
 }).enableRLS();
 
@@ -401,7 +397,6 @@ export const emailLog = pgTable(
 
 // Every table, used by the RLS test to make sure no table is forgotten.
 export const ALL_TABLES = {
-  adminProfiles,
   profiles,
   services,
   serviceRequirements,

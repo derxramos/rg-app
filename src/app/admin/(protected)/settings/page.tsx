@@ -1,10 +1,12 @@
 import { Briefcase, FileCog, Globe, UserCog, Wallet, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { AdminTitle } from "@/components/admin/bits";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { guardAdminPage } from "@/server/auth/admin";
+import { STAFF_SETTINGS_PATH } from "@/lib/permissions";
+import { guardPanelPage } from "@/server/auth/panel";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -13,14 +15,12 @@ const ITEMS: {
   title: string;
   text: string;
   icon: LucideIcon;
-  ownerOnly?: boolean;
 }[] = [
   {
     href: "/admin/settings/payments",
     title: "Payment methods",
     text: "QR codes and account details clients pay to.",
     icon: Wallet,
-    ownerOnly: true,
   },
   {
     href: "/admin/settings/services",
@@ -39,20 +39,20 @@ const ITEMS: {
     title: "File settings",
     text: "How long files are kept, and the limits for uploads.",
     icon: FileCog,
-    ownerOnly: true,
   },
   {
     href: "/admin/settings/users",
     title: "Admin users",
     text: "Invite staff, change roles, turn accounts off.",
     icon: UserCog,
-    ownerOnly: true,
   },
 ];
 
 export default async function SettingsHubPage() {
-  const admin = await guardAdminPage();
-  const items = ITEMS.filter((i) => !i.ownerOnly || admin.role === "owner");
+  const admin = await guardPanelPage();
+  // Staff have no Settings page: their menu opens the services page directly.
+  if (admin.role === "staff") redirect(STAFF_SETTINGS_PATH);
+  const items = ITEMS;
   return (
     <>
       <AdminTitle title="Settings" />
@@ -76,11 +76,6 @@ export default async function SettingsHubPage() {
           </li>
         ))}
       </ul>
-      {admin.role !== "owner" ? (
-        <p className="text-sm text-muted-foreground">
-          Payment methods, file settings and admin users are for the owner only.
-        </p>
-      ) : null}
     </>
   );
 }

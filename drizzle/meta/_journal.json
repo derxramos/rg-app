@@ -43,6 +43,13 @@
       "when": 1794046650026,
       "tag": "0005_admin_temp_password",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794050250026,
+      "tag": "0006_single_role",
+      "breakpoints": true
     }
   ]
 }

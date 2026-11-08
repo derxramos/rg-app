@@ -10,9 +10,9 @@ export async function GET(request: Request) {
   const bucket = url.searchParams.get("bucket") ?? "";
   // Client documents are only for admins. The public-assets bucket (QR pictures) is public, like in Supabase.
   if (bucket !== "public-assets") {
-    const { requireAdmin } = await import("@/server/auth/admin");
+    const { requirePanel } = await import("@/server/auth/panel");
     try {
-      await requireAdmin();
+      await requirePanel("requests.open_file");
     } catch {
       return new Response("Not allowed", { status: 403 });
     }

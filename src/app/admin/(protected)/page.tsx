@@ -9,7 +9,7 @@ import { WarningBox } from "@/components/shared/warning-box";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatManilaDateTime } from "@/lib/time";
-import { guardAdminPage } from "@/server/auth/admin";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { getDashboard } from "@/server/services/admin-overview";
 
@@ -25,7 +25,7 @@ const COUNTED = [
 const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
 
 export default async function AdminDashboardPage({ searchParams }: PageProps<"/admin">) {
-  const admin = await guardAdminPage();
+  const admin = await guardPanelPage("dashboard.view", "/admin");
   const [{ denied }, d] = await Promise.all([searchParams, getDashboard(getDb())]);
 
   return (

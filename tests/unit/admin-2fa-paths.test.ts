@@ -7,13 +7,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { isTwoFactorRequired } from "@/lib/two-factor-flag";
 import {
-  adminFailureRedirect,
+  panelFailureRedirect,
   afterLoginDestination,
-  checkAdmin,
-  type AdminAuthCode,
-  type AdminSession,
-} from "@/server/auth/admin-core";
-import { adminProfiles, profiles } from "@/server/db/schema";
+  checkPanel,
+  type PanelAuthCode,
+  type PanelSession,
+} from "@/server/auth/panel-core";
+import { profiles } from "@/server/db/schema";
 
 import { createTestDb } from "../helpers/test-db";
 
@@ -25,19 +25,15 @@ const NOBODY = "d0000000-0000-4000-8000-0000000000d1";
 let t: Awaited<ReturnType<typeof createTestDb>>;
 beforeAll(async () => {
   t = await createTestDb();
-  await t.db.insert(adminProfiles).values([
-    { id: ADMIN, fullName: "Admin", email: "zolb-test+a@example.com", role: "owner" },
-    { id: MISMATCH, fullName: "Mismatch", email: "zolb-test+m@example.com", role: "owner" },
-  ]);
   await t.db.insert(profiles).values([
-    { id: ADMIN, email: "zolb-test+a@example.com", role: "admin" },
+    { id: ADMIN, email: "zolb-test+a@example.com", role: "owner" },
     { id: USER, email: "zolb-test+u@example.com", role: "user" },
     { id: MISMATCH, email: "zolb-test+m@example.com", role: "user" },
   ]);
 }, 60_000);
 afterAll(async () => t.close());
 
-const session = (userId: string, aal: AdminSession["aal"]): AdminSession => ({
+const session = (userId: string, aal: PanelSession["aal"]): PanelSession => ({
   userId,
   email: "zolb-test+x@example.com",
   aal,
@@ -64,13 +60,13 @@ describe.each(SETTINGS)("$name", ({ value, required }) => {
 
   it("an admin with only a password: in when off, asked for 2FA when required", async () => {
     const expected = required ? "needs-2fa" : "ok";
-    expect(await result(checkAdmin(t.db, session(ADMIN, "aal1"), { twoFactorRequired }))).toBe(
+    expect(await result(checkPanel(t.db, session(ADMIN, "aal1"), { twoFactorRequired }))).toBe(
       expected,
     );
   });
 
   it("an admin with password and code is always in", async () => {
-    expect(await result(checkAdmin(t.db, session(ADMIN, "aal2"), { twoFactorRequired }))).toBe(
+    expect(await result(checkPanel(t.db, session(ADMIN, "aal2"), { twoFactorRequired }))).toBe(
       "ok",
     );
   });
@@ -80,18 +76,19 @@ describe.each(SETTINGS)("$name", ({ value, required }) => {
       // With 2FA required, a password-only session is stopped at the 2FA step first. Either way it is refused.
       const expected = required && aal === "aal1" ? "needs-2fa" : "not-admin";
       for (const id of [USER, MISMATCH, NOBODY]) {
-        expect(await result(checkAdmin(t.db, session(id, aal), { twoFactorRequired })), id).toBe(
+        expect(await result(checkPanel(t.db, session(id, aal), { twoFactorRequired })), id).toBe(
           expected,
         );
       }
     }
-    expect(await result(checkAdmin(t.db, null, { twoFactorRequired }))).toBe("no-session");
+    expect(await result(checkPanel(t.db, null, { twoFactorRequired }))).toBe("no-session");
   });
 
   it("after the password: users are never sent to 2FA", () => {
     expect(
       afterLoginDestination({
-        isActiveAdmin: false,
+        role: "user",
+        isActive: true,
         twoFactorRequired,
         hasVerifiedFactor: true,
         next: null,
@@ -99,7 +96,8 @@ describe.each(SETTINGS)("$name", ({ value, required }) => {
     ).toBe("/account");
     expect(
       afterLoginDestination({
-        isActiveAdmin: false,
+        role: "user",
+        isActive: true,
         twoFactorRequired,
         hasVerifiedFactor: false,
         next: "/request",
@@ -109,13 +107,15 @@ describe.each(SETTINGS)("$name", ({ value, required }) => {
 
   it("after the password: an admin goes straight in when off, to the 2FA steps when required", () => {
     const noApp = afterLoginDestination({
-      isActiveAdmin: true,
+      role: "owner",
+      isActive: true,
       twoFactorRequired,
       hasVerifiedFactor: false,
       next: null,
     });
     const withApp = afterLoginDestination({
-      isActiveAdmin: true,
+      role: "owner",
+      isActive: true,
       twoFactorRequired,
       hasVerifiedFactor: true,
       next: null,
@@ -127,27 +127,29 @@ describe.each(SETTINGS)("$name", ({ value, required }) => {
 
 describe("where people are sent", () => {
   it("maps every admin failure to a page", () => {
-    const expected: Record<AdminAuthCode, string> = {
+    const expected: Record<PanelAuthCode, string> = {
       "no-session": "/login?next=%2Fadmin&reason=expired",
       "needs-2fa": "/admin/mfa",
       "needs-fresh-2fa": "/admin/mfa",
-      "wrong-role": "/admin?denied=1",
+      "wrong-role": "/admin/not-allowed?reason=role",
+      "needs-mfa-setup": "/admin/mfa/setup",
+      "session-revoked": "/login?next=%2Fadmin&reason=expired",
       "not-admin": "/admin/not-allowed",
       inactive: "/admin/not-allowed",
       "must-change-password": "/account/change-password",
     };
     for (const [code, path] of Object.entries(expected)) {
-      expect(adminFailureRedirect(code as AdminAuthCode), code).toBe(path);
+      expect(panelFailureRedirect(code as PanelAuthCode), code).toBe(path);
     }
   });
 
   it("a safe return path is used for users and for admins when 2FA is off", () => {
     const base = { twoFactorRequired: false, hasVerifiedFactor: false } as const;
-    expect(afterLoginDestination({ ...base, isActiveAdmin: true, next: "/admin/requests" })).toBe(
-      "/admin/requests",
-    );
     expect(
-      afterLoginDestination({ ...base, isActiveAdmin: false, next: "//evil.example.com" }),
+      afterLoginDestination({ ...base, role: "owner", isActive: true, next: "/admin/requests" }),
+    ).toBe("/admin/requests");
+    expect(
+      afterLoginDestination({ ...base, role: "user", isActive: true, next: "//evil.example.com" }),
     ).toBe("/account");
   });
 });

@@ -5,8 +5,7 @@ import { AdminTitle } from "@/components/admin/bits";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { guardAdminPage } from "@/server/auth/admin";
-import { OWNER_ONLY } from "@/server/auth/admin-core";
+import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { readSetting } from "@/server/services/settings";
 
@@ -15,7 +14,7 @@ import { saveSettingAction } from "../actions";
 export const metadata: Metadata = { title: "File settings" };
 
 export default async function FileSettingsPage() {
-  await guardAdminPage({ roles: OWNER_ONLY });
+  await guardPanelPage("file_settings.edit", "/admin/settings/files");
   const db = getDb();
   const [days, maxFiles, maxMb, warn] = await Promise.all([
     readSetting(db, "file_retention_days"),
