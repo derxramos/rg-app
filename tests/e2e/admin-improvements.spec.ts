@@ -158,6 +158,26 @@ test("activity: 20 entries per page", async ({ page }) => {
   await expect(page.locator("main li").filter({ hasText: "imp.test." })).toHaveCount(6);
 });
 
+test("activity: the clean-up offers a CSV copy first", async ({ page }) => {
+  await page.goto("/admin/activity");
+  await page.getByRole("button", { name: "Clean up old entries" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Remove entries older than").selectOption("180");
+  const link = dialog.getByRole("link", { name: /Download (this entry|these \d+ entries) as CSV/ });
+  await expect(link).toBeVisible();
+  const response = await page.request.get(
+    `${new URL(page.url()).origin}${await link.getAttribute("href")}`,
+  );
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("text/csv");
+  expect(await response.text()).toContain("imp.test.old");
+  // A wrong number of days is refused.
+  const bad = await page.request.get(
+    `${new URL(page.url()).origin}/api/admin/activity-export?days=7`,
+  );
+  expect(bad.status()).toBe(400);
+});
+
 test("activity: manual clean-up needs the confirm, removes old entries, and is logged", async ({
   page,
 }) => {

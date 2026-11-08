@@ -59,7 +59,7 @@ async function main() {
 
   // A local database without the activity clean-up function (migration 0007) gets it once.
   const hasPurge = await db.query<{ exists: boolean }>(
-    `select to_regproc('public.purge_activity_log_older_than(integer)') is not null as exists`,
+    `select to_regprocedure('public.purge_activity_log_older_than(integer)') is not null as exists`,
   );
   if (!hasPurge.rows[0].exists) {
     console.log("Adding the activity clean-up migration (0007 and later)...");

@@ -203,6 +203,60 @@ export async function purgeActivityLog(
   });
 }
 
+// The entries that a clean-up would remove, as a CSV file (so they can be kept before they are deleted).
+// Same permission as the clean-up (admin and owner). The download is written to the log (that entry is newer, so it stays).
+export const ACTIVITY_CSV_MAX_ROWS = 100_000;
+
+export async function exportActivityCsv(
+  db: AppDb,
+  actor: PanelUser,
+  input: { olderThanDays: number; ipHash?: string | null },
+): Promise<string> {
+  assertCan(actor, "activity.purge");
+  if (!(PURGE_CHOICES_DAYS as readonly number[]).includes(input.olderThanDays))
+    throw Object.assign(new Error("Choose 90, 180 or 365 days."), { code: "invalid" });
+
+  const cutoff = new Date(Date.now() - input.olderThanDays * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      id: activityLog.id,
+      createdAt: activityLog.createdAt,
+      actorName: profiles.fullName,
+      actorType: activityLog.actorType,
+      action: activityLog.action,
+      entityType: activityLog.entityType,
+      entityId: activityLog.entityId,
+      details: activityLog.details,
+    })
+    .from(activityLog)
+    .leftJoin(profiles, eq(profiles.id, activityLog.actorId))
+    .where(lt(activityLog.createdAt, cutoff))
+    .orderBy(activityLog.id)
+    .limit(ACTIVITY_CSV_MAX_ROWS);
+
+  await db.insert(activityLog).values({
+    actorType: "admin",
+    actorId: actor.id,
+    action: "export.csv",
+    entityType: "export",
+    entityId: "activity",
+    details: { type: "activity", olderThanDays: input.olderThanDays, rows: rows.length },
+    ipHash: input.ipHash ?? null,
+  });
+  return toCsv(
+    ["ID", "Time (UTC)", "Who", "Action", "Entity type", "Entity id", "Details"],
+    rows.map((r) => [
+      r.id,
+      r.createdAt,
+      r.actorName || (r.actorType === "system" ? "System" : r.actorType),
+      r.action,
+      r.entityType,
+      r.entityId,
+      JSON.stringify(r.details ?? {}),
+    ]),
+  );
+}
+
 // ---------- CSV export (owner only; every export is logged) ----------
 
 export type ExportType = "requests" | "payments";

@@ -127,6 +127,11 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 - _Older note:_ migration `0007_activity_purge_and_service_delete` was NOT applied when this section was written. Run `pnpm db:migrate` after the deploy. Until then only the manual clean-up button shows an error. The local dev database gets it by itself (`pnpm dev:db`).
 - Tests: 774 unit tests; browser tests (phone and desktop, local database) for the services table, delete, bulk delete, activity paging and the clean-up. Test data (`test-imp-NN` services and `imp.test` activity rows) is removed afterwards.
 
+### CSV copy before the activity clean-up (2026-11-08)
+- The "Clean up old entries" dialog now offers "Download these N entries as CSV" for the chosen age. Route `GET /api/admin/activity-export?days=90|180|365` (admin and owner, same permission as the clean-up). Columns: ID, time (UTC), who, action, entity type, entity id, details. Formulas in cells are made safe. Each download is logged (`export.csv`, entity "activity"). No database change.
+- Bug fixed: `scripts/dev-db.ts` used `to_regproc` with an argument list (always false), so the local test database tried to re-apply 0007 on every start. It now uses `to_regprocedure`.
+- Tests: 777 unit tests and the browser spec (phone and desktop) pass.
+
 ### How to apply migration 0006 later (you run it, not me)
 1. In the admin area open **Export** and download both CSV files.
 2. In the Supabase SQL editor run this READ-ONLY query and send me the rows. It changes nothing:

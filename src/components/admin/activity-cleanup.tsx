@@ -1,11 +1,11 @@
 "use client";
 
-import { Eraser } from "lucide-react";
+import { Download, Eraser } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { purgeActivityAction } from "@/app/admin/(protected)/activity/actions";
 import { ActionForm } from "@/components/admin/action-form";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +42,21 @@ export function ActivityCleanup({ counts }: { counts: Record<number, number> }) 
             30 days can never be removed. The clean-up itself is written to the log.
           </DialogDescription>
         </DialogHeader>
+        {willRemove > 0 ? (
+          <div className="flex flex-col gap-2 rounded-lg border bg-primary-soft p-3 text-primary-ink">
+            <p className="text-sm font-bold">Recommended: keep a copy first.</p>
+            <a
+              href={`/api/admin/activity-export?days=${days}`}
+              download
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Download aria-hidden="true" />
+              {willRemove === 1
+                ? "Download this entry as CSV"
+                : `Download these ${willRemove} entries as CSV`}
+            </a>
+          </div>
+        ) : null}
         <ActionForm
           action={purgeActivityAction}
           fresh

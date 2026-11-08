@@ -276,3 +276,30 @@ describe("manual clean-up of the activity log", () => {
     await t.pg.exec(`select set_config('app.activity_log_purge', 'off', false)`);
   });
 });
+
+describe("CSV copy before the clean-up", () => {
+  it("lists the entries older than the chosen days, safely, and logs the download", async () => {
+    const { exportActivityCsv } = await import("@/server/services/admin-overview");
+    await t.pg.exec(`alter table activity_log disable trigger activity_log_no_update_delete`);
+    await t.pg.query(
+      `insert into activity_log (actor_type, action, entity_type, details, created_at)
+       values ('system', 'csv.test.old', 'test', '{"note":"=1+1"}'::jsonb, now() - interval '300 days'),
+              ('system', 'csv.test.new', 'test', '{}'::jsonb, now() - interval '5 days')`,
+    );
+    await t.pg.exec(`alter table activity_log enable trigger activity_log_no_update_delete`);
+
+    const csv = await exportActivityCsv(t.db, owner, { olderThanDays: 180, ipHash: "h" });
+    expect(csv.split("\r\n")[0]).toContain("Action");
+    expect(csv).toContain("csv.test.old");
+    expect(csv).not.toContain("csv.test.new");
+    // A value that looks like a formula is not left as one (it is the content of the details text).
+    expect(csv).not.toMatch(/(^|,)=1\+1/);
+    const log = await t.db.select().from(activityLog).where(eq(activityLog.entityId, "activity"));
+    expect(log.some((l) => l.action === "export.csv" && l.actorId === owner.id)).toBe(true);
+  });
+  it("needs admin or owner and one of the offered choices", async () => {
+    const { exportActivityCsv } = await import("@/server/services/admin-overview");
+    expect(await rejects(exportActivityCsv(t.db, staff, { olderThanDays: 90 }))).toBe("wrong-role");
+    expect(await rejects(exportActivityCsv(t.db, admin, { olderThanDays: 7 }))).toBe("invalid");
+  });
+});
