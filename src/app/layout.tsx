@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME } from "@/lib/seo";
+import { AUTH_HINT_SCRIPT } from "@/components/shared/auth-hint";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getBaseUrl } from "@/lib/site-url";
 import { Toaster } from "@/components/ui/sonner";
@@ -68,6 +69,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         {/* Sets day or night before the first paint, so the page never flashes. Same text on every page. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Marks the page when this browser was signed in last time, so the header placeholder is right before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: AUTH_HINT_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col font-sans">
         {children}

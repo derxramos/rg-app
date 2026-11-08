@@ -741,3 +741,8 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 - Sign out (clients, staff, admin, owner; wide menu, phone menu and admin header) now shows a full screen "Signing out..." message the moment the button is tapped, and blocks a second tap. The message is added straight to the page, because the menu can close while the server works. The sign out is still a plain form POST.
 - The account menu link is now "My Requests" (capital R, also the page title, heading and back link) and is colored (soft green fill, green border, bold dark green text; solid green with white text on hover), also in the phone menu. Staff, admin and owner get the same style on their "Admin" link.
 - Tests: new browser test for the message; unit test for the sign out form updated. No database change. Test accounts: only local test users, none left (searched).
+
+### 2026-11-08 — Sign in no longer disappears while the page loads (branch `fix/header-signin-flash`)
+- Cause: while the header reads the login (a refresh or slow connection) its placeholder was an empty box, so "Sign in" vanished for a moment.
+- Fix: the placeholder is now a working "Sign in" link of the same size. A browser that was signed in last time (a small `rg_hint` cookie, no private data, never used for access) gets a neutral pulsing box instead, so a signed in person never sees a wrong "Sign in". A tiny script in the root layout sets the mark on `<html>` before the first paint; the real header (`AuthHint`) keeps the cookie correct.
+- Tests: unit test for the placeholder and the hint script. No database change.

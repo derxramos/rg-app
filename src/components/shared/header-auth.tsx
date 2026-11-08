@@ -5,6 +5,7 @@ import { connection } from "next/server";
 
 import { SignOutForm } from "@/components/shared/sign-out-form";
 import { AccountMenu } from "@/components/shared/account-menu";
+import { AuthHint } from "@/components/shared/auth-hint";
 import { buttonVariants } from "@/components/ui/button";
 import { displayName } from "@/lib/display-name";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ export async function HeaderAuth({ layout }: { layout: "bar" | "menu" }) {
         className={cn("items-center", menu ? "flex flex-col" : "flex")}
         data-auth-state="visitor"
       >
+        {menu ? null : <AuthHint signedIn={false} />}
         <Link
           href="/login"
           className={cn(
@@ -67,6 +69,7 @@ export async function HeaderAuth({ layout }: { layout: "bar" | "menu" }) {
     const { name, initial } = displayName(viewer.profile.fullName);
     return (
       <div className="flex items-center" data-auth-state={viewer.kind}>
+        <AuthHint signedIn />
         <AccountMenu name={name} initial={initial} linkHref={linkHref} linkLabel={linkLabel} />
       </div>
     );
@@ -89,8 +92,32 @@ export async function HeaderAuth({ layout }: { layout: "bar" | "menu" }) {
   );
 }
 
-// Same size as the real buttons, so nothing jumps while the login is read. It shows no button at all
-// (never a wrong "Sign in").
+// What shows while the login is read (a refresh, a slow connection). It has the same size as the real buttons, so
+// nothing jumps. A visitor sees a working "Sign in" link right away. A browser that was signed in last time (the
+// hint cookie, see auth-hint.tsx) sees a neutral box instead, so a signed in person never sees a wrong "Sign in".
 export function HeaderAuthFallback({ layout }: { layout: "bar" | "menu" }) {
-  return <div aria-hidden="true" className={layout === "menu" ? "h-11 w-full" : "h-10 w-36"} />;
+  const menu = layout === "menu";
+  return (
+    <div className={menu ? "w-full" : "flex items-center"}>
+      <Link
+        href="/login"
+        className={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "whitespace-nowrap",
+          menu && "w-full",
+          "[html[data-signed-in]_&]:hidden",
+        )}
+      >
+        Sign in
+      </Link>
+      <div
+        aria-hidden="true"
+        className={cn(
+          "hidden animate-pulse rounded-md bg-muted motion-reduce:animate-none",
+          menu ? "h-11 w-full" : "h-10 w-36",
+          "[html[data-signed-in]_&]:block",
+        )}
+      />
+    </div>
+  );
 }
