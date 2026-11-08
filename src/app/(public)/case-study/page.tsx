@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   description:
     "How an online request system for a small bookkeeping business was designed and built.",
   alternates: { canonical: "/case-study" },
+  // Hidden from search engines on purpose (the developer's choice, 2026-11-08): the page names the owner's business.
+  // To publish it later: remove this line and put the page back in src/app/sitemap.ts.
+  robots: { index: false, follow: false },
 };
 
 const SHOTS = [

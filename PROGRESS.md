@@ -97,9 +97,8 @@ Each phase ends with lint, type check, tests and build, then `git merge --ff-onl
 
 ### Phase 7 report (2026-11-08): final checks
 - **Unit tests:** 745 pass (48 files). **Lint, type check and production build** pass.
-- **Browser tests (local database only, phone and desktop): 128 pass, 3 fail. None of the 3 is from this work:**
-  - `smoke.spec.ts` "case study page" (phone and desktop): the test expects no `robots` meta tag, but the page has one. The page was changed earlier.
-  - `accounts.spec.ts` "a user sees My requests and Sign out" (desktop only): the desktop header has one account menu since the header change on 2026-11-07, and the test still looks for the link outside the menu.
+- **Browser tests (local database only, phone and desktop): 155 pass, 1 skipped (a phone-only test on desktop), 0 fail** (rerun 2026-11-08 after the fixes below).
+- **The 3 earlier failures, fixed:** the header test now opens the account menu on a wide screen (its items are menu items, not links); the case-study test now expects the page to be hidden. **Developer's decision 2026-11-08:** `/case-study` is hidden from search engines (noindex tag, removed from the sitemap). Before this the page was indexable, even though an older note said "noindex".
 - **Browser tests I fixed because the new rule changed them:** the confirm box label is now "Enter the 6-digit code from YOUR authenticator app." (tests matched the old words), and the confirm is now asked even with `ADMIN_REQUIRE_2FA=false` (the old test expected no box). The test "payment methods: a risky change needs a fresh code" now passes with the flag on or off.
 - **How I ran them:** `DEV_USER_BYPASS_EMAILS` must be set for the user tests (the first run without it made every "normal user" test run as the owner; I caught it and ran again). Use the command in the README with the local database address.
 - **Test data search:** after `pnpm e2e:clean`, a search for `zolb-test` in profiles, requests, email_log, activity_log, services and payment_methods of the local database found **0 rows**. Nothing was written to any real database.
@@ -210,7 +209,7 @@ All earlier open questions are answered. What was done for each:
 13. **Terms and privacy notice:** written in plain words (`src/content/terms.ts`, `src/content/privacy-notice.ts`). Records kept 5 years, data region Singapore. The draft banner is gone. **The owner must read and approve both** (a lawyer check is wise).
 14. **Dead links:** the pages exist now. Everything that needs the owner's hands is in `docs/SETUP_GUIDE.md`.
 16. **Spam check:** Turnstile + hidden honeypot field + rate limits are on the contact, request and tracking forms. Needs the Turnstile keys (guide step 3).
-17. **Case study:** public at `/case-study`, indexed, in the sitemap, not in the menu. It uses fake data only.
+17. **Case study:** at `/case-study`, not in the menu. It uses fake data only. **Changed 2026-11-08 (developer's choice): hidden from search engines (noindex, not in the sitemap)** until you decide to publish it.
 18. **Receipts:** no official receipt. When the owner verifies a payment the client gets a simple acknowledgment email (amount, method, reference, date) that says it is not an official receipt and tells them to send a message through the Contact page. The tracking page shows the same note (it must not show payment details, CLAUDE.md rule 9). The earlier ask for sample real receipts is still useful for OCR accuracy, but it does not block anything.
 19. **Live checks:** still need the owner's real accounts. The full list of variables and the beginner steps are in `docs/SETUP_GUIDE.md`.
 

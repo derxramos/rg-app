@@ -104,8 +104,10 @@ test("case study page has its sections, loads every picture, and shows no test n
       .map((i) => i.src),
   );
   expect(broken).toEqual([]);
-  // It is public now (the owner agreed), so it must NOT be hidden from search engines.
-  expect(await page.locator("meta[name=robots]").count()).toBe(0);
+  // The page stays hidden from search engines (decision 2026-11-08): a noindex tag, and it is not in the sitemap.
+  await expect(page.locator("meta[name=robots]")).toHaveAttribute("content", /noindex/);
+  const sitemap = await page.request.get("/sitemap.xml");
+  expect(await sitemap.text()).not.toContain("/case-study");
   const text = await page.locator("main").innerText();
   expect(text).not.toMatch(/zolb-test|\(e2e\)/);
 });

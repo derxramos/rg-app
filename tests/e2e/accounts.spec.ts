@@ -42,8 +42,21 @@ async function openMenuIfPhone(page: Page) {
   await menuButton.click();
   await expect(page.getByRole("button", { name: "Close menu" })).toBeVisible();
 }
-const visible = (page: Page, role: "link" | "button", name: string) =>
+// A signed-in person has ONE account menu in the full header (from 1280 px). Their links are inside it, so it must be
+// opened first. Below 1280 px the phone menu is used (openMenuIfPhone).
+async function openAccountMenuIfWide(page: Page) {
+  const width = page.viewportSize()?.width ?? 1280;
+  if (width < 1280) return;
+  await page.getByRole("button", { name: /^Account menu/ }).click();
+  await expect(page.getByRole("menu", { name: "Account" })).toBeVisible();
+}
+const visible = (page: Page, role: "link" | "button" | "menuitem", name: string) =>
   page.getByRole(role, { name, exact: true }).locator("visible=true");
+// In the wide header the entries are items of the account menu; in the phone menu they are links and buttons.
+const entry = (page: Page, name: string) =>
+  visible(page, "link", name)
+    .or(visible(page, "button", name))
+    .or(visible(page, "menuitem", name));
 
 test.describe("header", () => {
   test("a visitor sees Sign in and Start a request, and no Sign out", async ({ page }) => {
@@ -59,18 +72,20 @@ test.describe("header", () => {
   test("a user sees My requests and Sign out, and no Admin link", async ({ page }) => {
     await asUser(page);
     await openMenuIfPhone(page);
-    await expect(visible(page, "link", "My requests")).toBeVisible();
-    await expect(visible(page, "button", "Sign out")).toBeVisible();
-    await expect(visible(page, "link", "Sign in")).toHaveCount(0);
-    await expect(visible(page, "link", "Admin")).toHaveCount(0);
+    await openAccountMenuIfWide(page);
+    await expect(entry(page, "My requests")).toBeVisible();
+    await expect(entry(page, "Sign out")).toBeVisible();
+    await expect(entry(page, "Sign in")).toHaveCount(0);
+    await expect(entry(page, "Admin")).toHaveCount(0);
   });
 
   test("an admin sees Admin and Sign out", async ({ page }) => {
     await asAdmin(page);
     await openMenuIfPhone(page);
-    await expect(visible(page, "link", "Admin")).toBeVisible();
-    await expect(visible(page, "button", "Sign out")).toBeVisible();
-    await expect(visible(page, "link", "My requests")).toHaveCount(0);
+    await openAccountMenuIfWide(page);
+    await expect(entry(page, "Admin")).toBeVisible();
+    await expect(entry(page, "Sign out")).toBeVisible();
+    await expect(entry(page, "My requests")).toHaveCount(0);
   });
 
   test("the first page already has the right state (no wrong button before scripts run)", async ({
@@ -89,11 +104,9 @@ test.describe("header", () => {
   test("the touch targets are at least 44 px tall", async ({ page }) => {
     await asUser(page);
     await openMenuIfPhone(page);
-    for (const [role, name] of [
-      ["link", "My requests"],
-      ["button", "Sign out"],
-    ] as const) {
-      const box = await visible(page, role, name).boundingBox();
+    await openAccountMenuIfWide(page);
+    for (const name of ["My requests", "Sign out"]) {
+      const box = await entry(page, name).boundingBox();
       expect(box?.height ?? 0, name).toBeGreaterThanOrEqual(43.5);
     }
   });
@@ -106,7 +119,8 @@ test.describe("sign out", () => {
     await asUser(page);
     await page.goto("/services");
     await openMenuIfPhone(page);
-    await visible(page, "button", "Sign out").click();
+    await openAccountMenuIfWide(page);
+    await entry(page, "Sign out").click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByText("You have been signed out.")).toBeVisible();
     await openMenuIfPhone(page);
