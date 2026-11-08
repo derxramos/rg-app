@@ -15,6 +15,7 @@ import {
   addRequirement,
   createService,
   deleteRequirement,
+  deleteServices,
   moveRequirement,
   moveService,
   saveSetting,
@@ -139,6 +140,39 @@ export async function updateServiceAction(
     updateTag(CACHE_TAGS.services);
     revalidatePath("/admin/settings/services");
     return { ok: true, message: "Saved. The website shows it now." };
+  });
+}
+
+// Delete one or many services (admin and owner, with the fresh confirm). A service that requests used is kept:
+// the answer says which ones were deleted and which were skipped, and why.
+export async function deleteServicesAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withPanel({ action: "services.delete", formData }, async ({ admin, ipHash, fresh2fa }) => {
+    const result = await deleteServices(
+      getDb(),
+      admin,
+      { ids: formData.getAll("ids").map(String) },
+      { fresh2fa, ipHash },
+    );
+    updateTag(CACHE_TAGS.services);
+    revalidatePath("/admin/settings/services");
+    const kept = result.skipped.filter((s) => s.reason === "has-requests");
+    const parts: string[] = [];
+    if (result.deleted.length > 0)
+      parts.push(
+        result.deleted.length === 1
+          ? `The service "${result.deleted[0].name}" was deleted.`
+          : `${result.deleted.length} services were deleted.`,
+      );
+    if (kept.length > 0)
+      parts.push(
+        `Not deleted (clients used them in requests, turn them off instead): ${kept.map((s) => s.name).join(", ")}.`,
+      );
+    if (result.deleted.length === 0)
+      return { ok: false, code: "invalid", message: parts.join(" ") || "Nothing was deleted." };
+    return { ok: true, message: parts.join(" ") };
   });
 }
 

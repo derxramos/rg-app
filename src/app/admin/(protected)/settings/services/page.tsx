@@ -1,11 +1,10 @@
 import { Briefcase } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { ActionForm } from "@/components/admin/action-form";
-import { AdminTitle } from "@/components/admin/bits";
+import { AdminTitle, Pagination } from "@/components/admin/bits";
+import { ServicesTable } from "@/components/admin/services-table";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox, CheckboxRow } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -15,89 +14,63 @@ import { formatFee } from "@/lib/money";
 import { can } from "@/lib/permissions";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
-import { listAllServices } from "@/server/services/admin-settings";
+import { listServicesPage } from "@/server/services/admin-settings";
 
-import { createServiceAction, serviceListAction } from "../actions";
+import { createServiceAction } from "../actions";
 
 export const metadata: Metadata = { title: "Services" };
 
-export default async function ServicesSettingsPage() {
+export default async function ServicesSettingsPage({
+  searchParams,
+}: PageProps<"/admin/settings/services">) {
   const me = await guardPanelPage("services.view", "/admin/settings/services");
   // What this role may do. Hiding a button is not security: the actions and the database check again.
   const canFee = can(me.role, "services.edit_fee");
   const canVisibility = can(me.role, "services.set_visibility");
   const canReorder = can(me.role, "services.reorder");
-  const list = await listAllServices(getDb());
+  const canDelete = can(me.role, "services.delete");
+  const { page: pageParam } = await searchParams;
+  const requested = Number(typeof pageParam === "string" ? pageParam : 1) || 1;
+  const { rows, total, page, perPage, pageCount } = await listServicesPage(getDb(), {
+    page: requested,
+  });
+  const view = rows.map((row, index) => ({
+    id: row.id,
+    name: row.name,
+    fee: row.feeCentavos === null ? "No fee set" : formatFee(row.feeCentavos),
+    isActive: row.isActive,
+    requestCount: row.requestCount,
+    position: (page - 1) * perPage + index,
+  }));
   return (
     <>
       <AdminTitle
         title="Services and checklists"
         intro="New services start with an empty checklist. Write only what you are sure about: clients read it."
       />
-      {list.length === 0 ? (
+      {rows.length === 0 ? (
         <EmptyState
           icon={Briefcase}
           title="No services yet"
           description="Add the first one below."
         />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {list.map((s, index) => (
-            <li key={s.id}>
-              <Card className="gap-3 p-4 md:p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Link
-                    href={`/admin/settings/services/${s.id}`}
-                    className="min-w-0 text-lg font-bold break-words text-primary underline underline-offset-4"
-                  >
-                    {s.name}
-                  </Link>
-                  <span className="text-base text-muted-foreground">
-                    {s.feeCentavos === null ? "No fee set" : formatFee(s.feeCentavos)}
-                  </span>
-                  <Badge variant={s.isActive ? "success" : "neutral"}>
-                    {s.isActive ? "On" : "Off"}
-                  </Badge>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {canVisibility ? (
-                    <ActionForm
-                      action={serviceListAction}
-                      hidden={{ id: s.id, intent: s.isActive ? "off" : "on" }}
-                      submitLabel={s.isActive ? "Turn off" : "Turn on"}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <span />
-                    </ActionForm>
-                  ) : null}
-                  {canReorder && index > 0 ? (
-                    <ActionForm
-                      action={serviceListAction}
-                      hidden={{ id: s.id, intent: "up" }}
-                      submitLabel="Move up"
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <span />
-                    </ActionForm>
-                  ) : null}
-                  {canReorder && index < list.length - 1 ? (
-                    <ActionForm
-                      action={serviceListAction}
-                      hidden={{ id: s.id, intent: "down" }}
-                      submitLabel="Move down"
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <span />
-                    </ActionForm>
-                  ) : null}
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ServicesTable
+            rows={view}
+            total={total}
+            permissions={{ visibility: canVisibility, reorder: canReorder, delete: canDelete }}
+          />
+          <p className="text-sm text-muted-foreground">
+            {total} {total === 1 ? "service" : "services"}, {perPage} per page.
+          </p>
+          <Pagination
+            basePath="/admin/settings/services"
+            params={{}}
+            page={page}
+            pageCount={pageCount}
+          />
+        </>
       )}
       <Card>
         <CardHeader>

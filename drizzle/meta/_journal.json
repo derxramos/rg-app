@@ -50,6 +50,13 @@
       "when": 1794050250026,
       "tag": "0006_single_role",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794053850026,
+      "tag": "0007_activity_purge_and_service_delete",
+      "breakpoints": true
     }
   ]
 }

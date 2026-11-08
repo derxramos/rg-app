@@ -7,7 +7,7 @@ import "server-only";
 //   - payment methods, site content, file settings: admin and owner (fresh 2FA for the risky payment fields)
 //   - services and checklists: staff may change words only. No fee, no hide, no delete.
 
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
 
 import { formatFee } from "@/lib/money";
 
@@ -113,6 +113,35 @@ export async function saveSetting<K extends SettingKey>(
 
 export async function listAllServices(db: AppDb) {
   return db.select().from(services).orderBy(asc(services.sortOrder), asc(services.name));
+}
+
+export const SERVICES_PAGE_SIZE = 10;
+
+// One page of services (10 per page) for the admin table, in the order the clients see them. `requestCount` is how many
+// requests used the service: a service with requests cannot be deleted (the history of those requests needs it).
+export async function listServicesPage(
+  db: AppDb,
+  options: { page?: number; perPage?: number } = {},
+) {
+  const perPage = options.perPage ?? SERVICES_PAGE_SIZE;
+  const [{ total }] = await db.select({ total: count() }).from(services);
+  const pageCount = Math.max(1, Math.ceil(total / perPage));
+  const page = Math.min(Math.max(1, options.page ?? 1), pageCount);
+  const rows = await db
+    .select({
+      id: services.id,
+      name: services.name,
+      slug: services.slug,
+      feeCentavos: services.feeCentavos,
+      isActive: services.isActive,
+      sortOrder: services.sortOrder,
+      requestCount: sql<number>`(select count(*)::int from requests r where r.service_id = services.id)`,
+    })
+    .from(services)
+    .orderBy(asc(services.sortOrder), asc(services.name))
+    .limit(perPage)
+    .offset((page - 1) * perPage);
+  return { rows, total, page, perPage, pageCount };
 }
 
 export async function getServiceWithRequirements(db: AppDb, serviceId: string) {
@@ -316,6 +345,74 @@ export async function moveService(
       entityId: serviceId,
       details: { direction },
     });
+  });
+}
+
+// ---------- Delete (single and bulk) ----------
+// Admin and owner only, with a fresh confirm. A service that requests used stays (turn it off instead): the
+// requests keep pointing to it for their history. The checklist and the payment QR choices of a deleted service go with it.
+export type DeleteServicesResult = {
+  deleted: { id: string; name: string }[];
+  skipped: { id: string; name: string; reason: "has-requests" | "not-found"; requests?: number }[];
+};
+
+export async function deleteServices(
+  db: AppDb,
+  actor: PanelUser,
+  input: { ids: string[] },
+  context: { fresh2fa: boolean; ipHash?: string | null },
+): Promise<DeleteServicesResult> {
+  assertCan(actor, "services.delete");
+  if (!context.fresh2fa) throw new PanelAuthError("needs-fresh-2fa");
+  const ids = [...new Set(input.ids)].filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (ids.length === 0) throw new SettingsError("invalid", "Choose at least one service.");
+  if (ids.length > 100)
+    throw new SettingsError("invalid", "Choose at most 100 services at a time.");
+
+  return db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
+    const found = await tx
+      .select({
+        id: services.id,
+        name: services.name,
+        slug: services.slug,
+        requestCount: sql<number>`(select count(*)::int from requests r where r.service_id = services.id)`,
+      })
+      .from(services)
+      .where(inArray(services.id, ids));
+    const result: DeleteServicesResult = { deleted: [], skipped: [] };
+    const known = new Set(found.map((s) => s.id));
+    for (const id of ids)
+      if (!known.has(id)) result.skipped.push({ id, name: "", reason: "not-found" });
+
+    const deletable = found.filter((s) => s.requestCount === 0);
+    for (const s of found.filter((s) => s.requestCount > 0))
+      result.skipped.push({
+        id: s.id,
+        name: s.name,
+        reason: "has-requests",
+        requests: s.requestCount,
+      });
+
+    if (deletable.length > 0) {
+      await tx.delete(services).where(
+        inArray(
+          services.id,
+          deletable.map((s) => s.id),
+        ),
+      );
+      for (const s of deletable) {
+        result.deleted.push({ id: s.id, name: s.name });
+        await log(tx, actor, {
+          action: "service.deleted",
+          entityType: "service",
+          entityId: s.id,
+          details: { name: s.name, slug: s.slug, bulk: ids.length > 1 },
+          ipHash: context.ipHash,
+        });
+      }
+    }
+    return result;
   });
 }
 

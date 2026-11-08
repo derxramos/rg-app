@@ -1,12 +1,13 @@
 import "server-only";
 
 // Dashboard numbers, the activity log list, and the CSV export queries.
-import { and, count, desc, eq, gte, inArray, isNull, like, lt } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNull, like, lt, sql } from "drizzle-orm";
 
 import type { RequestStatus } from "@/lib/status";
 import { addDaysToIsoDate } from "@/lib/time";
 import { DEFAULT_SETTINGS, parseSetting } from "@/lib/validation/settings";
-import { assertCan, type PanelUser } from "@/server/auth/panel-core";
+import { assertCan, PanelAuthError, type PanelUser } from "@/server/auth/panel-core";
+import { setActor } from "@/server/db/actor";
 import {
   activityLog,
   profiles,
@@ -120,7 +121,7 @@ export type ActivityFilters = {
   to?: string;
   page?: number;
 };
-export const ACTIVITY_PAGE_SIZE = 50;
+export const ACTIVITY_PAGE_SIZE = 20;
 
 export async function listActivity(db: AppDb, filters: ActivityFilters = {}) {
   const conditions = [];
@@ -152,6 +153,54 @@ export async function listActivity(db: AppDb, filters: ActivityFilters = {}) {
     .offset((page - 1) * ACTIVITY_PAGE_SIZE);
   const [{ total }] = await db.select({ total: count() }).from(activityLog).where(where);
   return { rows, total, page, pageCount: Math.max(1, Math.ceil(total / ACTIVITY_PAGE_SIZE)) };
+}
+
+// ---------- Manual clean-up of the activity log ----------
+// The log is append-only. Entries older than 1 year are removed by the daily job. Owner and admin can also clean up
+// by hand (entries older than 90, 180 or 365 days; the database refuses anything younger than 30 days, whoever asks).
+// It needs a fresh confirm, and the clean-up itself is written to the log (that new row stays).
+export const PURGE_CHOICES_DAYS = [90, 180, 365] as const;
+
+export async function countActivityOlderThan(db: AppDb, days: number): Promise<number> {
+  const [{ n }] = await db
+    .select({ n: count() })
+    .from(activityLog)
+    .where(lt(activityLog.createdAt, new Date(Date.now() - days * 24 * 60 * 60 * 1000)));
+  return n;
+}
+
+export async function purgeActivityLog(
+  db: AppDb,
+  actor: PanelUser,
+  input: { olderThanDays: number },
+  context: { fresh2fa: boolean; ipHash?: string | null },
+): Promise<{ removed: number }> {
+  assertCan(actor, "activity.purge");
+  if (!context.fresh2fa) throw new PanelAuthError("needs-fresh-2fa");
+  if (!(PURGE_CHOICES_DAYS as readonly number[]).includes(input.olderThanDays))
+    throw Object.assign(new Error("Choose 90, 180 or 365 days."), { code: "invalid" });
+
+  return db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
+    const result = await tx.execute(
+      sql`select public.purge_activity_log_older_than(${input.olderThanDays}) as removed`,
+    );
+    const rows = (
+      Array.isArray(result) ? result : ((result as { rows?: unknown[] }).rows ?? [])
+    ) as {
+      removed: string | number;
+    }[];
+    const removed = Number(rows[0]?.removed ?? 0);
+    await tx.insert(activityLog).values({
+      actorType: "admin",
+      actorId: actor.id,
+      action: "activity.purged",
+      entityType: "activity_log",
+      details: { olderThanDays: input.olderThanDays, removed },
+      ipHash: context.ipHash ?? null,
+    });
+    return { removed };
+  });
 }
 
 // ---------- CSV export (owner only; every export is logged) ----------

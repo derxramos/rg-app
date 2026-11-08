@@ -44,6 +44,7 @@ export const PERMISSIONS = {
   "services.set_visibility": ADMIN_UP, // hide, show, archive
   "services.reorder": ADMIN_UP,
   "services.payment_links": ADMIN_UP,
+  "services.delete": ADMIN_UP, // single and bulk delete of a service (only when no request uses it)
   "checklist.delete": ADMIN_UP,
 
   // Settings and export
@@ -54,6 +55,7 @@ export const PERMISSIONS = {
 
   // Activity log: read only
   "activity.view": STAFF_UP,
+  "activity.purge": ADMIN_UP, // manual clean-up of old entries (older than 30 days), with a fresh confirm
 
   // Accounts (Settings > Admin users)
   "accounts.view": ADMIN_UP,

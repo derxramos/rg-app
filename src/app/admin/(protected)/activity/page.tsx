@@ -1,17 +1,23 @@
 import { History, Search } from "lucide-react";
 import type { Metadata } from "next";
 
+import { ActivityCleanup } from "@/components/admin/activity-cleanup";
 import { AdminTitle, Pagination } from "@/components/admin/bits";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
+import { can } from "@/lib/permissions";
 import { formatManilaDateTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
-import { listActivity } from "@/server/services/admin-overview";
+import {
+  PURGE_CHOICES_DAYS,
+  countActivityOlderThan,
+  listActivity,
+} from "@/server/services/admin-overview";
 import { listPanelPeople } from "@/server/services/accounts";
 
 export const metadata: Metadata = { title: "Activity log" };
@@ -31,7 +37,8 @@ const GROUPS = [
 const one = (v: string | string[] | undefined) => (typeof v === "string" && v ? v : undefined);
 
 export default async function ActivityPage({ searchParams }: PageProps<"/admin/activity">) {
-  await guardPanelPage("activity.view", "/admin/activity");
+  const me = await guardPanelPage("activity.view", "/admin/activity");
+  const canPurge = can(me.role, "activity.purge");
   const q = await searchParams;
   const filters = {
     action: one(q.action),
@@ -45,12 +52,17 @@ export default async function ActivityPage({ searchParams }: PageProps<"/admin/a
     listActivity(db, filters),
     listPanelPeople(db),
   ]);
+  // How many entries each clean-up choice would remove (only owner and admin see the clean-up).
+  const counts: Record<number, number> = {};
+  if (canPurge)
+    for (const days of PURGE_CHOICES_DAYS) counts[days] = await countActivityOlderThan(db, days);
 
   return (
     <>
       <AdminTitle
         title="Activity log"
-        intro={`${total} entries. Nobody can change or delete them.`}
+        intro={`${total} entries, 20 per page. Nobody can change them. Entries older than 1 year are removed automatically every day.`}
+        actions={canPurge ? <ActivityCleanup counts={counts} /> : undefined}
       />
       <form
         method="get"

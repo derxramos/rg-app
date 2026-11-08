@@ -83,7 +83,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
     <>
       <AdminTitle
         title="Admin users"
-        intro="Every change here needs YOUR own confirm: the 6-digit code from your authenticator app. Nothing here deletes an account."
+        intro="Each change requires your 6-digit authenticator code. No accounts will be deleted."
         actions={<InviteAccount viewerRole={me.role} />}
       />
       <AccountsToolbar query={query} />
@@ -134,13 +134,25 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead scope="col">Name</TableHead>
-                  <TableHead scope="col">Email</TableHead>
-                  <TableHead scope="col">Role</TableHead>
-                  <TableHead scope="col">Status</TableHead>
-                  <TableHead scope="col">2-step login</TableHead>
-                  <TableHead scope="col">Joined</TableHead>
-                  <TableHead scope="col" className="text-right">
+                  <TableHead scope="col" className="text-center">
+                    Name
+                  </TableHead>
+                  <TableHead scope="col" className="text-center">
+                    Email
+                  </TableHead>
+                  <TableHead scope="col" className="text-center">
+                    Role
+                  </TableHead>
+                  <TableHead scope="col" className="text-center">
+                    Status
+                  </TableHead>
+                  <TableHead scope="col" className="text-center">
+                    2-step login
+                  </TableHead>
+                  <TableHead scope="col" className="text-center">
+                    Joined
+                  </TableHead>
+                  <TableHead scope="col" className="text-center">
                     Actions
                   </TableHead>
                 </TableRow>
