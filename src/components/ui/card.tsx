@@ -4,8 +4,10 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 // Card: rounded-lg, border, shadow-sm, padding 20 px on phone and 24 px from md.
+// min-w-0 lets a card shrink inside a grid or a flex row, and overflow-wrap:anywhere lets a very long word
+// (a long email, a long name) break instead of pushing out of the card.
 const cardVariants = cva(
-  "flex flex-col gap-4 rounded-lg border p-5 text-card-foreground shadow-sm md:p-6",
+  "flex min-w-0 flex-col gap-4 rounded-lg border p-5 text-card-foreground shadow-sm [overflow-wrap:anywhere] md:p-6",
   {
     variants: {
       tint: {

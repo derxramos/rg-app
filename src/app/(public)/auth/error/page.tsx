@@ -18,7 +18,7 @@ export default function AuthErrorPage() {
       />
       <PageContainer className="flex max-w-[560px] flex-col gap-4 py-10 md:py-14">
         <p className="text-base">You can ask for a new link:</p>
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Link href="/forgot-password" className={cn(buttonVariants({ variant: "default" }))}>
             I forgot my password
           </Link>

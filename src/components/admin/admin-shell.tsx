@@ -31,9 +31,11 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
           <Logo compact className="sm:hidden" />
           <Logo className="hidden sm:inline-flex" />
         </Link>
-        <div className="flex items-center gap-3">
-          <span className="hidden min-w-0 text-right text-sm sm:block">
-            <span className="block truncate font-bold">{admin.fullName}</span>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="hidden max-w-56 min-w-0 text-right text-sm sm:block xl:max-w-80">
+            <span className="block truncate font-bold" title={admin.fullName}>
+              {admin.fullName}
+            </span>
             <span className="block text-muted-foreground">{ROLE_LABELS[admin.role]}</span>
           </span>
           {/* "Security" (my authenticator devices) is for everyone who opens the admin area, staff too. */}

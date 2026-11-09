@@ -8,7 +8,7 @@ import { cn, focusRing } from "@/lib/utils";
 // Sizes: sm is 44 px on phone and 40 px from md. md is 44 px. lg is 52 px.
 const buttonVariants = cva(
   [
-    "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-center font-bold",
+    "inline-flex max-w-full shrink-0 items-center justify-center gap-2 rounded-md text-center font-bold",
     "transition-[background-color,box-shadow,filter] duration-120 ease-standard motion-reduce:transition-none",
     "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",

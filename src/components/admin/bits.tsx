@@ -37,7 +37,7 @@ export function StatCard({
 }) {
   const body = (
     <Card className="h-full gap-2 p-4 md:p-4">
-      <span className="text-sm text-muted-foreground">{label}</span>
+      {label ? <span className="text-sm text-muted-foreground">{label}</span> : null}
       <span className="text-3xl font-bold">{value}</span>
       {children}
     </Card>
@@ -45,7 +45,7 @@ export function StatCard({
   return href ? (
     <Link
       href={href}
-      className="block rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="block h-full min-w-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       {body}
     </Link>

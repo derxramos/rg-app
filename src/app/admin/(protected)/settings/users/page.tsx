@@ -54,9 +54,7 @@ const TABLE_STATUS: Record<AccountStatus, { label: string; hint?: string }> = {
 
 function YouTag() {
   return (
-    <span className="ml-2 rounded-full bg-muted px-2 py-0.5 align-middle text-xs font-bold whitespace-nowrap text-foreground">
-      You
-    </span>
+    <Badge className="ml-2 align-middle">You</Badge>
   );
 }
 

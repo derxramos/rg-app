@@ -199,7 +199,9 @@ export function ServicesTable({
                     </span>
                   </TableCell>
                 ) : null}
-                <TableCell className="truncate">{nameLink(row)}</TableCell>
+                <TableCell className="truncate" title={row.name}>
+                  {nameLink(row)}
+                </TableCell>
                 <TableCell className="text-right">{row.fee}</TableCell>
                 <TableCell>{statusBadge(row)}</TableCell>
                 <TableCell>{actions(row)}</TableCell>

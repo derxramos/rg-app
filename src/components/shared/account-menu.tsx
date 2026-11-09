@@ -121,7 +121,9 @@ export function AccountMenu({ name, initial, linkHref, linkLabel }: Props) {
         >
           {initial}
         </span>
-        <span className="min-w-0 truncate">{name}</span>
+        <span className="min-w-0 truncate" title={name}>
+          {name}
+        </span>
         <ChevronDown
           aria-hidden="true"
           className={cn(

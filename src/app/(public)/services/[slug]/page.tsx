@@ -87,8 +87,8 @@ async function ServiceDetail({ params }: { params: PageProps<"/services/[slug]">
         ]}
       />
       <PageHeading title={service.name} intro={service.shortDescription || undefined} />
-      <PageContainer className="grid gap-10 py-10 md:py-14 lg:grid-cols-3">
-        <div className="flex flex-col gap-8 lg:col-span-2">
+      <PageContainer className="grid grid-cols-1 gap-10 py-10 md:py-14 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
           {service.description ? <Markdown>{service.description}</Markdown> : null}
 
           <section aria-labelledby="requirements-title" className="flex flex-col gap-4">
@@ -111,7 +111,7 @@ async function ServiceDetail({ params }: { params: PageProps<"/services/[slug]">
                 {service.requirements.map((requirement) => (
                   <li
                     key={requirement.id}
-                    className="flex flex-col gap-1 rounded-lg border bg-card p-4"
+                    className="flex min-w-0 flex-col gap-1 rounded-lg border bg-card p-4 [overflow-wrap:anywhere]"
                   >
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="text-base font-bold">{requirement.label}</span>

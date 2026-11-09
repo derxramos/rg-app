@@ -35,20 +35,22 @@ export default async function AdminDashboardPage() {
         intro="What needs your attention today."
       />
 
-      <section
-        aria-label="Requests by status"
-        className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-5"
-      >
-        {COUNTED.map((status) => (
-          <StatCard
-            key={status}
-            label=""
-            value={d.byStatus[status] ?? 0}
-            href={`/admin/requests?status=${status}`}
-          >
-            <StatusBadge status={status} />
-          </StatCard>
-        ))}
+      {/* The grid follows the width of THIS area (a container query), not the screen, so the sidebar cannot
+          squeeze the cards. 2 columns up to 640 px, 3 columns up to 1100 px, 5 columns only when every card
+          is at least 210 px wide (5 x 210 + 4 x 12 = 1098). Never 4 + 1. */}
+      <section aria-label="Requests by status" className="@container">
+        <div className="grid grid-cols-2 gap-3 @[640px]:grid-cols-3 @[1100px]:grid-cols-5">
+          {COUNTED.map((status) => (
+            <StatCard
+              key={status}
+              label=""
+              value={d.byStatus[status] ?? 0}
+              href={`/admin/requests?status=${status}`}
+            >
+              <StatusBadge status={status} />
+            </StatCard>
+          ))}
+        </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-3">

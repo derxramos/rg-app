@@ -4,9 +4,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 // Text on a soft background always uses the matching "-ink" color (WCAG AA).
-// A badge never wraps its own text. Put badges in a row that can wrap (flex-wrap).
+// The ONE pill for the whole app (status, role, tier, Required / Optional ...). It never leaves its parent:
+// max-w-full caps its width, and a long label wraps onto a second line instead of sticking out. The icon stays
+// level with the first line. A short label stays on one line because the pill is only as wide as its content.
 const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-sm font-bold [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex w-fit max-w-full min-w-0 items-start gap-1.5 rounded-full px-3 py-1 text-sm leading-5 font-bold [overflow-wrap:anywhere] [&_svg]:mt-0.5 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
