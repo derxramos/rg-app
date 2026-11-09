@@ -7,7 +7,7 @@ import "server-only";
 //   - payment methods, site content, file settings: admin and owner (fresh 2FA for the risky payment fields)
 //   - services and checklists: staff may change words only. No fee, no hide, no delete.
 
-import { and, asc, count, eq, getTableColumns, inArray, sql } from "drizzle-orm";
+import { asc, count, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 
 import { formatFee } from "@/lib/money";
 
@@ -18,7 +18,6 @@ import { setActor } from "@/server/db/actor";
 import {
   activityLog,
   paymentMethods,
-  payments,
   servicePaymentMethods,
   serviceRequirements,
   services,
@@ -727,26 +726,5 @@ export async function deletePaymentMethods(
       }
     }
     return result;
-  });
-}
-
-// Delete is allowed only when no payment used the method. Otherwise: turn it off.
-export async function deletePaymentMethod(
-  db: AppDb,
-  actor: PanelUser,
-  id: string,
-  context: { fresh2fa: boolean },
-) {
-  assertCan(actor, "payment_methods.manage");
-  if (!context.fresh2fa) throw new PanelAuthError("needs-fresh-2fa");
-  const [{ used }] = await db
-    .select({ used: count() })
-    .from(payments)
-    .where(eq(payments.paymentMethodId, id));
-  if (used > 0)
-    throw new SettingsError("in-use", "This method is used by payments. Turn it off instead.");
-  await db.transaction(async (tx) => {
-    await setActor(tx, actor.id);
-    await tx.delete(paymentMethods).where(and(eq(paymentMethods.id, id)));
   });
 }

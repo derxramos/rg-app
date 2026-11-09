@@ -22,7 +22,12 @@ const COUNTED = [
   "payment_submitted",
   "in_progress",
 ] as const;
-const mb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+// A short hint under a card when the status name alone could be misread. "Waiting for client" does not mean
+// "no clients": it means a request is paused until that client sends a reply or more files.
+const STATUS_HINTS: Partial<Record<(typeof COUNTED)[number], string>> = {
+  waiting_for_client: "Paused until the client replies or sends files",
+};
+const mb =(bytes: number) => Math.round(bytes / 1024 / 1024);
 
 export default async function AdminDashboardPage() {
   const admin = await guardPanelPage("dashboard.view", "/admin");
@@ -48,6 +53,9 @@ export default async function AdminDashboardPage() {
               href={`/admin/requests?status=${status}`}
             >
               <StatusBadge status={status} />
+              {STATUS_HINTS[status] ? (
+                <span className="text-sm text-muted-foreground">{STATUS_HINTS[status]}</span>
+              ) : null}
             </StatCard>
           ))}
         </div>

@@ -115,7 +115,7 @@ Pages inside Settings (and one request) show a small trail at the top, for examp
 
 ### File settings (owner and admin)
 
-How many days files are kept after a request is Completed or Cancelled (start: 30), the most files per request (15), the biggest file (3 MB), and the storage warning (80 percent).
+How many days files are kept after a request is Completed or Cancelled (start: 30), the number of files per request (15), the biggest file (3 MB), and the storage warning (80 percent).
 
 ### Admin users (owner and admin)
 

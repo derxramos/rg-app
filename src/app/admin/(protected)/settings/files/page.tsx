@@ -32,9 +32,9 @@ export default async function FileSettingsPage() {
     },
     {
       key: "max_files_per_request",
-      label: "Most files for one request",
+      label: "Files per request",
       value: maxFiles,
-      hint: "1 to 50.",
+      hint: "How many files a client can upload for each request. 1 to 50.",
     },
     {
       key: "max_file_size_mb",

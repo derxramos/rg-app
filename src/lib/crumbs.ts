@@ -16,7 +16,7 @@ export function settingsTrail(role: Role): Crumb[] {
 
 // The only list filters that may travel in the address. Anything else is dropped, so a made-up address cannot
 // put its own words in a link.
-const LIST_KEYS = ["q", "status", "service", "from", "to", "drafts", "page"] as const;
+const LIST_KEYS = ["q", "status", "service", "from", "to", "page"] as const;
 const MAX_VALUE_LENGTH = 100;
 
 // "raw" is the text after the "?" of the list address, as saved by the list page. Returns the clean text to put

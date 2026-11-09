@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PaymentStateBadge } from "@/components/shared/payment-state-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox, CheckboxRow } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
@@ -44,7 +43,6 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
     from: one(query.from),
     to: one(query.to),
     q: one(query.q),
-    includeDrafts: one(query.drafts) === "1",
     page: Number(one(query.page)) || 1,
   };
   const db = getDb();
@@ -63,7 +61,6 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
         service: filters.serviceId,
         from: filters.from,
         to: filters.to,
-        drafts: filters.includeDrafts ? "1" : undefined,
         page: filters.page > 1 ? String(filters.page) : undefined,
       }).filter((entry): entry is [string, string] => Boolean(entry[1])),
     ).toString(),
@@ -73,7 +70,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
     <>
       <AdminTitle
         title="Requests"
-        intro={`${total} found. Drafts are hidden unless you tick the box.`}
+        intro={`${total} found. Drafts are hidden. Pick "Draft" in Status to see them.`}
       />
 
       <form
@@ -83,8 +80,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
       >
         <FilterPanel
           activeCount={
-            [filters.status, filters.serviceId, filters.from, filters.to].filter(Boolean).length +
-            (filters.includeDrafts ? 1 : 0)
+            [filters.status, filters.serviceId, filters.from, filters.to].filter(Boolean).length
           }
           search={
             <div className="flex flex-col gap-1">
@@ -125,16 +121,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
               <Input id="f-to" name="to" type="date" defaultValue={filters.to} />
             </div>
           </div>
-          <CheckboxRow htmlFor="f-drafts" className="min-[1180px]:col-span-2">
-            <Checkbox
-              id="f-drafts"
-              name="drafts"
-              value="1"
-              defaultChecked={filters.includeDrafts}
-            />
-            <span>Show drafts</span>
-          </CheckboxRow>
-          <div className="min-[1180px]:col-span-2 min-[1180px]:justify-self-end">
+          <div className="min-[1180px]:col-span-4 min-[1180px]:justify-self-end">
             <Button type="submit">
               <Search aria-hidden="true" />
               Apply filters
@@ -223,7 +210,6 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
           service: filters.serviceId,
           from: filters.from,
           to: filters.to,
-          drafts: filters.includeDrafts ? "1" : undefined,
         }}
         page={page}
         pageCount={pageCount}

@@ -19,7 +19,7 @@ describe("settingsTrail: the first step under Settings", () => {
 describe("the list address that travels to one request", () => {
   it("keeps the search, filters and page number", () => {
     const raw =
-      "q=maria&status=under_review&service=abc&from=2026-11-01&to=2026-11-09&drafts=1&page=3";
+      "q=maria&status=under_review&service=abc&from=2026-11-01&to=2026-11-09&page=3";
     expect(requestsListHref(raw)).toBe(`/admin/requests?${cleanListQuery(raw)}`);
     const clean = new URLSearchParams(cleanListQuery(raw));
     expect(Object.fromEntries(clean)).toEqual({
@@ -28,7 +28,6 @@ describe("the list address that travels to one request", () => {
       service: "abc",
       from: "2026-11-01",
       to: "2026-11-09",
-      drafts: "1",
       page: "3",
     });
   });

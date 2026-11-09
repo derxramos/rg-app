@@ -18,7 +18,7 @@ import { getDb } from "@/server/db/client";
 import { getPaymentMethod } from "@/server/services/admin-settings";
 import { PARSERS } from "@/ocr/parsers";
 
-import { deletePaymentMethodAction, savePaymentMethodAction } from "../actions";
+import { savePaymentMethodAction } from "../actions";
 
 export const metadata: Metadata = { title: "Edit payment method" };
 
@@ -152,27 +152,6 @@ export default async function EditPaymentMethodPage({
               <p className="font-mono text-lg break-all">{method?.accountNumber ?? "..."}</p>
             </CardContent>
           </Card>
-          {method ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Delete</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  A method that payments used cannot be deleted. Turn it off instead.
-                </p>
-                <ActionForm
-                  action={deletePaymentMethodAction}
-                  fresh
-                  hidden={{ id: method.id }}
-                  submitLabel="Delete this method"
-                  variant="destructive"
-                >
-                  <span />
-                </ActionForm>
-              </CardContent>
-            </Card>
-          ) : null}
         </div>
       </div>
     </>

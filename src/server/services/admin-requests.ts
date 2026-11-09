@@ -33,7 +33,6 @@ export type RequestFilters = {
   from?: string; // YYYY-MM-DD (Manila)
   to?: string;
   q?: string;
-  includeDrafts?: boolean;
   page?: number;
 };
 
@@ -44,7 +43,7 @@ const manilaStart = (isoDate: string) => new Date(`${isoDate}T00:00:00+08:00`);
 export async function listRequests(db: AppDb, filters: RequestFilters = {}) {
   const conditions = [];
   if (filters.status) conditions.push(eq(requests.status, filters.status));
-  else if (!filters.includeDrafts) conditions.push(ne(requests.status, "draft"));
+  else conditions.push(ne(requests.status, "draft"));
   if (filters.serviceId) conditions.push(eq(requests.serviceId, filters.serviceId));
   if (filters.from) conditions.push(gte(requests.createdAt, manilaStart(filters.from)));
   if (filters.to)

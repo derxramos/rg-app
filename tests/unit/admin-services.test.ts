@@ -26,7 +26,6 @@ import { exportCsv, getDashboard, listActivity } from "@/server/services/admin-o
 import {
   addRequirement,
   createService,
-  deletePaymentMethod,
   deletePaymentMethods,
   deleteRequirement,
   getServiceWithRequirements,
@@ -127,9 +126,9 @@ describe("permissions: staff are refused on admin and owner actions", () => {
     ).toBe("wrong-role");
     expect(await rejects(setPaymentMethodActive(t.db, staff, methodId, false))).toBe("wrong-role");
     expect(await rejects(movePaymentMethod(t.db, staff, methodId, "up"))).toBe("wrong-role");
-    expect(await rejects(deletePaymentMethod(t.db, staff, methodId, { fresh2fa: true }))).toBe(
-      "wrong-role",
-    );
+    expect(
+      await rejects(deletePaymentMethods(t.db, staff, { ids: [methodId] }, { fresh2fa: true })),
+    ).toBe("wrong-role");
   });
   it("verifying and rejecting payments (owner decision)", async () => {
     const requestId = await sentRequest("zolb-test+vs@example.com");
@@ -318,19 +317,19 @@ describe("payment methods (owner, fresh 2FA, logging)", () => {
         ocrRaw: null,
       },
     });
-    expect(await rejects(deletePaymentMethod(t.db, owner, methodId, { fresh2fa: true }))).toBe(
-      "in-use",
-    );
+    const kept = await deletePaymentMethods(t.db, owner, { ids: [methodId] }, { fresh2fa: true });
+    expect(kept.deleted).toHaveLength(0);
+    expect(kept.skipped.map((s) => s.reason)).toEqual(["has-payments"]);
     const created = await savePaymentMethod(
       t.db,
       owner,
       pmInput({ name: "Unused", accountName: "X Y", accountNumber: "111" }),
       { fresh2fa: true },
     );
-    expect(await rejects(deletePaymentMethod(t.db, owner, created.id, { fresh2fa: false }))).toBe(
-      "needs-fresh-2fa",
-    );
-    await deletePaymentMethod(t.db, owner, created.id, { fresh2fa: true });
+    expect(
+      await rejects(deletePaymentMethods(t.db, owner, { ids: [created.id] }, { fresh2fa: false })),
+    ).toBe("needs-fresh-2fa");
+    await deletePaymentMethods(t.db, owner, { ids: [created.id] }, { fresh2fa: true });
     expect(
       await t.db.select().from(paymentMethods).where(eq(paymentMethods.id, created.id)),
     ).toHaveLength(0);
@@ -500,7 +499,7 @@ describe("requests: list, filters, notes, status, file links", () => {
     const all = await listRequests(t.db);
     expect(all.rows.every((r) => r.status !== "draft")).toBe(true);
     expect(
-      (await listRequests(t.db, { includeDrafts: true })).rows.some((r) => r.status === "draft"),
+      (await listRequests(t.db, { status: "draft" })).rows.some((r) => r.status === "draft"),
     ).toBe(true);
     expect((await listRequests(t.db, { q: "findable" })).rows.map((r) => r.clientFullName)).toEqual(
       ["Findable Person"],

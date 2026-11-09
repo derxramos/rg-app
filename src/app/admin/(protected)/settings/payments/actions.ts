@@ -10,7 +10,6 @@ import { notifyPaymentMethodChanged } from "@/server/email/notify";
 import { getDb } from "@/server/db/client";
 import { detectFileType } from "@/server/security/file-type";
 import {
-  deletePaymentMethod,
   deletePaymentMethods,
   movePaymentMethod,
   savePaymentMethod,
@@ -139,21 +138,4 @@ export async function deletePaymentMethodsAction(
       return { ok: true, message: parts.join(" ") };
     },
   );
-}
-
-export async function deletePaymentMethodAction(
-  _previous: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  let deleted = false;
-  const result = await withPanel(
-    { action: "payment_methods.manage", formData },
-    async ({ admin, fresh2fa }) => {
-      await deletePaymentMethod(getDb(), admin, text(formData, "id"), { fresh2fa });
-      deleted = true;
-      return { ok: true, message: "Deleted." };
-    },
-  );
-  if (deleted) redirect("/admin/settings/payments");
-  return result;
 }

@@ -42,13 +42,15 @@ export default async function ExportPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Button type="submit" name="type" value="requests">
-                <Download aria-hidden="true" />
-                Download requests
-              </Button>
-              <Button type="submit" name="type" value="payments" variant="outline">
+              {/* Payments are the main backup: they show who has paid, which settles questions from clients.
+                  So that button is the one teal (primary) button. */}
+              <Button type="submit" name="type" value="payments">
                 <Download aria-hidden="true" />
                 Download payments
+              </Button>
+              <Button type="submit" name="type" value="requests" variant="outline">
+                <Download aria-hidden="true" />
+                Download requests
               </Button>
             </div>
           </form>
