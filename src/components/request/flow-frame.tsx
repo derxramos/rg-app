@@ -45,9 +45,12 @@ export function FlowSkeleton() {
       aria-label="Loading"
       className="mx-auto flex w-full max-w-[640px] flex-col gap-4 px-5 py-8"
     >
+      {/* The same shape as a real step: the step bar, the heading, one line of help, then the form card. */}
       <Skeleton className="h-6 w-full" />
       <Skeleton className="h-9 w-2/3" />
-      <Skeleton className="h-40 w-full rounded-lg" />
+      <Skeleton className="h-6 w-5/6" />
+      <Skeleton className="h-56 w-full rounded-lg" />
+      <Skeleton className="h-11 w-40" />
     </div>
   );
 }

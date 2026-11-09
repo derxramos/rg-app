@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function AdminLoading() {
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-6">
-      <div className="flex items-center gap-3 text-primary-ink">
+      {/* Like the gray shapes below, the spinner appears only after 200 ms, so a quick page shows no flash. */}
+      <div className="flex animate-delayed-in items-center gap-3 text-primary-ink">
         <Loader2
           aria-hidden="true"
           className="size-6 animate-spin text-primary motion-reduce:animate-none"

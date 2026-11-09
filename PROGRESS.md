@@ -9,6 +9,19 @@ Update this file at the end of every work session.
 
 ---
 
+## Loading screen on a hard refresh (branch `fix/loading-skeleton`, 2026-11-09)
+
+Only styling and loading placeholders changed. No feature, permission or data change.
+
+- **Problem:** on a hard refresh (F5) of an admin page, the first thing on screen was one lone gray bar on a blank page. It came from the outer loading fallback in `src/app/admin/(protected)/layout.tsx`, which is shown while the server checks who is signed in.
+- **Fix 1, show the frame at once:** new `AdminShellSkeleton` (`src/components/admin/admin-shell-skeleton.tsx`) has the same header (with the logo), sidebar, page padding and phone bottom bar as the real admin shell. Only the parts that depend on the person are placeholders.
+- **Fix 2, shapes that match the page:** the placeholders look like the real page (title, intro, five status cards, a list). The request-step placeholder (`FlowSkeleton`) now has the step bar, heading, help line, form card and a button.
+- **Fix 3, no flash on a fast load:** every placeholder (and the spinner in the admin `loading.tsx`) stays invisible for 200 ms, then fades in (`--animate-skeleton` and `--animate-delayed-in` in `globals.css`). A fast page shows no gray at all.
+- **Fix 4, a gentle shimmer:** a slow light band moves over the placeholder. With "reduce motion" there is no shimmer, only the delayed fade.
+- Development-only preview: `/dev/loading` (404 in production).
+- **Checked:** lint, type check, 808 unit tests, production build, and the layout test (no overflow). Looked at the frame at 1280 and 360 px, light and dark, right after load and after the delay.
+- **Not changed:** the public pages already show the site header and footer while a step loads, so only the step content is a placeholder there. Pages that can be built ahead of time already arrive as full HTML.
+
 ## Card, pill and button overflow fix (branch `fix/card-overflow`, 2026-11-09)
 
 Only layout and styling changed. No feature, permission or data change.

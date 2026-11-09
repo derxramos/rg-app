@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AdminShellSkeleton } from "@/components/admin/admin-shell-skeleton";
 import { TwoFactorProvider } from "@/components/admin/two-factor-context";
 import { TwoFactorOffBanner } from "@/components/admin/two-factor-off-banner";
 import { getStepUpMode, guardPanelPage } from "@/server/auth/panel";
@@ -28,13 +28,8 @@ async function Frame({ children }: { children: React.ReactNode }) {
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense
-      fallback={
-        <div role="status" aria-label="Loading" className="p-6">
-          <Skeleton className="h-10 w-1/2" />
-        </div>
-      }
-    >
+    // While the server checks who is signed in, show the admin frame (header, menu, bottom bar), not one lone bar.
+    <Suspense fallback={<AdminShellSkeleton />}>
       <Frame>{children}</Frame>
     </Suspense>
   );
