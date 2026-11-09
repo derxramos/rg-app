@@ -103,16 +103,7 @@ export default async function EditServicePage({
                 </p>
               )}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="e-short">Short description</Label>
-                <Input
-                  id="e-short"
-                  name="shortDescription"
-                  defaultValue={service.shortDescription}
-                  maxLength={300}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="e-desc">Description (Markdown)</Label>
+                <Label htmlFor="e-desc">Description (optional)</Label>
                 <Textarea
                   id="e-desc"
                   name="description"
@@ -120,6 +111,10 @@ export default async function EditServicePage({
                   maxLength={10000}
                   className="min-h-40"
                 />
+                <p className="text-sm text-muted-foreground">
+                  The website shows the first words on the services list and all of it on the
+                  service page.
+                </p>
               </div>
               {canLinks ? (
                 <fieldset className="flex flex-col gap-3">

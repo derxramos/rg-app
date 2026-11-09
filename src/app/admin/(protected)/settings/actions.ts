@@ -97,7 +97,6 @@ function serviceInput(formData: FormData, role: Role) {
     .filter((id) => /^[0-9a-f-]{36}$/i.test(id));
   return {
     name: text(formData, "name"),
-    shortDescription: text(formData, "shortDescription"),
     description: text(formData, "description"),
     ...(can(role, "services.set_visibility") ? { isActive: flag(formData, "isActive") } : {}),
     feeCentavos,
@@ -201,7 +200,6 @@ export async function serviceListAction(
         id,
         {
           name: s.name,
-          shortDescription: s.shortDescription,
           description: s.description,
           isActive: intent === "on",
         },

@@ -175,15 +175,13 @@ describe("permissions: staff are refused on admin and owner actions", () => {
   it("services: staff may change words only (no fee, no hide, no payment links, no delete, no reorder)", async () => {
     const id = await createService(t.db, owner, {
       name: "Staff Rules Service",
-      shortDescription: "",
       description: "",
       isActive: true,
       feeCentavos: 100000,
     });
     const keep = {
       name: "Staff Rules Service",
-      shortDescription: "new words",
-      description: "",
+      description: "new words",
     };
     // Same fee and visibility (left out) = fine.
     await updateService(t.db, staff, id, keep);
@@ -210,7 +208,6 @@ describe("permissions: staff are refused on admin and owner actions", () => {
       await rejects(
         createService(t.db, staff, {
           name: "Visible By Staff",
-          shortDescription: "",
           description: "",
           isActive: true,
         }),
@@ -220,7 +217,6 @@ describe("permissions: staff are refused on admin and owner actions", () => {
       await rejects(
         createService(t.db, staff, {
           name: "Fee By Staff",
-          shortDescription: "",
           description: "",
           feeCentavos: 500,
         }),
@@ -228,7 +224,6 @@ describe("permissions: staff are refused on admin and owner actions", () => {
     ).toBe("wrong-role");
     const id = await createService(t.db, staff, {
       name: "Hidden By Staff",
-      shortDescription: "",
       description: "",
     });
     const [row] = await t.db.select().from(services).where(eq(services.id, id));
@@ -598,7 +593,6 @@ describe("services and checklists", () => {
   it("creates a service with an EMPTY checklist, adds items, and reorders services", async () => {
     const a = await createService(t.db, staff, {
       name: "Brand New Service",
-      shortDescription: "",
       description: "",
     });
     expect((await getServiceWithRequirements(t.db, a))?.requirements).toHaveLength(0);
@@ -609,7 +603,6 @@ describe("services and checklists", () => {
     await expect(
       createService(t.db, staff, {
         name: "Brand New Service",
-        shortDescription: "",
         description: "",
       }),
     ).rejects.toBeInstanceOf(SettingsError);

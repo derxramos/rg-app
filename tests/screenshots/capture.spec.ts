@@ -25,7 +25,7 @@ test.beforeAll(async () => {
   const sql = testSql();
   try {
     await sql`update payment_methods set name = 'GCash' where id = ${E2E_METHOD_ID}`;
-    await sql`update services set name = 'Sample service A', short_description = 'A sample description.' where slug = 'test-service-e2e'`;
+    await sql`update services set name = 'Sample service A', description = 'A sample description.' where slug = 'test-service-e2e'`;
   } finally {
     await sql.end();
   }

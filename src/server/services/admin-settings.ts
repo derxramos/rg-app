@@ -156,7 +156,6 @@ export async function getServiceWithRequirements(db: AppDb, serviceId: string) {
 
 type ServiceInput = {
   name: string;
-  shortDescription: string;
   description: string;
   // Left out (undefined) means "keep the current value". Staff may not send it (services.set_visibility).
   isActive?: boolean;
@@ -170,8 +169,6 @@ function checkService(input: ServiceInput) {
   const name = input.name.trim();
   if (name.length < 2 || name.length > 120)
     throw new SettingsError("invalid", "The service name needs 2 to 120 characters.");
-  if (input.shortDescription.length > 300)
-    throw new SettingsError("invalid", "The short description is too long (300 characters).");
   if (input.description.length > 10000)
     throw new SettingsError("invalid", "The description is too long.");
   const fee = input.feeCentavos;
@@ -224,7 +221,6 @@ export async function createService(
         .values({
           slug,
           name: clean.name,
-          shortDescription: clean.shortDescription,
           description: clean.description,
           feeCentavos: clean.feeCentavos ?? null,
           isActive: clean.isActive ?? false,
@@ -271,7 +267,6 @@ export async function updateService(
       .update(services)
       .set({
         name: clean.name,
-        shortDescription: clean.shortDescription,
         description: clean.description,
         isActive,
         ...(clean.feeCentavos !== undefined ? { feeCentavos: clean.feeCentavos } : {}),

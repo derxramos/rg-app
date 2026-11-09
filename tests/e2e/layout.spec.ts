@@ -94,7 +94,7 @@ test.beforeAll(async () => {
     const serviceId: string =
       svc?.id ??
       (
-        await sql`insert into services (slug, name, short_description, sort_order)
+        await sql`insert into services (slug, name, description, sort_order)
                   values ('test-service-two-long', ${LONG_SERVICE}, ${"A long sample description that is about thirty percent longer than the English text will be after a Filipino translation. ".repeat(2)}, 98)
                   returning id`
       )[0].id;

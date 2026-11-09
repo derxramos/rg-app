@@ -97,12 +97,11 @@ export default async function ServicesSettingsPage({
               </div>
             ) : null}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="svc-short">Short description (for the list)</Label>
-              <Input id="svc-short" name="shortDescription" maxLength={300} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="svc-desc">Description (Markdown)</Label>
+              <Label htmlFor="svc-desc">Description (optional)</Label>
               <Textarea id="svc-desc" name="description" maxLength={10000} />
+              <p className="text-sm text-muted-foreground">
+                The website shows the first words on the services list and all of it on the service page.
+              </p>
             </div>
             {canVisibility ? (
               <CheckboxRow htmlFor="svc-active">

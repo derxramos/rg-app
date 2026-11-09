@@ -9,6 +9,7 @@ import {
   type SettingKey,
   type SettingValue,
 } from "@/lib/validation/settings";
+import { trimDescription } from "@/lib/seo";
 import { CACHE_TAGS } from "@/server/cache-tags";
 import { getDb } from "@/server/db/client";
 import { serviceRequirements, services, siteSettings } from "@/server/db/schema";
@@ -60,7 +61,8 @@ export async function getPublicSettings(): Promise<PublicSettings> {
 export type PublicService = {
   slug: string;
   name: string;
-  shortDescription: string;
+  // The first words of the description, for the list cards (cut at a word).
+  summary: string;
   // Whole centavos, or null when the owner has not set a fee yet.
   feeCentavos: number | null;
   // For the sitemap: when the service last changed.
@@ -79,23 +81,28 @@ export type PublicServiceDetail = PublicService & {
   requirements: PublicRequirement[];
 };
 
+// The list card shows only the first words of the description. The owner writes one text, and the system cuts it.
+const SUMMARY_LENGTH = 150;
+const serviceSummary = (description: string) => trimDescription(description, SUMMARY_LENGTH);
+
 // Active services only, in the order the admin chose.
 export async function listActiveServices(): Promise<PublicService[]> {
   "use cache";
   cacheLife("site-content");
   cacheTag(CACHE_TAGS.services);
 
-  return getDb()
+  const rows = await getDb()
     .select({
       slug: services.slug,
       name: services.name,
-      shortDescription: services.shortDescription,
+      description: services.description,
       feeCentavos: services.feeCentavos,
       updatedAt: services.updatedAt,
     })
     .from(services)
     .where(eq(services.isActive, true))
     .orderBy(asc(services.sortOrder), asc(services.name));
+  return rows.map(({ description, ...rest }) => ({ ...rest, summary: serviceSummary(description) }));
 }
 
 // One active service with its checklist. Returns null when the slug is unknown or the service is off.
@@ -110,7 +117,6 @@ export async function getActiveService(slug: string): Promise<PublicServiceDetai
       id: services.id,
       slug: services.slug,
       name: services.name,
-      shortDescription: services.shortDescription,
       description: services.description,
       feeCentavos: services.feeCentavos,
       updatedAt: services.updatedAt,
@@ -134,7 +140,7 @@ export async function getActiveService(slug: string): Promise<PublicServiceDetai
   return {
     slug: service.slug,
     name: service.name,
-    shortDescription: service.shortDescription,
+    summary: serviceSummary(service.description),
     feeCentavos: service.feeCentavos,
     updatedAt: service.updatedAt,
     description: service.description,

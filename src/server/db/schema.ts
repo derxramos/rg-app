@@ -92,8 +92,7 @@ export const services = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
-    shortDescription: text("short_description").notNull().default(""),
-    // Markdown for the detail page.
+    // One plain-text description. The service list shows the first words of it; the detail page shows all of it.
     description: text("description").notNull().default(""),
     // Service fee in whole centavos (5000 pesos is 500000). Null until the owner fills it in.
     feeCentavos: bigint("fee_centavos", { mode: "number" }),

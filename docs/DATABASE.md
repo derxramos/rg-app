@@ -89,8 +89,7 @@ One row for every login. Same id as `auth.users.id`. A trigger (`handle_new_user
 | id | uuid PK | |
 | slug | text, unique | used in URL `/services/[slug]` |
 | name | text | e.g. "Business permit registration" |
-| short_description | text | for cards |
-| description | text | Markdown, for detail page |
+| description | text | one plain-text description: the list shows the first ~150 characters, the detail page shows all of it |
 | fee_centavos | bigint, nullable | the owner's service fee in whole centavos (₱5,000 = 500000). Null = "Fee will be confirmed" |
 | sort_order | int | |
 | is_active | boolean, default true | hidden from public when false |

@@ -6,7 +6,6 @@ import { Suspense } from "react";
 
 import { BackupContactBlock } from "@/components/shared/backup-contact-block";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Markdown } from "@/components/shared/markdown";
 import { JsonLd } from "@/components/shared/json-ld";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeading } from "@/components/shared/page-heading";
@@ -41,7 +40,7 @@ export async function generateMetadata({
   const service = await getActiveService(slug);
   if (!service) return { title: "Service not found", robots: { index: false } };
   const description = trimDescription(
-    service.shortDescription ||
+    service.description ||
       `${service.name}: what to prepare and how to send your request online.`,
   );
   const path = `/services/${service.slug}`;
@@ -76,7 +75,7 @@ async function ServiceDetail({ params }: { params: PageProps<"/services/[slug]">
           serviceJsonLd(base, {
             slug: service.slug,
             name: service.name,
-            description: trimDescription(service.shortDescription || service.name, 300),
+            description: trimDescription(service.description || service.name, 300),
             feeCentavos: service.feeCentavos,
           }),
           breadcrumbJsonLd(base, [
@@ -86,10 +85,15 @@ async function ServiceDetail({ params }: { params: PageProps<"/services/[slug]">
           ]),
         ]}
       />
-      <PageHeading title={service.name} intro={service.shortDescription || undefined} />
+      <PageHeading title={service.name} />
       <PageContainer className="grid grid-cols-1 gap-10 py-10 md:py-14 lg:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-2">
-          {service.description ? <Markdown>{service.description}</Markdown> : null}
+          {/* Plain text. Line breaks the owner typed are kept. */}
+          {service.description ? (
+            <p className="text-lg leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
+              {service.description}
+            </p>
+          ) : null}
 
           <section aria-labelledby="requirements-title" className="flex flex-col gap-4">
             <h2 id="requirements-title" className="text-xl font-bold">

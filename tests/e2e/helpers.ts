@@ -33,7 +33,7 @@ export async function ensureTestService() {
     const id =
       existing?.id ??
       (
-        await sql`insert into services (slug, name, short_description, sort_order)
+        await sql`insert into services (slug, name, description, sort_order)
                   values ('test-service-e2e', 'Test service (e2e)', 'Only for automatic tests.', 99) returning id`
       )[0].id;
     await sql`insert into service_requirements (service_id, label, details, is_required, sort_order)

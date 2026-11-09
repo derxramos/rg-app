@@ -22,8 +22,8 @@ export function ServiceCard({
       <Card className="h-full transition-shadow duration-120 ease-standard group-hover:shadow-md motion-reduce:transition-none">
         <CardHeader>
           <CardTitle as={headingTag} className="text-xl">{service.name}</CardTitle>
-          {service.shortDescription ? (
-            <CardDescription className="text-base">{service.shortDescription}</CardDescription>
+          {service.summary ? (
+            <CardDescription className="text-base">{service.summary}</CardDescription>
           ) : null}
         </CardHeader>
         <p className="text-base">

@@ -64,6 +64,13 @@
       "when": 1794057450026,
       "tag": "0008_offline_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794213582672,
+      "tag": "0009_single_service_description",
+      "breakpoints": true
     }
   ]
 }
