@@ -122,7 +122,7 @@ Night rules (tested in `tests/unit/hero-palette.test.ts`): every shape is at lea
 | A5 | Request list | `/admin/requests` | table (desktop) / cards (phone), filters, empty results, loading, pagination |
 | A6 | Request detail | `/admin/requests/[id]` | client info, files (open link, deleted files state), payments, timeline, notes (internal vs client — must look different), status change dialog, email failed + retry |
 | A7 | Verify payment dialog | (dialog on A6) | **warning box**, "I found this payment" checkbox, verify, reject with reason |
-| A8 | Payment methods | `/admin/settings/payments` | list with on/off and drag order, empty state, owner-only notice for staff |
+| A8 | Payment methods | `/admin/settings/payments` | one card per method: checkbox, name link, On/Off badge, a visible Turn on/off button and an Actions menu (Move up, Move down, Delete in red). "Select all" and a selection bar ("2 methods selected", Clear, Delete selected). The confirm window lists the names, says "used by N payments: will be kept" for a used method, and asks for the fresh 2FA code. Same pattern as Services. Empty state. Admin and owner only |
 | A9 | Edit payment method | `/admin/settings/payments/[id]` | form, QR upload preview, **fresh 2FA prompt**, client preview, delete blocked ("used by payments — turn off instead") |
 | A10 | Services | `/admin/settings/services` | list, reorder, on/off |
 | A11 | Edit service + checklist | `/admin/settings/services/[id]` | service form, checklist items add/edit/reorder/delete, empty checklist state |

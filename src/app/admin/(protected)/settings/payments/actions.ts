@@ -11,6 +11,7 @@ import { getDb } from "@/server/db/client";
 import { detectFileType } from "@/server/security/file-type";
 import {
   deletePaymentMethod,
+  deletePaymentMethods,
   movePaymentMethod,
   savePaymentMethod,
   setPaymentMethodActive,
@@ -104,6 +105,40 @@ export async function paymentMethodListAction(
     revalidatePath("/admin/settings/payments");
     return { ok: true, message: "Done." };
   });
+}
+
+// Deletes the ticked methods from the list (one or many). The ones that payments used are kept and named.
+export async function deletePaymentMethodsAction(
+  _previous: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withPanel(
+    { action: "payment_methods.manage", formData },
+    async ({ admin, ipHash, fresh2fa }) => {
+      const result = await deletePaymentMethods(
+        getDb(),
+        admin,
+        { ids: formData.getAll("ids").map(String) },
+        { fresh2fa, ipHash },
+      );
+      revalidatePath("/admin/settings/payments");
+      const kept = result.skipped.filter((s) => s.reason === "has-payments");
+      const parts: string[] = [];
+      if (result.deleted.length > 0)
+        parts.push(
+          result.deleted.length === 1
+            ? `The payment method "${result.deleted[0].name}" was deleted.`
+            : `${result.deleted.length} payment methods were deleted.`,
+        );
+      if (kept.length > 0)
+        parts.push(
+          `Not deleted (payments used them, turn them off instead): ${kept.map((s) => s.name).join(", ")}.`,
+        );
+      if (result.deleted.length === 0)
+        return { ok: false, code: "invalid", message: parts.join(" ") || "Nothing was deleted." };
+      return { ok: true, message: parts.join(" ") };
+    },
+  );
 }
 
 export async function deletePaymentMethodAction(

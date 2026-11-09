@@ -27,6 +27,7 @@ import {
   addRequirement,
   createService,
   deletePaymentMethod,
+  deletePaymentMethods,
   deleteRequirement,
   getServiceWithRequirements,
   moveService,
@@ -333,6 +334,85 @@ describe("payment methods (owner, fresh 2FA, logging)", () => {
     expect(
       await t.db.select().from(paymentMethods).where(eq(paymentMethods.id, created.id)),
     ).toHaveLength(0);
+  });
+  it("deletes several methods at once from the list, and keeps the ones that payments used", async () => {
+    const make = (name: string) =>
+      savePaymentMethod(t.db, owner, pmInput({ name, accountName: "X Y", accountNumber: "222" }), {
+        fresh2fa: true,
+      });
+    const a = await make("Bulk A");
+    const b = await make("Bulk B");
+    const ids = [a.id, b.id, methodId];
+
+    // Staff are refused, and a fresh 2FA code is needed (admin and owner both).
+    expect(await rejects(deletePaymentMethods(t.db, staff, { ids }, { fresh2fa: true }))).toBe(
+      "wrong-role",
+    );
+    expect(await rejects(deletePaymentMethods(t.db, admin, { ids }, { fresh2fa: false }))).toBe(
+      "needs-fresh-2fa",
+    );
+    // Nothing to delete, a made-up id, or too many ids.
+    expect(await rejects(deletePaymentMethods(t.db, owner, { ids: [] }, { fresh2fa: true }))).toBe(
+      "invalid",
+    );
+    expect(
+      await rejects(deletePaymentMethods(t.db, owner, { ids: ["not-an-id"] }, { fresh2fa: true })),
+    ).toBe("invalid");
+    expect(
+      await rejects(
+        deletePaymentMethods(
+          t.db,
+          owner,
+          {
+            ids: Array.from(
+              { length: 101 },
+              (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+            ),
+          },
+          { fresh2fa: true },
+        ),
+      ),
+    ).toBe("invalid");
+    // Nothing was deleted by the refused tries.
+    expect(
+      await t.db.select().from(paymentMethods).where(eq(paymentMethods.id, a.id)),
+    ).toHaveLength(1);
+
+    // An admin deletes three at once: the two unused go, the one that payments used stays and is named.
+    const result = await deletePaymentMethods(
+      t.db,
+      admin,
+      { ids: [...ids, a.id] },
+      { fresh2fa: true },
+    );
+    expect(result.deleted.map((m) => m.name).sort()).toEqual(["Bulk A", "Bulk B"]);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0]).toMatchObject({ id: methodId, reason: "has-payments" });
+    expect(result.skipped[0].payments).toBeGreaterThanOrEqual(1);
+    expect(
+      await t.db.select().from(paymentMethods).where(eq(paymentMethods.id, a.id)),
+    ).toHaveLength(0);
+    expect(
+      await t.db.select().from(paymentMethods).where(eq(paymentMethods.id, methodId)),
+    ).toHaveLength(1);
+
+    // Each deleted method is in the activity log with the admin and the "bulk" mark. The database trigger
+    // also wrote the row it removed.
+    const logs = await t.db.select().from(activityLog).where(eq(activityLog.entityId, a.id));
+    const app = logs.find((l) => l.action === "payment_method.deleted")!;
+    expect(app.actorId).toBe(admin.id);
+    expect(app.details).toMatchObject({ name: "Bulk A", bulk: true });
+    const trigger = logs.find(
+      (l) =>
+        l.action === "payment_method.row_changed" &&
+        (l.details as { operation?: string }).operation === "DELETE",
+    )!;
+    expect(trigger.actorId).toBe(admin.id);
+
+    // Ids that no longer exist are reported, not an error.
+    const again = await deletePaymentMethods(t.db, owner, { ids: [a.id] }, { fresh2fa: true });
+    expect(again.deleted).toHaveLength(0);
+    expect(again.skipped).toMatchObject([{ id: a.id, reason: "not-found" }]);
   });
 });
 

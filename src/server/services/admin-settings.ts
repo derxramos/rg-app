@@ -7,7 +7,7 @@ import "server-only";
 //   - payment methods, site content, file settings: admin and owner (fresh 2FA for the risky payment fields)
 //   - services and checklists: staff may change words only. No fee, no hide, no delete.
 
-import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 
 import { formatFee } from "@/lib/money";
 
@@ -518,9 +518,14 @@ export type PaymentMethodInput = {
   isActive: boolean;
 };
 
+// Every method, in the order clients see them. "paymentCount" is how many payments used the method: a method that
+// payments used cannot be deleted (the list says so before the person confirms).
 export async function listAllPaymentMethods(db: AppDb) {
   return db
-    .select()
+    .select({
+      ...getTableColumns(paymentMethods),
+      paymentCount: sql<number>`(select count(*)::int from payments p where p.payment_method_id = payment_methods.id)`,
+    })
     .from(paymentMethods)
     .orderBy(asc(paymentMethods.sortOrder), asc(paymentMethods.name));
 }
@@ -654,6 +659,74 @@ export async function movePaymentMethod(
     await swapOrder(rows, id, direction, (rowId, order) =>
       tx.update(paymentMethods).set({ sortOrder: order }).where(eq(paymentMethods.id, rowId)),
     );
+  });
+}
+
+export type DeletePaymentMethodsResult = {
+  deleted: { id: string; name: string }[];
+  skipped: { id: string; name: string; reason: "has-payments" | "not-found"; payments?: number }[];
+};
+
+// Deletes one or many methods in ONE transaction (the list screen sends the ticked ones). OWNER AND ADMIN, with
+// a fresh 2FA code. A method that payments used is kept (turn it off instead) and is named in "skipped", so one
+// used method never blocks the others. Each deleted method is written to the activity log by the app (name and
+// "bulk") and, with the real before values, by the database trigger.
+export async function deletePaymentMethods(
+  db: AppDb,
+  actor: PanelUser,
+  input: { ids: string[] },
+  context: { fresh2fa: boolean; ipHash?: string | null },
+): Promise<DeletePaymentMethodsResult> {
+  assertCan(actor, "payment_methods.manage");
+  if (!context.fresh2fa) throw new PanelAuthError("needs-fresh-2fa");
+  const ids = [...new Set(input.ids)].filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (ids.length === 0) throw new SettingsError("invalid", "Choose at least one payment method.");
+  if (ids.length > 100)
+    throw new SettingsError("invalid", "Choose at most 100 payment methods at a time.");
+
+  return db.transaction(async (tx) => {
+    await setActor(tx, actor.id);
+    const found = await tx
+      .select({
+        id: paymentMethods.id,
+        name: paymentMethods.name,
+        paymentCount: sql<number>`(select count(*)::int from payments p where p.payment_method_id = payment_methods.id)`,
+      })
+      .from(paymentMethods)
+      .where(inArray(paymentMethods.id, ids));
+    const result: DeletePaymentMethodsResult = { deleted: [], skipped: [] };
+    const known = new Set(found.map((m) => m.id));
+    for (const id of ids)
+      if (!known.has(id)) result.skipped.push({ id, name: "", reason: "not-found" });
+
+    for (const m of found.filter((m) => m.paymentCount > 0))
+      result.skipped.push({
+        id: m.id,
+        name: m.name,
+        reason: "has-payments",
+        payments: m.paymentCount,
+      });
+
+    const deletable = found.filter((m) => m.paymentCount === 0);
+    if (deletable.length > 0) {
+      await tx.delete(paymentMethods).where(
+        inArray(
+          paymentMethods.id,
+          deletable.map((m) => m.id),
+        ),
+      );
+      for (const m of deletable) {
+        result.deleted.push({ id: m.id, name: m.name });
+        await log(tx, actor, {
+          action: "payment_method.deleted",
+          entityType: "payment_method",
+          entityId: m.id,
+          details: { name: m.name, bulk: ids.length > 1 },
+          ipHash: context.ipHash,
+        });
+      }
+    }
+    return result;
   });
 }
 

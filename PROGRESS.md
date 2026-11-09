@@ -9,6 +9,17 @@ Update this file at the end of every work session.
 
 ---
 
+## Payment methods: delete from the list, and bulk delete (branch `feat/payment-methods-delete`, 2026-11-09)
+
+- **Why:** to delete a method the Admin had to open it and scroll to a Delete card. Delete is a list task, so it is now on the list, the same way as the Services list.
+- **List screen** (`src/components/admin/payment-methods-list.tsx`): a checkbox on every card, "Select all", a selection bar ("2 methods selected", Clear, Delete selected), a visible Turn on/off button, and an Actions menu (Move up, Move down, Delete). Deleting asks to confirm in a window that lists the names and says which one will be kept ("used by N payments"), and needs the fresh 2FA code.
+- **Server** (`deletePaymentMethods` in `src/server/services/admin-settings.ts`, `deletePaymentMethodsAction`): admin and owner only (`payment_methods.manage`), fresh 2FA code, 1 to 100 ids, one transaction. A method that payments used is kept and named in the answer, and does not block the others. A missing id is reported, not an error. Each delete is written to the activity log by the app (`payment_method.deleted`, name, bulk or not) and also by the database trigger with the real row. The old single delete (`deletePaymentMethod`) and the Delete card on the edit page stay as a second way.
+- **Staff:** unchanged. They cannot open Payment methods.
+- **Tests:** unit test for the bulk delete (staff refused, fresh code needed, bad and too many ids, used method kept, admin can do it, activity log rows for the app and the trigger, an already deleted id). Browser tests (phone and desktop): delete one from the menu, delete several with a used method kept, Select all and Clear.
+- **Checked:** lint, type check, 814 unit tests, layout test (the page was already in it), production build, and screenshots at 1280 and 360 px (light and dark).
+- **Build note:** the production build on the local test database (PGlite, one connection) fails often with "bind message" or "ECONNRESET" because the build workers share that one connection. It passed when the build was limited to one worker (`experimental: { cpus: 1, staticGenerationMaxConcurrency: 1 }` in `next.config.ts`, used only for that run and not committed). Real Postgres does not have this limit.
+- **Test data:** only the local test database was used. Test methods ("Test list ... (e2e)") and test activity rows were removed.
+
 ## Loading: two layers instead of three (branch `fix/loading-two-layers`, 2026-11-09)
 
 Only styling and loading placeholders changed. No feature, permission or data change.

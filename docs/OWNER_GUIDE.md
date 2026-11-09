@@ -105,7 +105,8 @@ Phone, email, address, hours, the **Messenger** and **Viber** links, and the hom
 - Clients see the **active** methods in the order you set.
 - **Be very careful here.** A wrong QR code or account number sends clients' money to the wrong place.
 - Changing the QR picture, the account name or the account number needs a **fresh code** from your authenticator app. Every change is saved in the activity log and you get an **alert email**.
-- You cannot delete a method that was used for a payment. Turn it off instead.
+- **Delete from the list.** Each method has an **Actions** menu with Move up, Move down and **Delete**. To delete several, tick the boxes (or **Select all**) and press **Delete selected**. You are asked to confirm and to type a fresh code from your authenticator app. Every delete is saved in the activity log.
+- You cannot delete a method that was used for a payment. It is kept, and the message names it. Turn it off instead. Other methods you ticked are still deleted.
 - The first methods shipped with the app are marked **SAMPLE, not real**. Replace them before you turn them on.
 
 ### File settings (owner and admin)
