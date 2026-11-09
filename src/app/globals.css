@@ -374,6 +374,38 @@
   --animate-skeleton:
     skeleton-in 200ms ease-out 200ms backwards, skeleton-shimmer 1.8s ease-in-out 400ms infinite;
 
+  /* The thin bar at the top of the admin area while a page loads. It rushes to 60 % at once, then creeps toward
+     92 % while the server answers. When the page arrives it fills up and fades out. */
+  --animate-nav-progress: nav-progress 12s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  --animate-nav-progress-done: nav-progress-done 400ms ease-out forwards;
+
+  @keyframes nav-progress {
+    0% {
+      scale: 0 1;
+    }
+    12% {
+      scale: 0.6 1;
+    }
+    100% {
+      scale: 0.92 1;
+    }
+  }
+
+  @keyframes nav-progress-done {
+    from {
+      scale: 0.7 1;
+      opacity: 1;
+    }
+    60% {
+      scale: 1 1;
+      opacity: 1;
+    }
+    to {
+      scale: 1 1;
+      opacity: 0;
+    }
+  }
+
   @keyframes skeleton-in {
     from {
       opacity: 0;

@@ -1,15 +1,20 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { FILE_TIMEOUT_MS, PAGE_TIMEOUT_MS, formKind, navigationKind } from "@/lib/nav-progress";
 
-// One loading indicator for the whole admin area: a thin bar at the top and a small "Loading..." label. It shows
-// as soon as a person clicks a link, a card, a pagination button, or sends a search or filter form, so they know
-// the page is asking the server for data. It goes away when the address changes (the new page arrived).
+// The "click received" signal for the whole admin area: ONE thin progress bar at the top of the window (the same
+// pattern as YouTube, GitHub and Linear). It starts at once when a person clicks a link, a card, a pagination
+// button, or sends a search or filter form (no delay, because feedback to a click must feel instant), moves
+// forward slowly while the server answers, then fills up and fades out when the new page arrives.
+// The page-shaped gray placeholders (loading.tsx files) are the second signal: they show what is coming, but only
+// after 200 ms, so a fast page shows only this bar. There is no "Loading..." text here on purpose.
 // Buttons that save something (ActionForm, the row menus) show their own spinner inside the button.
+// How long the bar takes to fill and fade when the page arrives (keep in step with --animate-nav-progress-done).
+const FINISH_MS = 400;
+
 export function NavigationProgress() {
   const pathname = usePathname();
   const search = useSearchParams().toString();
@@ -22,6 +27,13 @@ export function NavigationProgress() {
   useEffect(() => {
     hereRef.current = here;
   }, [here]);
+
+  // The new page arrived (the address changed): let the bar fill and fade for a moment, then remove it.
+  useEffect(() => {
+    if (startedAt === null || startedAt === here) return;
+    const done = setTimeout(() => setStartedAt(null), FINISH_MS);
+    return () => clearTimeout(done);
+  }, [startedAt, here]);
 
   useEffect(() => {
     const stop = () => {
@@ -80,21 +92,25 @@ export function NavigationProgress() {
     };
   }, []);
 
-  if (startedAt === null || startedAt !== here) return null;
+  if (startedAt === null) return null;
+  const arrived = startedAt !== here;
   return (
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-0 z-[60]"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-[3px]"
     >
+      {arrived ? null : <span className="sr-only">Loading page</span>}
+      {/* Moves with "scale" only, so the browser can run it on the graphics card. With "reduce motion" it is a
+          still bar that disappears when the page arrives. */}
       <div
         aria-hidden="true"
-        className="h-1 w-full animate-pulse bg-primary motion-reduce:animate-none"
+        className={
+          arrived
+            ? "h-full origin-left bg-primary motion-safe:animate-nav-progress-done motion-reduce:opacity-0"
+            : "h-full origin-left bg-primary motion-safe:animate-nav-progress"
+        }
       />
-      <div className="mx-auto mt-3 flex w-fit items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-md">
-        <Loader2 aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
-        Loading...
-      </div>
     </div>
   );
 }

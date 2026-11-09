@@ -176,13 +176,18 @@ Nothing may stick out of its card, overlap its neighbor or be cut off by acciden
 - **Admin header:** "Sign out" is an icon only under 380 px (the words stay for screen readers).
 - **Test:** `tests/e2e/layout.spec.ts` (see `PROGRESS.md`, "Card, pill and button overflow fix") fails when a page breaks these rules.
 
-### 3d. Loading placeholders (2026-11-09, branch `fix/loading-skeleton`)
+### 3d. Loading: two layers (2026-11-09, branches `fix/loading-skeleton` and `fix/loading-two-layers`)
 
-- **Show the frame first.** Header, menu and footer are never replaced by a placeholder. The admin area has `AdminShellSkeleton` with the same sizes as the real shell (64 px header, 256 px sidebar from 1024 px, 60 px bottom bar on phones). Keep it in step with `admin-shell.tsx` and `admin-nav.tsx`.
-- **Match the page.** A placeholder has the shape of the content that will arrive (heading, text lines, cards), so nothing jumps. Never use one lone bar.
-- **Wait 200 ms.** Placeholders (`Skeleton`) and spinners are invisible for 200 ms, then fade in over 200 ms. Use `animate-delayed-in` for a spinner or any other loading hint.
-- **Soft shimmer.** A slow light band on a gray block (1.8 s). With "reduce motion" the block is a plain color that only fades in.
-- Preview in development: `/dev/loading`.
+There are exactly two loading layers in the admin area. Do not add a third.
+
+1. **First load or hard refresh: the frame.** `AdminShellSkeleton` has the same sizes as the real shell (64 px header with the logo, 256 px sidebar from 1024 px, 60 px bottom bar on phones). Keep it in step with `admin-shell.tsx` and `admin-nav.tsx`. The header, menu and footer are never replaced by one lone bar.
+2. **A click on a menu item, card, link or search form: a thin top bar plus the page shape.**
+   - The bar (`NavigationProgress`): 3 px, brand color, starts at once with no delay, moves forward slowly, then fills and fades when the page arrives. It has no text. A screen reader hears "Loading page".
+   - The page shape (`page-skeletons.tsx`, picked by each folder's `loading.tsx`): gray blocks in the shape of the page that is coming (Dashboard, List, Card grid, Detail, Form). No spinner and no "Loading..." text. A new kind of page gets a new shape or uses the Dashboard shape.
+- **Wait 200 ms for the gray shapes.** `Skeleton` is invisible for 200 ms, then fades in over 200 ms, so a fast page shows only the bar. Use `animate-delayed-in` for any other loading hint. The top bar never waits.
+- **Soft shimmer** on gray blocks (a slow light band, 1.8 s). With "reduce motion" the block is a plain color that only fades in.
+- **Buttons that save** (forms, row menus) keep their own spinner inside the button. That is local to the button and not a page loading layer.
+- **Preview in development:** `/dev/loading` and `/dev/loading?shapes=1`.
 
 ---
 

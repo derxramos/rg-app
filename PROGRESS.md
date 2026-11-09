@@ -9,6 +9,21 @@ Update this file at the end of every work session.
 
 ---
 
+## Loading: two layers instead of three (branch `fix/loading-two-layers`, 2026-11-09)
+
+Only styling and loading placeholders changed. No feature, permission or data change.
+
+- **Problem:** a click on a menu item showed three loading signals at the same time: a teal bar, a "Loading..." pill, and a spinner with "Loading..." and gray blocks in the page. Together with the first-load frame that made three loading screens.
+- **Rule now: two layers.**
+  1. *First load or hard refresh:* `AdminShellSkeleton` (the real frame as placeholders). Unchanged.
+  2. *A click on a menu item or link:* ONE thin top bar (`navigation-progress.tsx`) plus a gray shape of the page that is coming (`loading.tsx`). No spinner and no "Loading..." text.
+- **Top bar:** 3 px, starts at once (no delay, because feedback to a click must feel instant), rushes to 60 %, then creeps toward 92 % while the server answers, then fills up and fades out when the new page arrives (400 ms). It only uses `scale` and `opacity`, so it runs smoothly. With "reduce motion" it is a still bar. A screen-reader-only "Loading page" is announced. The click and form logic (`src/lib/nav-progress.ts`) is unchanged.
+- **Page shapes** (`src/components/admin/page-skeletons.tsx`): Dashboard (also the default), List (Requests, Activity, Admin users, Services, Payment methods), Card grid (Settings), Detail (one request), Form (site content, file settings, edit service, edit payment method). Each folder has a small `loading.tsx` that picks its shape. They still wait 200 ms before they fade in, so a fast page shows only the bar.
+- **Dev preview:** `/dev/loading` (admin frame) and `/dev/loading?shapes=1` (all shapes). Both are 404 in production.
+- **Test:** `tests/unit/admin-loading.test.ts` was rewritten for the new rule (no visible "Loading..." text or spinner, one announcement per shape, the delay class, every folder has its `loading.tsx`).
+- **Checked:** lint, type check, 812 unit tests, production build, and the layout test. Watched a real click in a browser with a slowed server: the bar starts within 80 ms and keeps moving. The page shapes were checked on the preview page at 1280 and 360 px. The browser checks used a test owner on the local test database only; test data was removed.
+- **Not checked:** the exact moment when a real database query is slow on the live site. The slowed-server test holds back the whole answer, so it shows the bar but not the gray shapes together. The shapes are the normal Next.js loading files, so they show as soon as the first part of the page is sent.
+
 ## Loading screen on a hard refresh (branch `fix/loading-skeleton`, 2026-11-09)
 
 Only styling and loading placeholders changed. No feature, permission or data change.
