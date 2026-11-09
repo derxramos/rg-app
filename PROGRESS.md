@@ -9,6 +9,18 @@ Update this file at the end of every work session.
 
 ---
 
+## Breadcrumbs and a way back in the admin area (branch `feat/admin-breadcrumbs`, 2026-11-09)
+
+- **Why:** from a page like one payment method there was no way back to the list except the browser Back button, or Settings and then Payment methods again.
+- **Component:** `Breadcrumbs` (`src/components/admin/breadcrumbs.tsx`), shown by `AdminTitle` when a page passes `crumbs`. From 640 px it is the whole trail (`Settings > Payment methods > Edit GCash`): every step except the last is a link, the last one is the current page (`aria-current="page"`). On a phone it is ONE link to the parent page ("< Payment methods", 44 px tall, `aria-label="Back to Payment methods"`). Long names are cut with "..." and the full text is in the tooltip. With fewer than two steps nothing is shown.
+- **Pages with a trail:** Settings > Payment methods, > one method (and Add), Services, > one service, Site content, File settings, Admin users; and Requests > one request. Top-level pages (Dashboard, Requests, Settings, Activity, Export, Security) have none.
+- **Roles:** staff have no Settings page, so `settingsTrail(role)` (`src/lib/crumbs.ts`) leaves "Settings" out for them. Their trail on a service starts at "Services". No link ever leads to a "Not allowed" page.
+- **Same list on the way back:** the Requests list adds its search, filters and page number to the link of each request (`?list=...`). The request page's "Requests" step returns to that same list. Only the known list words (q, status, service, from, to, drafts, page) are kept, each at most 100 characters, so a made-up address cannot add its own words to a link. A request opened from the Dashboard "Needs action" list has `?from=dashboard` and its trail goes back to the Dashboard.
+- **Tests:** unit tests (`tests/unit/crumbs.test.ts`: the roles, the clean-up of the list address, the component output, the phone link, long names). Browser tests (`tests/e2e/breadcrumbs.spec.ts`, phone and desktop): back from one payment method in one click, back to the same search of the Requests list, back to the Dashboard, a made-up list address, no trail on top-level pages. The layout test (long names, 17 widths) covers the trail too.
+- **Checked:** lint, type check, 825 unit tests, production build (one build worker, see the build note below), layout test, screenshots at 1280 and 360 px.
+- **Not done:** a "Save and return to the list" button on the edit pages. The trail and the phone link already give a one-click way back, and a second save button would change how the forms save.
+- **Test data:** only the local test database was used. Test data was removed.
+
 ## Payment methods: delete from the list, and bulk delete (branch `feat/payment-methods-delete`, 2026-11-09)
 
 - **Why:** to delete a method the Admin had to open it and scroll to a Delete card. Delete is a list task, so it is now on the list, the same way as the Services list.

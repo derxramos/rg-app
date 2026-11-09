@@ -17,6 +17,7 @@ import { formatFileSize } from "@/lib/image-compress";
 import { formatPesos } from "@/lib/money";
 import { STATUS_LABELS, nextStatusesFor } from "@/lib/status";
 import { formatManilaDate, formatManilaDateTime, todayInManila } from "@/lib/time";
+import { requestsListHref } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { can } from "@/lib/permissions";
 import { getDb } from "@/server/db/client";
@@ -57,9 +58,11 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export default async function AdminRequestDetailPage({
   params,
+  searchParams,
 }: PageProps<"/admin/requests/[id]">) {
   const admin = await guardPanelPage("requests.view", "/admin/requests/[id]");
   const { id } = await params;
+  const { list, from } = await searchParams;
   if (!UUID.test(id)) notFound();
   const detail = await getRequestDetail(getDb(), id);
   if (!detail) notFound();
@@ -77,6 +80,15 @@ export default async function AdminRequestDetailPage({
     <>
       <AdminTitle
         title={request.trackingCode}
+        crumbs={[
+          from === "dashboard"
+            ? { label: "Dashboard", href: "/admin" }
+            : {
+                label: "Requests",
+                href: requestsListHref(typeof list === "string" ? list : undefined),
+              },
+          { label: request.trackingCode },
+        ]}
         intro={`${request.serviceName} · ${request.clientFullName}`}
         actions={<StatusBadge status={request.status} />}
       />

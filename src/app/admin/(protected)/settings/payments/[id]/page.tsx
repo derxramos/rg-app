@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { qrImageUrl } from "@/lib/qr-url";
+import { settingsTrail } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { getPaymentMethod } from "@/server/services/admin-settings";
@@ -38,7 +39,14 @@ export default async function EditPaymentMethodPage({
 
   return (
     <>
-      <AdminTitle title={isNew ? "Add a payment method" : `Edit ${method!.name}`} />
+      <AdminTitle
+        title={isNew ? "Add a payment method" : `Edit ${method!.name}`}
+        crumbs={[
+          ...settingsTrail(admin.role),
+          { label: "Payment methods", href: "/admin/settings/payments" },
+          { label: isNew ? "Add a payment method" : method!.name },
+        ]}
+      />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader>

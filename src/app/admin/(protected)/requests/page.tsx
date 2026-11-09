@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { REQUEST_STATUSES, STATUS_LABELS, type RequestStatus } from "@/lib/status";
 import { formatManilaDate } from "@/lib/time";
+import { cleanListQuery, requestHref } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { listRequests } from "@/server/services/admin-requests";
@@ -51,6 +52,22 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
     listRequests(db, filters),
     listAllServices(db),
   ]);
+
+  // The search, filters and page number travel with the link to one request, so "Requests" in its trail returns to
+  // the same list.
+  const listQuery = cleanListQuery(
+    new URLSearchParams(
+      Object.entries({
+        q: filters.q,
+        status: filters.status,
+        service: filters.serviceId,
+        from: filters.from,
+        to: filters.to,
+        drafts: filters.includeDrafts ? "1" : undefined,
+        page: filters.page > 1 ? String(filters.page) : undefined,
+      }).filter((entry): entry is [string, string] => Boolean(entry[1])),
+    ).toString(),
+  );
 
   return (
     <>
@@ -152,7 +169,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
                   <TableRow key={r.id}>
                     <TableCell className="font-mono">
                       <Link
-                        href={`/admin/requests/${r.id}`}
+                        href={requestHref(r.id, listQuery)}
                         className="font-bold text-primary underline underline-offset-4"
                       >
                         {r.trackingCode}
@@ -180,7 +197,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
             {rows.map((r) => (
               <li key={r.id}>
                 <Link
-                  href={`/admin/requests/${r.id}`}
+                  href={requestHref(r.id, listQuery)}
                   className="flex min-h-11 flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   <span className="font-mono text-sm font-bold text-primary">{r.trackingCode}</span>

@@ -187,6 +187,7 @@ As staff, admin or owner, I want a safe login so that only we can see client dat
 - [ ] Both actions are logged.
 
 ### A6 — Settings: payment methods (admin and owner)
+- [ ] Pages under Settings, and one request, show a trail (Settings > Payment methods > one method; Requests > one request) so the person can go back in one click. On a phone it is one "Back to ..." link. Staff never see a link to a page they cannot open. A request returns to the same search and page of the Requests list.
 - [ ] List, add, edit, turn on/off, reorder, delete (delete only if no payments use it; otherwise turn off).
 - [ ] The list is one card per method with a checkbox, a visible Turn on/off button and an Actions menu (Move up, Move down, Delete). "Select all" and a "Delete selected" bar delete one or many at once, after a confirm window and the fresh 2FA code. A method that payments used is kept and named in the answer. Each delete is logged (`payment_method.deleted`, plus the database row log). The edit page keeps its own Delete card.
 - [ ] Fields: name, parser (GCash/Maya/BDO/none), QR image, account name, number, instructions.

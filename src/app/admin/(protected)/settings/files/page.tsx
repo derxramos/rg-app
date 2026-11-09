@@ -5,6 +5,7 @@ import { AdminTitle } from "@/components/admin/bits";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { settingsTrail } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { readSetting } from "@/server/services/settings";
@@ -14,7 +15,7 @@ import { saveSettingAction } from "../actions";
 export const metadata: Metadata = { title: "File settings" };
 
 export default async function FileSettingsPage() {
-  await guardPanelPage("file_settings.edit", "/admin/settings/files");
+  const admin = await guardPanelPage("file_settings.edit", "/admin/settings/files");
   const db = getDb();
   const [days, maxFiles, maxMb, warn] = await Promise.all([
     readSetting(db, "file_retention_days"),
@@ -52,6 +53,7 @@ export default async function FileSettingsPage() {
     <>
       <AdminTitle
         title="File settings"
+        crumbs={[...settingsTrail(admin.role), { label: "File settings" }]}
         intro="Limits for uploaded documents. The free storage is 1 GB, so these protect it."
       />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

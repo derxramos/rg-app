@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { settingsTrail } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { readSetting } from "@/server/services/settings";
@@ -15,7 +16,7 @@ import { saveSettingAction } from "../actions";
 export const metadata: Metadata = { title: "Site content" };
 
 export default async function SiteContentPage() {
-  await guardPanelPage("site_content.edit", "/admin/settings/site");
+  const admin = await guardPanelPage("site_content.edit", "/admin/settings/site");
   const db = getDb();
   const [contact, hours, social, home, version] = await Promise.all([
     readSetting(db, "contact"),
@@ -29,6 +30,7 @@ export default async function SiteContentPage() {
     <>
       <AdminTitle
         title="Site content"
+        crumbs={[...settingsTrail(admin.role), { label: "Site content" }]}
         intro="What visitors read on the website. Changes show at once."
       />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

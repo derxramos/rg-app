@@ -70,7 +70,7 @@ export default async function AdminDashboardPage() {
                 {d.needsAction.map((r) => (
                   <li key={r.id}>
                     <Link
-                      href={`/admin/requests/${r.id}`}
+                      href={`/admin/requests/${r.id}?from=dashboard`}
                       className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-3 hover:bg-surface-subtle"
                     >
                       <span className="min-w-0">

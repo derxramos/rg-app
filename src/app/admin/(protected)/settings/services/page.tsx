@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatFee } from "@/lib/money";
 import { can } from "@/lib/permissions";
+import { settingsTrail } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { listServicesPage } from "@/server/services/admin-settings";
@@ -46,6 +47,7 @@ export default async function ServicesSettingsPage({
     <>
       <AdminTitle
         title="Services and checklists"
+        crumbs={[...settingsTrail(me.role), { label: "Services" }]}
         intro="New services start with an empty checklist. Write only what you are sure about: clients read it."
       />
       {rows.length === 0 ? (

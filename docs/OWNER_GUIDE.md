@@ -100,6 +100,10 @@ Staff **cannot**: verify a payment, change a fee, hide or delete a service, dele
 
 Phone, email, address, hours, the **Messenger** and **Viber** links, and the home page text. An empty link hides its button. Links must start with `https://`.
 
+### Going back
+
+Pages inside Settings (and one request) show a small trail at the top, for example **Settings > Payment methods > Edit GCash**. Click any part of it to go back. On a phone you see one link, for example **< Payment methods**. When you open a request from the Requests list, the trail takes you back to the same search and page.
+
 ### Payment methods (owner and admin)
 
 - Clients see the **active** methods in the order you set.

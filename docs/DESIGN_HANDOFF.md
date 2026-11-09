@@ -189,6 +189,15 @@ There are exactly two loading layers in the admin area. Do not add a third.
 - **Buttons that save** (forms, row menus) keep their own spinner inside the button. That is local to the button and not a page loading layer.
 - **Preview in development:** `/dev/loading` and `/dev/loading?shapes=1`.
 
+### 3e. Breadcrumbs and the way back (2026-11-09, branch `feat/admin-breadcrumbs`)
+
+- **Where:** a page two or more levels deep shows a trail above its title (`AdminTitle` takes `crumbs`). Top-level pages (Dashboard, Requests, Settings, Activity, Export, Security) show none. With fewer than two steps nothing is shown.
+- **Wide screen (640 px and up):** `Settings > Payment methods > Edit GCash`. Steps are 14 px. Parents are links (bold, brand color); the last step is plain muted text and is the current page. A step is cut at 14 to 18 rem with "..." and the full text is in the tooltip.
+- **Phone (under 640 px):** one link to the parent, "< Payment methods", bold, at least 44 px tall. No trail, because it does not fit.
+- **Accessibility:** `<nav aria-label="Breadcrumb">` with an ordered list, `aria-current="page"` on the last step, and `aria-label="Back to ..."` on the phone link.
+- **Roles:** a link is shown only when the person may open it. Staff have no Settings step.
+- **The way back keeps the list:** from the Requests list, the link to one request carries the search, filters and page (`?list=`). From the Dashboard it carries `?from=dashboard`. The trail then returns to the same list or to the Dashboard.
+
 ---
 
 ## 4. Components

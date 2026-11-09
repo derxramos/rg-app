@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { Breadcrumbs } from "@/components/admin/breadcrumbs";
+import type { Crumb } from "@/lib/crumbs";
+
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -8,14 +11,18 @@ export function AdminTitle({
   title,
   intro,
   actions,
+  crumbs,
 }: {
   title: string;
   intro?: string;
   actions?: React.ReactNode;
+  // The trail for a page two or more levels deep (see breadcrumbs.tsx). Left out on top-level pages.
+  crumbs?: Crumb[];
 }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-1">
+        {crumbs ? <Breadcrumbs items={crumbs} /> : null}
         <h1 className="text-2xl font-bold text-primary-ink md:text-3xl">{title}</h1>
         {intro ? <p className="max-w-prose text-base text-muted-foreground">{intro}</p> : null}
       </div>

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { can } from "@/lib/permissions";
+import { settingsTrail } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { centavosToPesoInput } from "@/lib/money";
@@ -48,7 +49,14 @@ export default async function EditServicePage({
 
   return (
     <>
-      <AdminTitle title={service.name} />
+      <AdminTitle
+        title={service.name}
+        crumbs={[
+          ...settingsTrail(me.role),
+          { label: "Services", href: "/admin/settings/services" },
+          { label: service.name },
+        ]}
+      />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-start">
         <Card>
           <CardHeader>

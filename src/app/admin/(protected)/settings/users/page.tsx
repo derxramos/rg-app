@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { settingsTrail } from "@/lib/crumbs";
 import { ROLE_LABELS } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { formatManilaDate } from "@/lib/time";
@@ -103,6 +104,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
     <>
       <AdminTitle
         title="Admin users"
+        crumbs={[...settingsTrail(me.role), { label: "Admin users" }]}
         intro="Each change requires your 6-digit authenticator code. No accounts will be deleted."
         actions={<InviteAccount viewerRole={me.role} />}
       />
