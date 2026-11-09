@@ -56,6 +56,9 @@ export const PERMISSIONS = {
   "site_content.edit": ADMIN_UP,
   "file_settings.edit": ADMIN_UP,
   "export.csv": ADMIN_UP,
+  // The words of the Privacy notice and the Terms of service. Each save is a new version that clients agree to,
+  // and it is logged. Admin and owner (staff cannot).
+  "legal_text.edit": ADMIN_UP,
 
   // Activity log: read only
   "activity.view": STAFF_UP,

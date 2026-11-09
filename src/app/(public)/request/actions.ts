@@ -28,7 +28,7 @@ import {
   RequestError,
   updateDraftDetails,
 } from "@/server/services/requests";
-import { readSetting } from "@/server/services/settings";
+import { getCurrentLegalVersion } from "@/server/services/legal";
 import { CLIENT_FILES_BUCKET, getStorage } from "@/server/storage/storage";
 
 export type DraftFormState = {
@@ -114,7 +114,7 @@ export async function createDraftAction(
 
   let created;
   try {
-    const consentVersion = await readSetting(db, "privacy_notice_version");
+    const consentVersion = await getCurrentLegalVersion(db, "privacy");
     created = await createDraft(db, parsed.data, {
       consentVersion,
       secret: getTokenSecret(),

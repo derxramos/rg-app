@@ -43,8 +43,6 @@ function valueFor(key: SettingKey, formData: FormData): unknown {
       return { messenger: text(formData, "messenger"), viber: text(formData, "viber") };
     case "home_texts":
       return { headline: text(formData, "headline"), intro: text(formData, "intro") };
-    case "privacy_notice_version":
-      return text(formData, "value");
     default:
       return Number(text(formData, "value"));
   }

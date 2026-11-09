@@ -113,6 +113,15 @@ Pages inside Settings (and one request) show a small trail at the top, for examp
 - You cannot delete a method that was used for a payment. It is kept, and the message names it. Turn it off instead. Other methods you ticked are still deleted.
 - The first methods shipped with the app are marked **SAMPLE, not real**. Replace them before you turn them on.
 
+### Privacy and terms (owner and admin)
+
+Settings > **Privacy and terms**. Edit the **Privacy notice** and the **Terms of service** yourself.
+
+- Use **Write** to type and **Preview** to see how visitors will read it. Use `##` for a heading and `-` for a list item.
+- Keep the two words in double curly braces (`{{retention_days}}` and `{{contact_lines}}`) where they are. The website fills in the number of days and your contact details.
+- Every **Save** makes a new version, like `2026-11-09.1`. You do not type a version number. Old versions are kept, and clients keep the version they agreed to. To go back, open an old version in the box and save it again.
+- This is legal text. Read it carefully before you save, and ask a professional if you are not sure.
+
 ### File settings (owner and admin)
 
 How many days files are kept after a request is Completed or Cancelled (start: 30), the number of files per request (15), the biggest file (3 MB), and the storage warning (80 percent).

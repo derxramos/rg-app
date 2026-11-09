@@ -27,7 +27,6 @@ export const SETTING_SCHEMAS = {
   max_files_per_request: z.number().int().min(1).max(50),
   max_file_size_mb: z.number().int().min(1).max(10),
   storage_warning_percent: z.number().int().min(1).max(94),
-  privacy_notice_version: z.string().trim().min(1).max(40),
   // ISO time text, or null when the job has not run yet.
   last_keep_alive_at: z.string().datetime().nullable(),
   last_cleanup_at: z.string().datetime().nullable(),
@@ -55,9 +54,6 @@ export const DEFAULT_SETTINGS: { [K in SettingKey]: SettingValue<K> } = {
   max_files_per_request: 15,
   max_file_size_mb: 3,
   storage_warning_percent: 80,
-  // Draft version. The owner replaces it when the real privacy notice is approved.
-  // 2.0: the notice now explains accounts, download and delete. The owner sets the same number in Site content.
-  privacy_notice_version: "2.0",
   last_keep_alive_at: null,
   last_cleanup_at: null,
 };

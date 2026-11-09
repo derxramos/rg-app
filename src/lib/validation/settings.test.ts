@@ -20,7 +20,6 @@ describe("site settings schemas", () => {
         "max_files_per_request",
         "max_file_size_mb",
         "storage_warning_percent",
-        "privacy_notice_version",
         "last_keep_alive_at",
         "last_cleanup_at",
       ].sort(),

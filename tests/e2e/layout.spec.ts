@@ -242,6 +242,8 @@ const ADMIN_PAGES: [string, string][] = [
   ["Admin: Payment methods", "/admin/settings/payments"],
   ["Admin: Services", "/admin/settings/services"],
   ["Admin: Files settings", "/admin/settings/files"],
+  ["Admin: Privacy and terms", "/admin/settings/legal"],
+  ["Admin: Edit privacy notice", "/admin/settings/legal/privacy"],
   ["Admin: Admin users", "/admin/settings/users"],
   ["Admin: Activity", "/admin/activity"],
   ["Admin: Export", "/admin/export"],

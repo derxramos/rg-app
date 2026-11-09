@@ -35,7 +35,7 @@ import { rateLimit } from "@/server/security/rate-limit";
 import { hmacHex } from "@/server/security/tokens";
 import { verifyTurnstile } from "@/server/security/turnstile";
 import { getTokenSecret } from "@/server/env";
-import { readSetting } from "@/server/services/settings";
+import { getCurrentLegalVersion } from "@/server/services/legal";
 
 export type AuthState =
   | { ok: true; message: string }
@@ -193,7 +193,7 @@ export async function registerAction(_previous: AuthState, formData: FormData): 
     action: "auth.signup",
     userId: null,
     ipHash,
-    details: { privacyNoticeVersion: await readSetting(db, "privacy_notice_version") },
+    details: { privacyNoticeVersion: await getCurrentLegalVersion(db, "privacy") },
   });
   redirect("/register/check-email");
 }

@@ -347,6 +347,30 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: updatedAt(),
 }).enableRLS();
 
+// ---------- legal_documents ----------
+// The Privacy notice and the Terms of service, one row for each saved version. Rows are only added: a trigger
+// blocks any change to the text, so we can always show the exact words a client agreed to. The newest row of a
+// kind is the one visitors see. If a kind has no row yet, the website shows the built-in text from src/content.
+export const legalDocuments = pgTable(
+  "legal_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // "privacy" or "terms" (checked by the database and by src/lib/legal-text.ts).
+    kind: text("kind").notNull(),
+    // Day and counter, like 2026-11-09.1 (see nextLegalVersion).
+    version: text("version").notNull(),
+    // Markdown. The words {{retention_days}} and {{contact_lines}} are filled in when a visitor reads it.
+    body: text("body").notNull(),
+    createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("legal_documents_kind_version_unique").on(table.kind, table.version),
+    index("legal_documents_kind_created_idx").on(table.kind, table.createdAt),
+    check("legal_documents_kind_values", sql`${table.kind} in ('privacy', 'terms')`),
+  ],
+).enableRLS();
+
 // ---------- activity_log ----------
 // Append-only. A trigger blocks UPDATE and DELETE (see the SQL migration).
 export const activityLog = pgTable(
@@ -421,6 +445,7 @@ export const ALL_TABLES = {
   paymentMethods,
   payments,
   siteSettings,
+  legalDocuments,
   activityLog,
   rateLimits,
   emailLog,

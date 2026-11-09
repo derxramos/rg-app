@@ -18,12 +18,11 @@ export const metadata: Metadata = { title: "Site content" };
 export default async function SiteContentPage() {
   const admin = await guardPanelPage("site_content.edit", "/admin/settings/site");
   const db = getDb();
-  const [contact, hours, social, home, version] = await Promise.all([
+  const [contact, hours, social, home] = await Promise.all([
     readSetting(db, "contact"),
     readSetting(db, "business_hours"),
     readSetting(db, "social_links"),
     readSetting(db, "home_texts"),
-    readSetting(db, "privacy_notice_version"),
   ]);
 
   return (
@@ -131,28 +130,6 @@ export default async function SiteContentPage() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="t-i">Intro</Label>
                 <Textarea id="t-i" name="intro" defaultValue={home.intro} maxLength={1000} />
-              </div>
-            </ActionForm>
-          </CardContent>
-        </Card>
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>Privacy notice version</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              The version is saved with every request, so we know which text the client agreed to.
-              Remove the word &quot;draft&quot; only when the owner has approved the text.
-            </p>
-            <ActionForm
-              action={saveSettingAction}
-              hidden={{ key: "privacy_notice_version" }}
-              submitLabel="Save"
-              inline
-            >
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="p-v">Version</Label>
-                <Input id="p-v" name="value" defaultValue={version} maxLength={40} />
               </div>
             </ActionForm>
           </CardContent>

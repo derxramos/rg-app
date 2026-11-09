@@ -2,12 +2,43 @@
 
 Update this file at the end of every work session.
 
-**Current status:** The roles, accounts table and 2-step login recovery work is built on `feat/roles-accounts-recovery` and merged into `main` (not pushed, nothing run on a live database): see "Roles, accounts table and 2-step login recovery" below. All 8 original phases are built and each is committed. The accounts and roles work (branch `feat/auth-roles`, merged into `main`, not pushed) is built too: see "Accounts and roles work" below and docs/AUTH_AND_ROLES.md. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
+**Current status:** The admin simplify work (seven review answers, one service description, editable Privacy notice and Terms) is built on `feat/admin-simplify` and merged into `main`: see "Admin simplify" below. The roles, accounts table and 2-step login recovery work is built on `feat/roles-accounts-recovery` and merged into `main` (not pushed, nothing run on a live database): see "Roles, accounts table and 2-step login recovery" below. All 8 original phases are built and each is committed. The accounts and roles work (branch `feat/auth-roles`, merged into `main`, not pushed) is built too: see "Accounts and roles work" below and docs/AUTH_AND_ROLES.md. The live checks with real accounts (Supabase, Brevo, Turnstile, Netlify, GitHub), the owner review of the privacy notice, and the owner approval of the case study are still open. See docs/SECURITY_CHECKLIST.md.
 **Last updated:** 2026-11-09
 
 **Next step:** Owner: answer the open questions, set up the real accounts, and run the live checklist. Then deploy a preview.
 
 ---
+
+## Admin simplify: seven owner questions answered (branch `feat/admin-simplify`, 2026-11-09)
+
+Result of the owner's review of the admin area. Three commits: A (small screen changes), B (one service description), C (editable Privacy notice and Terms).
+
+**A. Small changes**
+- **Dashboard:** "Waiting for client" is kept. It is a real status (a client can upload more files only in this status, and a rejected payment sends the request back to it). The card now has a hint: "Paused until the client replies or sends files". The status name itself is unchanged, because clients also see it on the tracking page and in emails.
+- **Requests:** the "Show drafts" checkbox is gone (the Status filter already has "Draft"). `includeDrafts` and the `drafts` address word are removed too.
+- **Payment method page:** the Delete card is gone. Delete stays in the list (one or many). `deletePaymentMethod` and its action were removed. The tests use `deletePaymentMethods`.
+- **File settings:** the label is now "Files per request" with the longer sentence as help text.
+- **Export:** "Download payments" is the main (teal) button. "Download requests" is the outline button.
+
+**B. One service description**
+- Migration `0009_single_service_description.sql`: the old short text is joined in front of the long text (so visitors still see the same words), then `services.short_description` is dropped.
+- Add and edit forms have one "Description (optional)" box (plain text, no Markdown word). The services list shows the first ~150 characters, cut at a word (`summary`, made in `site-content.ts` with `trimDescription`). The service page shows all of it with its line breaks. The search engine text uses the same description.
+- Old text that was written as Markdown will now show its `##` and `**` marks as plain characters. Only the sample data had any.
+
+**C. Privacy notice and Terms editor**
+- Migration `0010_legal_documents.sql`: table `legal_documents` (kind, version, body, created_by, created_at). Rows are only added: a trigger blocks changes and deletes (the one allowed update is clearing `created_by` when an account is deleted). RLS is on, no policies. The SQL function `private.role_can` has the new action.
+- New action `legal_text.edit` in `src/lib/permissions.ts`: **admin and owner** (staff cannot). An owner-only action would break the rule, tested in `permissions.test.ts`, that an admin can do everything an owner can except manage owner accounts.
+- Settings > **Privacy and terms** (`/admin/settings/legal`, `/admin/settings/legal/[kind]`): Write and Preview, a list of versions, and "Open this text in the box" to start from an old version. Every save is a new version made by the app (`2026-11-09.1`, `.2`, ...). A save that changes nothing is refused. Each save is logged (`legal.published`).
+- Until the first save the site shows the built-in text (version `<date>.0`, from `src/content/privacy-notice.ts` and `terms.ts`, now templates). Two words are filled in when a visitor reads the page: `{{retention_days}}` and `{{contact_lines}}` (`src/lib/legal-text.ts`).
+- The manual `privacy_notice_version` setting and its card in Site content are removed. The consent that is saved with a request and with a sign up now uses the current privacy version from `legal_documents`. Old requests keep the old values (like `2.0`).
+- The "Draft text" warning on `/privacy` now shows while the text still has `[square bracket]` parts that are not filled in (before, it showed when the version contained the word "draft").
+- `/terms` now shows its version too.
+- `scripts/dev-db.ts` adds migrations 0009 and 0010 to an older local database.
+
+**Checked:** lint, type check, 846 unit tests (new: `src/lib/legal-text.test.ts`, `tests/unit/legal.test.ts`), production build against the local test database (one build worker, the same note as below; `next.config.ts` was not changed), migrations 0009 and 0010 applied to the local test database.
+**Not checked:** the browser pages (the new editor, the Settings card, the new layout and security test rows) were added to the e2e lists but not run, because `.env.local` points at the real Supabase project and the e2e seed would create test accounts there. Nothing was run on the live or Supabase database.
+**Before deploying:** run migrations 0009 and 0010 FIRST (docs/DEPLOY_RUNBOOK.md). The new code does not work on a database without them, and the old code does not work after them.
+**Test data:** none was created. Unit tests use an in-memory database.
 
 ## Breadcrumbs and a way back in the admin area (branch `feat/admin-breadcrumbs`, 2026-11-09)
 

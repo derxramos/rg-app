@@ -237,7 +237,20 @@ Key–value settings the owner can edit.
 | updated_by | uuid FK → profiles, nullable | |
 | updated_at | timestamptz | |
 
-Keys: `contact` (phone, email, address), `business_hours`, `social_links` (Facebook Messenger, Viber), `home_texts`, `file_retention_days` (default 30), `max_files_per_request` (default 15), `max_file_size_mb` (default 3), `storage_warning_percent` (default 80), `privacy_notice_version`, `last_keep_alive_at`, `last_cleanup_at`.
+Keys: `contact` (phone, email, address), `business_hours`, `social_links` (Facebook Messenger, Viber), `home_texts`, `file_retention_days` (default 30), `max_files_per_request` (default 15), `max_file_size_mb` (default 3), `storage_warning_percent` (default 80), `last_keep_alive_at`, `last_cleanup_at`.
+
+### legal_documents
+The Privacy notice and the Terms of service, one row for each saved version (migration `0010_legal_documents.sql`). The owner or admin edits them in Settings > Privacy and terms.
+| Field | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| kind | text | `privacy` or `terms` (check constraint) |
+| version | text | made by the app: the day (Manila) and a counter, like `2026-11-09.1`. Unique with `kind`. The text that ships with the app is shown as `<date>.0` until the first save |
+| body | text | Markdown. `{{retention_days}}` and `{{contact_lines}}` are filled in when a visitor reads the page |
+| created_by | uuid FK → profiles, nullable | set to null if the account is deleted |
+| created_at | timestamptz | |
+
+Rows are only added. A trigger blocks any change to a saved text and any delete, so the version in a request's `consent_version` always points to the exact words the client saw. The newest row of a kind is the live text. Row Level Security is on, with no policies, like every table.
 
 ### admin_profiles (removed)
 This table no longer exists (migration `0006_single_role.sql`). Its data moved into `profiles` (role, `is_active`, `last_login_at`). The links from notes, payments, status events, payment methods and site settings now point to `profiles(id)` (the ids are the same).

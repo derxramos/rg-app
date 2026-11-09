@@ -3,6 +3,7 @@ import {
   Download,
   FileCog,
   Globe,
+  Scale,
   UserCog,
   Wallet,
   type LucideIcon,
@@ -13,7 +14,7 @@ import { redirect } from "next/navigation";
 
 import { AdminTitle } from "@/components/admin/bits";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { STAFF_SETTINGS_PATH, can } from "@/lib/permissions";
+import { STAFF_SETTINGS_PATH, can, type Action } from "@/lib/permissions";
 import { guardPanelPage } from "@/server/auth/panel";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -23,6 +24,8 @@ const ITEMS: {
   title: string;
   text: string;
   icon: LucideIcon;
+  // Shown only to roles that may do this action. Left out means every role that can open Settings.
+  action?: Action;
 }[] = [
   {
     href: "/admin/settings/payments",
@@ -49,6 +52,13 @@ const ITEMS: {
     icon: FileCog,
   },
   {
+    href: "/admin/settings/legal",
+    title: "Privacy and terms",
+    text: "Edit the Privacy notice and the Terms. Every save is a new version.",
+    icon: Scale,
+    action: "legal_text.edit",
+  },
+  {
     href: "/admin/settings/users",
     title: "Admin users",
     text: "Invite staff, change roles, turn accounts off.",
@@ -68,7 +78,8 @@ export default async function SettingsHubPage() {
   const admin = await guardPanelPage();
   // Staff have no Settings page: their menu opens the services page directly.
   if (admin.role === "staff") redirect(STAFF_SETTINGS_PATH);
-  const items = can(admin.role, "export.csv") ? [...ITEMS, EXPORT_ITEM] : ITEMS;
+  const allowed = ITEMS.filter((item) => !item.action || can(admin.role, item.action));
+  const items = can(admin.role, "export.csv") ? [...allowed, EXPORT_ITEM] : allowed;
   return (
     <>
       <AdminTitle title="Settings" />

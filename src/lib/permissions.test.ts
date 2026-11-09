@@ -38,6 +38,7 @@ const EXPECTED: Record<Action, Role[]> = {
   "payment_methods.manage": ["admin", "owner"],
   "site_content.edit": ["admin", "owner"],
   "file_settings.edit": ["admin", "owner"],
+  "legal_text.edit": ["admin", "owner"],
   "export.csv": ["admin", "owner"],
   "activity.view": ["staff", "admin", "owner"],
   "activity.purge": ["admin", "owner"],

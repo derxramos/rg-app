@@ -205,7 +205,8 @@ As staff, admin or owner, I want a safe login so that only we can see client dat
 - [ ] Public pages update after saving.
 
 ### A8 — Settings: site content (admin and owner)
-- [ ] Contact details, business hours, Messenger and Viber links, home page texts, privacy notice text and version.
+- [ ] Contact details, business hours, Messenger and Viber links, home page texts.
+- [ ] Settings > Privacy and terms (action `legal_text.edit`, admin and owner): edit the Privacy notice and the Terms of service. Write and Preview. Every save is a NEW version (`YYYY-MM-DD.N`, made by the app), old versions are kept and can be opened in the box again, and each save is logged (`legal.published`). The version is saved with every request and sign up.
 - [ ] File settings: retention days, max files per request, max file size, storage warning %.
 - [ ] Every change logged.
 

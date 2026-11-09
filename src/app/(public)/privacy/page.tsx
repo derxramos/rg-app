@@ -6,9 +6,9 @@ import { PageContainer } from "@/components/shared/page-container";
 import { PageHeading } from "@/components/shared/page-heading";
 import { WarningBox } from "@/components/shared/warning-box";
 import { Badge } from "@/components/ui/badge";
-import { PRIVACY_NOTICE_DATE, buildPrivacyNotice } from "@/content/privacy-notice";
+import { fillLegalText, hasMissingParts } from "@/lib/legal-text";
 import { formatManilaDate } from "@/lib/time";
-import { getPublicSettings } from "@/server/services/site-content";
+import { getPublicLegal, getPublicSettings } from "@/server/services/site-content";
 
 export const metadata: Metadata = {
   title: "Privacy notice",
@@ -18,15 +18,15 @@ export const metadata: Metadata = {
 };
 
 export default async function PrivacyPage() {
-  const settings = await getPublicSettings();
-  const version = settings.privacy_notice_version;
-  const isDraft = /draft/i.test(version);
-
-  const text = buildPrivacyNotice({
+  const [settings, legal] = await Promise.all([getPublicSettings(), getPublicLegal("privacy")]);
+  const { version } = legal;
+  // Text in [square brackets] is a part the owner has not filled in yet.
+  const text = fillLegalText("privacy", legal.body, {
     retentionDays: settings.file_retention_days,
     contactEmail: settings.contact.email,
     contactPhone: settings.contact.phone,
   });
+  const isDraft = hasMissingParts(text);
 
   return (
     <>
@@ -38,7 +38,7 @@ export default async function PrivacyPage() {
           </Badge>
           <Badge variant="neutral">
             <CalendarDays aria-hidden="true" />
-            Date: {formatManilaDate(`${PRIVACY_NOTICE_DATE}T00:00:00+08:00`)}
+            Date: {formatManilaDate(legal.createdAt)}
           </Badge>
         </div>
       </PageHeading>

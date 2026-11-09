@@ -1,23 +1,14 @@
-// Terms of Service text (shown at /terms). Written in plain words from the project docs.
+// Built-in Terms of Service text (shown at /terms). Written in plain words from the project docs.
 // It is NOT legal advice. The owner reads it and approves it before real clients use the site.
 // It makes no promises about fees, government rules or how long a government office takes.
-// The date and the contact details come from here and from the site settings.
+// This is only the START text. The owner edits the terms in the admin area (Settings > Privacy and terms), and
+// the saved versions live in the database. The contact list is filled in when a visitor reads the page.
+
+import { fillLegalText, type LegalFacts } from "@/lib/legal-text";
 
 export const TERMS_DATE = "2026-11-06";
 
-type TermsInput = { contactEmail: string; contactPhone: string };
-
-export function buildTerms({ contactEmail, contactPhone }: TermsInput): string {
-  const contactLines = [
-    contactEmail ? `- Email: ${contactEmail}` : null,
-    contactPhone ? `- Phone, Viber: ${contactPhone}` : null,
-  ].filter(Boolean);
-  const contact =
-    contactLines.length > 0
-      ? contactLines.join("\n")
-      : "- Please use the Contact page on this website.";
-
-  return `## About these terms
+export const TERMS_TEMPLATE = `## About these terms
 
 These terms are between you and RG'S BOOKKEEPING AND ACCOUNTING SERVICES ("we", "us"), in the Philippines. They apply when you use this website to ask for a service, send documents, pay, or track a request. By sending a request you agree to these terms and to our privacy notice.
 
@@ -71,6 +62,9 @@ These terms follow the laws of the Republic of the Philippines.
 
 ## Contact
 
-${contact}
+{{contact_lines}}
 `;
+
+export function buildTerms(facts: LegalFacts): string {
+  return fillLegalText("terms", TERMS_TEMPLATE, facts);
 }

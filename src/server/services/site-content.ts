@@ -9,10 +9,12 @@ import {
   type SettingKey,
   type SettingValue,
 } from "@/lib/validation/settings";
+import type { LegalKind } from "@/lib/legal-text";
 import { trimDescription } from "@/lib/seo";
 import { CACHE_TAGS } from "@/server/cache-tags";
 import { getDb } from "@/server/db/client";
 import { serviceRequirements, services, siteSettings } from "@/server/db/schema";
+import { getCurrentLegal, type LegalDocument } from "@/server/services/legal";
 
 // Public content for the website pages. Everything here is safe to show to any visitor:
 // no client data, no admin data. Results are cached (see the "site-content" profile in next.config.ts).
@@ -25,7 +27,6 @@ export const PUBLIC_SETTING_KEYS = [
   "business_hours",
   "social_links",
   "home_texts",
-  "privacy_notice_version",
   "file_retention_days",
 ] as const satisfies readonly SettingKey[];
 
@@ -51,9 +52,20 @@ export async function getPublicSettings(): Promise<PublicSettings> {
     business_hours: read("business_hours"),
     social_links: read("social_links"),
     home_texts: read("home_texts"),
-    privacy_notice_version: read("privacy_notice_version"),
     file_retention_days: read("file_retention_days"),
   };
+}
+
+// ---------- Privacy notice and Terms ----------
+
+// The current text of a legal page (see legal.ts). Cached like the other public content, and the cache is
+// cleared when the owner saves a new version.
+export async function getPublicLegal(kind: LegalKind): Promise<LegalDocument> {
+  "use cache";
+  cacheLife("site-content");
+  cacheTag(CACHE_TAGS.legal);
+
+  return getCurrentLegal(getDb(), kind);
 }
 
 // ---------- Services ----------
@@ -102,7 +114,10 @@ export async function listActiveServices(): Promise<PublicService[]> {
     .from(services)
     .where(eq(services.isActive, true))
     .orderBy(asc(services.sortOrder), asc(services.name));
-  return rows.map(({ description, ...rest }) => ({ ...rest, summary: serviceSummary(description) }));
+  return rows.map(({ description, ...rest }) => ({
+    ...rest,
+    summary: serviceSummary(description),
+  }));
 }
 
 // One active service with its checklist. Returns null when the slug is unknown or the service is off.

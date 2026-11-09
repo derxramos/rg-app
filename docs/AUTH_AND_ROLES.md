@@ -45,13 +45,13 @@ How accounts, roles and sign-in work in this app. Plain English on purpose.
 | Services: change the fee, hide or show, reorder, choose payment QR codes; delete a checklist item | – | – | ✓ | ✓ |
 | Delete a service (one or many; kept when a request used it) | – | – | ✓ | ✓ |
 | Activity log: manual clean-up of entries older than 90, 180 or 365 days (fresh confirm; never younger than 30 days) | – | – | ✓ | ✓ |
-| Payment methods, Site content, File settings, Export | – | – | ✓ | ✓ |
+| Payment methods, Site content, File settings, Privacy and terms, Export | – | – | ✓ | ✓ |
 | Activity log (view only) | – | ✓ | ✓ | ✓ |
 | Admin users: table, invite, change role, turn off or on, reset 2-step login, resend invite | – | – | ✓ | ✓ |
 | Invite, promote, demote or turn off an **owner** | – | – | – | ✓ |
 | Security page (my own devices) | – | ✓ | ✓ | ✓ |
 
-Staff cannot delete anything (requests, files, notes, services, checklist items, payment methods, accounts), cannot invite or create any account, and cannot see the Dashboard, Payment methods, Site content, File settings, Admin users or Export.
+Staff cannot delete anything (requests, files, notes, services, checklist items, payment methods, accounts), cannot invite or create any account, and cannot see the Dashboard, Payment methods, Site content, File settings, Privacy and terms, Admin users or Export.
 
 ### Where access is checked (four places)
 
@@ -280,7 +280,7 @@ Access control (clients)
 
 Staff (sign in as a staff account)
 - [ ] The menu shows only **Requests, Services, Activity** (and the Security link in the header). The header says **Staff**. After sign in you land on Requests.
-- [ ] Type the address of **Payment methods**, **Admin users**, **Export**, **Site content**, **File settings** and the **Dashboard** (`/admin`): each shows "Not allowed", and each try is in the Activity page as `access.denied`.
+- [ ] Type the address of **Payment methods**, **Admin users**, **Export**, **Site content**, **File settings**, **Privacy and terms** (`/admin/settings/legal`) and the **Dashboard** (`/admin`): each shows "Not allowed", and each try is in the Activity page as `access.denied`.
 - [ ] On a request: staff can change the status, add a note and open a client document (it is logged as `file.opened`). There is **no** "Mark payment verified" button.
 - [ ] Replay "mark payment verified" or "reject payment" directly (browser tools, same form) as staff: refused and logged.
 - [ ] Replay "delete checklist item", "erase client data" or any delete: refused and logged.

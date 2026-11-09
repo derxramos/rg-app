@@ -75,6 +75,24 @@ async function main() {
     await applyMigrations(db, { fromFile: "0008" });
   }
 
+  // A local database that still has the short service description (migration 0009) gets it once.
+  const hasShortDescription = await db.query<{ exists: boolean }>(
+    `select exists (select 1 from information_schema.columns where table_name = 'services' and column_name = 'short_description') as exists`,
+  );
+  if (hasShortDescription.rows[0].exists) {
+    console.log("Adding the single service description migration (0009 and later)...");
+    await applyMigrations(db, { fromFile: "0009" });
+  }
+
+  // A local database without the legal documents table (migration 0010) gets it once.
+  const hasLegal = await db.query<{ exists: boolean }>(
+    `select to_regclass('public.legal_documents') is not null as exists`,
+  );
+  if (!hasLegal.rows[0].exists) {
+    console.log("Adding the privacy and terms migration (0010)...");
+    await applyMigrations(db, { fromFile: "0010" });
+  }
+
   const server = new PGLiteSocketServer({ db, port: PORT, host: "127.0.0.1", maxConnections: 3 });
   await server.start();
   console.log(`Local database is ready on postgres://postgres:postgres@127.0.0.1:${PORT}/postgres`);

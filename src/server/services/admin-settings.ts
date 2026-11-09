@@ -68,7 +68,6 @@ const EDITABLE_SETTING_KEYS: readonly SettingKey[] = [
   "business_hours",
   "social_links",
   "home_texts",
-  "privacy_notice_version",
   ...OWNER_SETTING_KEYS,
 ];
 

@@ -42,6 +42,7 @@ test("the pages work under the Content-Security-Policy (no violations)", async (
     "/admin/requests",
     "/admin/settings/payments",
     "/admin/settings/site",
+    "/admin/settings/legal",
     "/admin/activity",
     "/dev/ui",
   ];

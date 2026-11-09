@@ -3,4 +3,5 @@
 export const CACHE_TAGS = {
   settings: "site-settings",
   services: "services",
+  legal: "legal",
 } as const;
