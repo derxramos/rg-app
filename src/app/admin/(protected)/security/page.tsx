@@ -66,7 +66,7 @@ export default async function SecurityPage() {
         </WarningBox>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-start">
         <section aria-labelledby="devices" className="flex flex-col gap-3">
           <h2 id="devices" className="text-xl font-bold">
             Your devices

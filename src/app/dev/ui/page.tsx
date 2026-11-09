@@ -308,7 +308,7 @@ export default function DevUiPage() {
             title="Cards"
             note="rounded-lg, border, shadow-sm, padding 20 px (24 px from md)."
           >
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               {(["none", "subtle", "primary", "accent"] as const).map((tint) => (
                 <Card key={tint} tint={tint}>
                   <CardHeader>
@@ -391,7 +391,7 @@ export default function DevUiPage() {
           </Section>
 
           <Section title="Empty state">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <EmptyState
                 icon={Inbox}
                 title="No services listed yet"
@@ -422,7 +422,7 @@ export default function DevUiPage() {
             title="Backup contact block"
             note="Hidden when a link is empty. Sample links go to example.com only."
           >
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               <div className="flex flex-col gap-2">
                 <p className="text-sm text-muted-foreground">Both links</p>
                 <BackupContactBlock

@@ -49,7 +49,7 @@ export default async function EditServicePage({
   return (
     <>
       <AdminTitle title={service.name} />
-      <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-start">
         <Card>
           <CardHeader>
             <CardTitle>Service</CardTitle>

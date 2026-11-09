@@ -159,7 +159,7 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
   };
 
   return (
-    <div className="grid gap-8 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
       <div className="flex flex-col gap-3">
         <Label htmlFor="receipt-file">Receipt screenshot</Label>
         {/* No name, and outside the form: the picture is never sent anywhere. */}

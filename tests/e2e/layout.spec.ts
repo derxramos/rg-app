@@ -53,8 +53,11 @@ async function setTheme(page: Page, theme: string) {
 
 async function checkPage(page: Page, name: string, url: string, role = "owner") {
   await page.goto(url, { waitUntil: "load" });
+  // A page can move on after it loads (for example, a staff account is sent to "not allowed").
+  await page.waitForLoadState("networkidle", { timeout: 3000 }).catch(() => undefined);
   await page.waitForTimeout(600);
   for (const theme of THEMES) {
+    await page.waitForLoadState("load");
     await setTheme(page, theme);
     for (const width of WIDTHS) {
       await page.setViewportSize({ width, height: width < 700 ? 800 : 900 });
@@ -117,6 +120,10 @@ test.beforeAll(async () => {
                 values (${LONG_USER_ID + (i + 1)}, ${"zolb-test+layout-" + "z".repeat(24) + i + "@example.com"}, ${LONG_NAME}, ${role}, true)
                 on conflict (id) do nothing`;
     }
+    // A second owner, so the test owner can be set to admin and staff (there must always be one owner).
+    await sql`insert into profiles (id, email, full_name, role, is_active)
+              values (${LONG_USER_ID + "8"}, 'zolb-test+layout-second-owner@example.com', 'Second Test Owner', 'owner', true)
+              on conflict (id) do nothing`;
     await sql`insert into profiles (id, email, full_name, role, is_active)
               values (${LONG_USER_ID + "9"}, ${E2E_USER_EMAIL}, ${LONG_NAME}, 'user', true)
               on conflict (id) do update set full_name = ${LONG_NAME}`;
@@ -130,7 +137,10 @@ test.afterAll(async () => {
   const sql = testSql();
   try {
     await sql`delete from requests where tracking_code like 'RG-WAYTEST%' or tracking_code like 'RG-B%'`;
+    // The "last owner" rule would block this clean-up, so it is switched off for it (local test database only).
+    await sql`alter table profiles disable trigger profiles_protect_last_owner`;
     await sql`delete from profiles where id::text like '66666666-6666-4666-8666-%'`;
+    await sql`alter table profiles enable trigger profiles_protect_last_owner`;
   } finally {
     await sql.end();
   }

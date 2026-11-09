@@ -32,7 +32,7 @@ export default async function ContactPage() {
         title="Contact us"
         intro="Send us a message and we will reply. You can also write to us on Messenger or Viber."
       />
-      <PageContainer className="grid gap-10 py-10 md:py-14 lg:grid-cols-5">
+      <PageContainer className="grid grid-cols-1 gap-10 py-10 md:py-14 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <h2 className="mb-5 text-xl font-bold">Send a message</h2>
           <ContactForm />

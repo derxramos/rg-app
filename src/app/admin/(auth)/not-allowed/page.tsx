@@ -41,7 +41,7 @@ async function NotAllowedContent({
           and staff.
         </p>
       )}
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         {staffTried ? (
           <Link href="/admin/requests" className={cn(buttonVariants({ variant: "default" }))}>
             Go to Requests

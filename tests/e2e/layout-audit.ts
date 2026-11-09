@@ -66,7 +66,7 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
     const all = Array.from(document.body.querySelectorAll("*")).filter(
       (el) =>
         !isHidden(el) &&
-        !el.closest(".sr-only, nextjs-portal, [data-nextjs-toast], [data-next-badge-root], svg, [aria-hidden='true'] svg"),
+        !el.closest("[class*='sr-only'], nextjs-portal, [data-nextjs-toast], [data-next-badge-root], svg, [aria-hidden='true'] svg"),
     );
 
     for (const el of all) {

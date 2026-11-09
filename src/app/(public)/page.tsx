@@ -52,7 +52,7 @@ export default async function HomePage() {
         ]}
       />
       <section className="overflow-hidden border-b bg-surface-subtle">
-        <PageContainer className="grid gap-10 py-12 md:py-16 lg:grid-cols-2 lg:items-center">
+        <PageContainer className="grid grid-cols-1 gap-10 py-12 md:py-16 lg:grid-cols-2 lg:items-center">
           <div className="flex flex-col items-start gap-5">
             <h1 className="text-3xl font-bold text-primary-ink lg:text-4xl">
               {headline || "RG'S Bookkeeping and Accounting Services"}

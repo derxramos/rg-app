@@ -106,7 +106,7 @@ export default function CaseStudyPage() {
             by GCash, Maya or bank transfer. Nothing is in one place, payments are hard to check,
             and files sit in chat apps.
           </P>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Clients</CardTitle>
@@ -129,7 +129,7 @@ export default function CaseStudyPage() {
         </Section>
 
         <Section id="constraints" title="The constraints that shaped everything">
-          <ul className="grid gap-3 md:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <li>
               <Card className="h-full">
                 <CardHeader>
@@ -209,7 +209,7 @@ export default function CaseStudyPage() {
         </Section>
 
         <Section id="security" title="The security story">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
                 <CardTitle>The QR swap</CardTitle>
@@ -263,7 +263,7 @@ export default function CaseStudyPage() {
             checks every value again. The admin screen always warns that these values can be wrong
             or fake.
           </P>
-          <ul className="grid gap-3 sm:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <li>
               <Card className="gap-1 p-4 md:p-4">
                 <span className="text-3xl font-bold">{METRICS.ocr.downloadMb} MB</span>
@@ -296,7 +296,7 @@ export default function CaseStudyPage() {
         </Section>
 
         <Section id="screens" title="Screens (fake data only)">
-          <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {SHOTS.map((s) => (
               <li key={s.file}>
                 <figure className="flex h-full flex-col gap-2">

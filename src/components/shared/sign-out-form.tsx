@@ -69,9 +69,15 @@ export function SignOutForm({ variant }: { variant: "menu" | "button" | "phone" 
           Sign out
         </Button>
       ) : (
-        <Button type="submit" variant="outline" size="sm" className="md:min-h-11">
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="md:min-h-11 max-[379px]:w-11 max-[379px]:px-0"
+        >
           <LogOut aria-hidden="true" />
-          Sign out
+          {/* On the narrowest phones only the icon is shown, so the header fits. Screen readers still read it. */}
+          <span className="max-[379px]:sr-only">Sign out</span>
         </Button>
       )}
     </form>

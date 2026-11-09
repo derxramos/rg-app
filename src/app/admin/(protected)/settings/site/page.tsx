@@ -31,7 +31,7 @@ export default async function SiteContentPage() {
         title="Site content"
         intro="What visitors read on the website. Changes show at once."
       />
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Contact details</CardTitle>

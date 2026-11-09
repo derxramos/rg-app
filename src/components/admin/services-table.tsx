@@ -105,7 +105,7 @@ export function ServicesTable({
     );
 
   // Column widths in percent. They add up to 100.
-  const widths = permissions.delete ? [6, 44, 20, 12, 18] : [50, 22, 12, 16];
+  const widths = permissions.delete ? [8, 42, 20, 12, 18] : [50, 22, 12, 16];
 
   return (
     <>
@@ -145,11 +145,12 @@ export function ServicesTable({
                   </label>
                 ) : null}
                 <div className="min-w-0 flex-1">{nameLink(row)}</div>
-                {actions(row)}
               </div>
+              {/* The fee, the badge and the actions wrap onto more lines on a narrow phone, so a long name keeps the full width. */}
               <div className="flex flex-wrap items-center justify-between gap-2 text-base">
                 <span className="text-muted-foreground">{row.fee}</span>
                 {statusBadge(row)}
+                {actions(row)}
               </div>
             </Card>
           </li>
