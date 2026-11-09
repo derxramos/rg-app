@@ -52,7 +52,6 @@ let methodId: string;
 
 const pmInput = (o: Record<string, unknown> = {}) => ({
   name: "GCash",
-  parserKey: "gcash",
   accountName: "SAMPLE NAME",
   accountNumber: "0000",
   instructions: "",

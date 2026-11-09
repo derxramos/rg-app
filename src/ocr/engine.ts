@@ -11,10 +11,13 @@ const MAX_WIDTH = 1400; // about 1000 to 1500 px wide is a good balance of speed
 export type OcrProgress = { status: string; progress: number };
 
 export type OcrOutcome = {
-  fields: MergedFields;
-  // How much the text looks like the chosen app's receipt (0 to 1).
-  matchScore: number;
+  // Null when the receipt is not from an app we know. The client then types the values.
+  fields: MergedFields | null;
+  parser: ReceiptParser | null;
 };
+
+// A parser "matches" when its brand words are on the receipt.
+const MATCH_THRESHOLD = 0.5;
 
 export function ocrSupported(): boolean {
   return typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function";
@@ -107,10 +110,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-// Reads the receipt in two passes. Throws "OCR_TIMEOUT" after 30 seconds. Always closes the worker.
+// Reads the receipt in two passes. The app (GCash, Maya, BDO...) is found from the text on the receipt, so the
+// payment method the client chose does not matter. Throws "OCR_TIMEOUT" after 30 seconds. Always closes the worker.
 export async function readReceipt(
   file: File,
-  parser: ReceiptParser,
+  parsers: readonly ReceiptParser[],
   onProgress?: (progress: OcrProgress) => void,
   timeLimitMs: number = OCR_TIME_LIMIT_MS,
 ): Promise<OcrOutcome> {
@@ -128,6 +132,8 @@ export async function readReceipt(
         // Pass 1: all the text, with positions.
         const first = await worker.recognize(canvas, {}, { blocks: true });
         const page = toOcrPage(first.data as unknown as TessData);
+        const parser = parsers.find((p) => p.matches(page) >= MATCH_THRESHOLD);
+        if (!parser) return { fields: null, parser: null };
         const guesses = parser.findFields(page);
 
         // Pass 2: only the areas next to the labels, digits only. (A whitelist on the whole receipt
@@ -147,7 +153,7 @@ export async function readReceipt(
 
         return {
           fields: mergePasses(parser, guesses, pass2),
-          matchScore: parser.matches(page),
+          parser,
         };
       })(),
       timeLimitMs,

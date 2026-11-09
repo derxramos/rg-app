@@ -911,3 +911,8 @@ Built in phases 0 to 9 (see the list near the top). Every phase was merged into 
 ### 2026-11-08 — Admin account set up on the live database (branch `chore/set-admin-account`)
 - On the owner's request: `rgservices.ph@gmail.com` is now role **admin** with the name "System Admin" (it was an owner with no name). `rgsbookkeeping73@gmail.com` (Rosemarie Gallego) stays the only **owner**. Done with one SQL update (no migration, no code change) and logged in the activity log as `account.role_changed`.
 - The admin can do everything except change an owner account. The owner can invite more staff or admins from Settings > Admin users.
+
+### 2026-11-09 — Receipt reader is automatic (branch `worktree-auto-receipt-reader`)
+- Removed the "Receipt reader" dropdown from Settings > Payment methods. The reader now finds the app (GCash, Maya, BDO) from the words on the receipt, whatever payment method the client chose. A receipt from another bank fills nothing and the client types the values (shown with a clear message).
+- The `parser_key` column stays in the database but is no longer used (no migration). `parserForMethodName()` only guesses from the method name for the keyboard type and the reference check.
+- Tests: new unit test for the name guess; all 853 unit tests pass. No browser test was run for the new "not recognized" message.

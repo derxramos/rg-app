@@ -46,7 +46,7 @@ async function Receipt({
     >
       <ReceiptForm
         requestId={id}
-        methods={methods.map((m) => ({ id: m.id, name: m.name, parserKey: m.parserKey }))}
+        methods={methods.map((m) => ({ id: m.id, name: m.name }))}
         initialMethodId={methods.some((m) => m.id === chosen) ? chosen! : methods[0].id}
         maxDate={today}
         minDate={addDaysToIsoDate(today, -MAX_PAYMENT_AGE_DAYS)}

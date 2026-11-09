@@ -104,7 +104,7 @@ export type ReceiptParser = {
   - `parseAmount("₱1,250.00")` → `125000` centavos
   - `parseDate("Nov 6, 2026 9:37 AM")` → `2026-11-06` (many formats)
   - `fixDigitLookalikes("1O5S")` → `"1055"` (O→0, o→0, S→5, l/I→1, B→8, Z→2) — **only in digit fields**
-- `payment_methods.parser_key` links a payment method to a parser. If null → manual only.
+- The parser is chosen automatically from the words on the receipt (`engine.ts` tries every parser in `PARSERS`). The payment method the client chose does not matter. If no parser matches (RCBC, GoTyme, ...), nothing is filled and the client types the values. `payment_methods.parser_key` is no longer used. `parserForMethodName()` only guesses from the method name for the keyboard type and the reference check.
 - If the client's chosen method's parser gives a low `matches` score, show: "This does not look like a [GCash] receipt. Please check the values carefully."
 
 **Real formats are unknown for now.** We will collect real sample receipts later. Until then, parsers have placeholder label patterns, and tests use made-up text that is clearly marked as "fake sample".

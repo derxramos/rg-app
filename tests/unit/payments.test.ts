@@ -54,7 +54,6 @@ beforeAll(async () => {
     {
       id: METHOD_ID,
       name: "GCash",
-      parserKey: "gcash",
       accountName: "SAMPLE NAME",
       accountNumber: "0000",
       isActive: true,

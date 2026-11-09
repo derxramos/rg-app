@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { LOW_CONFIDENCE, mergePasses } from "./merge";
-import { PARSERS, getParser } from "./parsers";
+import { PARSERS, getParser, parserForMethodName } from "./parsers";
 import {
   centavosToInput,
   findLabel,
@@ -139,9 +139,16 @@ describe("receipt parsers (fixtures: fake sample text)", () => {
     }
   });
 
-  it("knows no parser for a method without parser_key", () => {
+  it("knows no parser for an unknown key", () => {
     expect(getParser(null)).toBeNull();
     expect(getParser("unknown-bank")).toBeNull();
+  });
+
+  it("guesses a parser from the payment method name, and none for other banks", () => {
+    expect(parserForMethodName("GCash")!.key).toBe("gcash");
+    expect(parserForMethodName("Maya Business")!.key).toBe("maya");
+    expect(parserForMethodName("RCBC")).toBeNull();
+    expect(parserForMethodName(null)).toBeNull();
   });
 
   it("normalizes references: digit-only apps fix look-alikes, letter apps do not", () => {

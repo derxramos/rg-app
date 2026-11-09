@@ -192,7 +192,7 @@ Index: `(request_id, created_at)`.
 |---|---|---|
 | id | uuid PK | |
 | name | text | e.g. "GCash" |
-| parser_key | text, nullable | `gcash`, `maya`, `bdo`, or null (no OCR parser → manual only) |
+| parser_key | text, nullable | Not used any more and not shown in the admin form. The receipt reader finds the app from the receipt text. Kept so no migration is needed |
 | account_name | text | |
 | account_number | text | |
 | instructions | text, nullable | |

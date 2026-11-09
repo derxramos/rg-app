@@ -22,16 +22,16 @@ import { Progress } from "@/components/ui/progress";
 import { NativeSelect } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { LOW_CONFIDENCE } from "@/ocr/merge";
-import { getParser } from "@/ocr/parsers";
+import { PARSERS, parserForMethodName } from "@/ocr/parsers";
 
-type Method = { id: string; name: string; parserKey: string | null };
+type Method = { id: string; name: string };
 type Field = "reference" | "amount" | "paidOn";
 type FieldInfo = { source: "ocr" | "typed"; confidence: number };
 
 type Ocr =
   | { state: "idle" }
   | { state: "reading"; progress: number }
-  | { state: "done"; wrongApp: boolean }
+  | { state: "done"; known: boolean }
   | { state: "failed"; message: string };
 
 type Props = {
@@ -72,7 +72,7 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
   const [ocr, setOcr] = useState<Ocr>({ state: "idle" });
 
   const method = methods.find((m) => m.id === methodId) ?? methods[0];
-  const parser = getParser(method?.parserKey);
+  const parser = parserForMethodName(method?.name); // only for the keyboard type
   const wasmOk = typeof WebAssembly === "object";
   const errors = state.errors;
 
@@ -109,15 +109,20 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
   }
 
   async function readReceipt() {
-    if (!file || !parser) return;
+    if (!file) return;
     setOcr({ state: "reading", progress: 0 });
     try {
       // Tesseract.js is only downloaded now, when the client asks for it.
       const { readReceipt: run } = await import("@/ocr/engine");
-      const outcome = await run(file, parser, (p) =>
+      const outcome = await run(file, PARSERS, (p) =>
         setOcr({ state: "reading", progress: p.progress }),
       );
       const f = outcome.fields;
+      if (!f) {
+        // Not an app we know (for example RCBC or GoTyme). Nothing is filled. The client types the values.
+        setOcr({ state: "done", known: false });
+        return;
+      }
       setValues({ reference: f.reference.value, amount: f.amount.value, paidOn: f.date.value });
       setInfo({
         reference: { source: "ocr", confidence: f.reference.confidence },
@@ -125,7 +130,7 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
         paidOn: { source: "ocr", confidence: f.date.confidence },
       });
       setOriginal({ reference: f.reference.value, amount: f.amount.value, paidOn: f.date.value });
-      setOcr({ state: "done", wrongApp: outcome.matchScore < 0.5 });
+      setOcr({ state: "done", known: true });
     } catch (error) {
       const timeout = error instanceof Error && error.message === "OCR_TIMEOUT";
       setOcr({
@@ -141,7 +146,8 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
   const edited = original
     ? (Object.keys(original) as Field[]).some((f) => original[f] && original[f] !== values[f])
     : false;
-  const entryMethod = ocr.state !== "done" ? "manual" : edited ? "ocr_edited" : "ocr";
+  const entryMethod =
+    ocr.state !== "done" || !ocr.known ? "manual" : edited ? "ocr_edited" : "ocr";
 
   function hint(field: Field) {
     if (info[field].source !== "ocr" || !values[field]) return null;
@@ -238,14 +244,14 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
             type="button"
             variant="secondary"
             onClick={readReceipt}
-            disabled={!file || !parser || !wasmOk || ocr.state === "reading"}
+            disabled={!file || !wasmOk || ocr.state === "reading"}
             loading={ocr.state === "reading"}
           >
             {ocr.state !== "reading" ? <ScanText aria-hidden="true" /> : null}
             Read my receipt
           </Button>
-          {!wasmOk || !parser ? (
-            <FieldHint>Reading is not available for this method. Please type the values.</FieldHint>
+          {!wasmOk ? (
+            <FieldHint>Reading is not available on this phone. Please type the values.</FieldHint>
           ) : (
             <FieldHint>
               The reading tool is downloaded the first time (about 4 MB). Or type the values
@@ -260,9 +266,10 @@ export function ReceiptForm({ requestId, methods, initialMethodId, minDate, maxD
               {ocr.message}
             </WarningBox>
           ) : null}
-          {ocr.state === "done" && ocr.wrongApp ? (
-            <WarningBox variant="warning" title="Check the values carefully">
-              This does not look like a {method?.name} receipt. Please check the values carefully.
+          {ocr.state === "done" && !ocr.known ? (
+            <WarningBox variant="warning" title="Please type the values">
+              We could not recognize this receipt, so nothing was filled in. Please type the values
+              from your receipt.
             </WarningBox>
           ) : null}
         </div>

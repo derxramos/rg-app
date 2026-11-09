@@ -502,7 +502,6 @@ export async function moveRequirement(
 export type PaymentMethodInput = {
   id?: string;
   name: string;
-  parserKey: string | null;
   accountName: string;
   accountNumber: string;
   instructions: string;
@@ -548,8 +547,6 @@ export async function savePaymentMethod(
     throw new SettingsError("invalid", "The account name needs 2 to 120 characters.");
   if (accountNumber.length < 3 || accountNumber.length > 60)
     throw new SettingsError("invalid", "The account number needs 3 to 60 characters.");
-  if (input.parserKey && !["gcash", "maya", "bdo"].includes(input.parserKey))
-    throw new SettingsError("invalid", "Unknown receipt reader.");
 
   const before = input.id ? await getPaymentMethod(db, input.id) : null;
   if (input.id && !before) throw new SettingsError("not-found", "Payment method not found.");
@@ -563,7 +560,6 @@ export async function savePaymentMethod(
 
   const values = {
     name,
-    parserKey: input.parserKey,
     accountName,
     accountNumber,
     instructions: input.instructions.trim() || null,

@@ -62,7 +62,6 @@ export async function savePaymentMethodAction(
         {
           id: id && id !== "new" ? id : undefined,
           name: text(formData, "name"),
-          parserKey: text(formData, "parserKey") || null,
           accountName: text(formData, "accountName"),
           accountNumber: text(formData, "accountNumber"),
           instructions: text(formData, "instructions"),

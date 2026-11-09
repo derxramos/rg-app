@@ -4,7 +4,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 
 import { todayInManila } from "@/lib/time";
 import { validatePayment, type PaymentField, type PaymentRaw } from "@/lib/validation/payment";
-import { getParser } from "@/ocr/parsers";
+import { parserForMethodName } from "@/ocr/parsers";
 import { paymentMethods, payments, requests, servicePaymentMethods } from "@/server/db/schema";
 import type { AppDb } from "@/server/db/types";
 import { changeStatus, isUniqueViolation } from "@/server/services/requests";
@@ -22,7 +22,6 @@ export async function listActivePaymentMethods(db: AppDb) {
     .select({
       id: paymentMethods.id,
       name: paymentMethods.name,
-      parserKey: paymentMethods.parserKey,
       accountName: paymentMethods.accountName,
       accountNumber: paymentMethods.accountNumber,
       instructions: paymentMethods.instructions,
@@ -83,7 +82,7 @@ export async function savePayment(
     )
     .limit(1)
     .catch(() => []); // a value that is not a uuid cannot match
-  const parser = getParser(method?.parserKey);
+  const parser = parserForMethodName(method?.name);
 
   const result = validatePayment(input.raw, { today: todayInManila(now), parser });
   if (!result.ok) return { ok: false, errors: result.errors };

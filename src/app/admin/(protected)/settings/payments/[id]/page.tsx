@@ -9,14 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox, CheckboxRow } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { qrImageUrl } from "@/lib/qr-url";
 import { settingsTrail } from "@/lib/crumbs";
 import { guardPanelPage } from "@/server/auth/panel";
 import { getDb } from "@/server/db/client";
 import { getPaymentMethod } from "@/server/services/admin-settings";
-import { PARSERS } from "@/ocr/parsers";
 
 import { savePaymentMethodAction } from "../actions";
 
@@ -60,7 +58,7 @@ export default async function EditPaymentMethodPage({
             </WarningBox>
             <ActionForm action={savePaymentMethodAction} fresh hidden={{ id }} submitLabel="Save">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="pm-name">Name (clients see this)</Label>
+                <Label htmlFor="pm-name">Payment method name (clients see this)</Label>
                 <Input
                   id="pm-name"
                   name="name"
@@ -68,21 +66,6 @@ export default async function EditPaymentMethodPage({
                   maxLength={60}
                   required
                 />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="pm-parser">Receipt reader</Label>
-                <NativeSelect
-                  id="pm-parser"
-                  name="parserKey"
-                  defaultValue={method?.parserKey ?? ""}
-                >
-                  <option value="">None (clients type the values)</option>
-                  {PARSERS.map((p) => (
-                    <option key={p.key} value={p.key}>
-                      {p.displayName}
-                    </option>
-                  ))}
-                </NativeSelect>
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="pm-account">Account name</Label>
