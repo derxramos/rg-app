@@ -261,11 +261,18 @@ for (const role of ROLES) {
     }
     // The development proxy only lets a request through when the dev cookie exists. A value that is not a test
     // email is ignored by the session code, so the dev admin bypass (the test owner) applies.
-    await page.context().addCookies([{ name: "rg_dev_user", value: "admin-bypass", url: "http://localhost:3000" }]);
+    await page
+      .context()
+      .addCookies([{ name: "rg_dev_user", value: "admin-bypass", url: "http://localhost:3000" }]);
     for (const [name, url] of ADMIN_PAGES) await checkPage(page, name, url, role);
     await checkPage(page, "Admin: Request detail", `/admin/requests/${requestId}`, role);
     await checkPage(page, "Admin: Service edit", `/admin/settings/services/${serviceId}`, role);
-    await checkPage(page, "Admin: Payment method edit", `/admin/settings/payments/${methodId}`, role);
+    await checkPage(
+      page,
+      "Admin: Payment method edit",
+      `/admin/settings/payments/${methodId}`,
+      role,
+    );
     await checkPage(page, "Admin: Login screen", "/admin/login", role);
   });
 }

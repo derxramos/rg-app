@@ -53,9 +53,7 @@ const TABLE_STATUS: Record<AccountStatus, { label: string; hint?: string }> = {
 };
 
 function YouTag() {
-  return (
-    <Badge className="ml-2 align-middle">You</Badge>
-  );
+  return <Badge className="ml-2 align-middle">You</Badge>;
 }
 
 // 2-step login: On or Off for staff, admin and owner. A client has none ("–").

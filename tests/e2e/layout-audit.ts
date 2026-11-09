@@ -29,7 +29,9 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
       for (let i = 0; node && i < 3 && node !== document.body; i++, node = node.parentElement) {
         const slot = node.getAttribute("data-slot");
         const cls = (node.getAttribute("class") ?? "").split(/\s+/).slice(0, 3).join(".");
-        parts.unshift(node.tagName.toLowerCase() + (slot ? `[${slot}]` : "") + (cls ? "." + cls : ""));
+        parts.unshift(
+          node.tagName.toLowerCase() + (slot ? `[${slot}]` : "") + (cls ? "." + cls : ""),
+        );
       }
       const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
       return parts.join(" > ") + (text ? ` "${text}"` : "");
@@ -60,13 +62,19 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
     // (a) the whole page scrolls sideways
     const root = document.scrollingElement!;
     if (root.scrollWidth > window.innerWidth + 1) {
-      add("a", document.body, `page is ${root.scrollWidth}px wide, window is ${window.innerWidth}px`);
+      add(
+        "a",
+        document.body,
+        `page is ${root.scrollWidth}px wide, window is ${window.innerWidth}px`,
+      );
     }
 
     const all = Array.from(document.body.querySelectorAll("*")).filter(
       (el) =>
         !isHidden(el) &&
-        !el.closest("[class*='sr-only'], nextjs-portal, [data-nextjs-toast], [data-next-badge-root], svg, [aria-hidden='true'] svg"),
+        !el.closest(
+          "[class*='sr-only'], nextjs-portal, [data-nextjs-toast], [data-next-badge-root], svg, [aria-hidden='true'] svg",
+        ),
     );
 
     for (const el of all) {
@@ -88,7 +96,11 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
         if (!skip && anc && anc !== document.body) {
           const a = anc.getBoundingClientRect();
           if (r.right > a.right + 1 || r.left < a.left - 1) {
-            add("b", el, `box ${Math.round(r.left)}..${Math.round(r.right)} is outside ${describe(anc)} ${Math.round(a.left)}..${Math.round(a.right)}`);
+            add(
+              "b",
+              el,
+              `box ${Math.round(r.left)}..${Math.round(r.right)} is outside ${describe(anc)} ${Math.round(a.left)}..${Math.round(a.right)}`,
+            );
           }
         }
         // its own content is wider than its box (text pushed out of a pill, a button, ...)
@@ -107,7 +119,11 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
 
       // (d) text is cut off
       const he = el as HTMLElement;
-      if (style.overflowX !== "visible" && style.overflowX !== "auto" && style.overflowX !== "scroll") {
+      if (
+        style.overflowX !== "visible" &&
+        style.overflowX !== "auto" &&
+        style.overflowX !== "scroll"
+      ) {
         const cutX = he.scrollWidth > he.clientWidth + 1;
         const cutY = style.overflowY !== "visible" && he.scrollHeight > he.clientHeight + 1;
         if ((cutX || cutY) && (el.textContent ?? "").trim() !== "" && !(el.tagName === "INPUT")) {
@@ -116,9 +132,14 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
             (style.getPropertyValue("-webkit-line-clamp") || "none") !== "none"
           ) {
             const hasTip = el.hasAttribute("title") || !!el.closest("[title]");
-            if (!hasTip) add("d-ellipsis", el, "text is shortened with ... but has no tooltip (title)");
+            if (!hasTip)
+              add("d-ellipsis", el, "text is shortened with ... but has no tooltip (title)");
           } else {
-            add("d", el, `text is cut off (${he.scrollWidth}x${he.scrollHeight} in ${he.clientWidth}x${he.clientHeight})`);
+            add(
+              "d",
+              el,
+              `text is cut off (${he.scrollWidth}x${he.scrollHeight} in ${he.clientWidth}x${he.clientHeight})`,
+            );
           }
         }
       }
@@ -126,12 +147,19 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
       // (e) tap targets on phones
       if (opts.phone) {
         const isControl =
-          el.matches("button, input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea, [role=button], [role=tab], [role=menuitem]") ||
+          el.matches(
+            "button, input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea, [role=button], [role=tab], [role=menuitem]",
+          ) ||
           (el.matches("a[href]") && style.display !== "inline");
         // A control inside a label or a wrapper that is itself 44 px tall is fine (the whole label is the tap area).
         const holder = el.closest("label, [data-slot=input-with-prefix], [input-with-prefix]");
         const holderOk = holder ? holder.getBoundingClientRect().height >= 43.5 : false;
-        if (isControl && !holderOk && !el.closest("[aria-hidden='true']") && !(el as HTMLInputElement).disabled) {
+        if (
+          isControl &&
+          !holderOk &&
+          !el.closest("[aria-hidden='true']") &&
+          !(el as HTMLInputElement).disabled
+        ) {
           if (r.height < 43.5 || r.width < 43.5) {
             // A control that sits inside a bigger tap area (a label or a link) is fine.
             add("e", el, `tap target is ${Math.round(r.width)}x${Math.round(r.height)} px`);
@@ -145,7 +173,12 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
     for (const el of all) if (el.parentElement) parents.add(el.parentElement);
     for (const parent of parents) {
       const kids = Array.from(parent.children).filter(
-        (k) => !isHidden(k) && !isOutOfFlow(k) && getComputedStyle(k).display !== "inline" && !k.matches("nextjs-portal, script, style, col, colgroup") && getComputedStyle(k).display !== "contents",
+        (k) =>
+          !isHidden(k) &&
+          !isOutOfFlow(k) &&
+          getComputedStyle(k).display !== "inline" &&
+          !k.matches("nextjs-portal, script, style, col, colgroup") &&
+          getComputedStyle(k).display !== "contents",
       );
       if (kids.length < 2 || kids.length > 80) continue;
       for (let i = 0; i < kids.length; i++) {
@@ -156,7 +189,11 @@ export async function auditPage(page: Page, options: { phone: boolean }): Promis
           const h = Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top);
           if (w > 1.5 && h > 1.5) {
             // Negative margins or overlaps that are drawn on purpose do not happen in this app.
-            add("c", kids[i], `overlaps sibling ${describe(kids[j])} by ${Math.round(w)}x${Math.round(h)} px`);
+            add(
+              "c",
+              kids[i],
+              `overlaps sibling ${describe(kids[j])} by ${Math.round(w)}x${Math.round(h)} px`,
+            );
           }
         }
       }
