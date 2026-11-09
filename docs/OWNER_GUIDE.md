@@ -187,3 +187,5 @@ Open the request. Use **Delete client data (privacy request)**. Type **DELETE** 
 ## 8. Help inside the admin area
 
 Press **F1** on any admin page, or tap **Help** in the top bar, to open the Help page. It explains every status (for example **On hold**: the request is paused while we wait for the client) and every screen, with an example. You only see the parts that match your role.
+
+The help is in the same order as the left menu: Dashboard, Requests, Settings, Activity, Export. Tap a big heading to open or close it. The "Show help for" menu at the top shows one screen only. When you press F1, the help for the screen you were on opens first.

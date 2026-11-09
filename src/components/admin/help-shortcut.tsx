@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-// F1 opens the Help page. We stop the browser's own F1 help window, because it is not about this app.
-// Phones have no F1 key, so the header also has a visible Help link.
+import { helpTopicForPath } from "@/lib/help-content";
+
+// F1 opens the Help page, with the group for the current screen open first. We stop the browser's own F1 help
+// window, because it is not about this app. Phones have no F1 key, so the header also has a visible Help link.
 export function HelpShortcut() {
   const router = useRouter();
   useEffect(() => {
@@ -13,7 +15,10 @@ export function HelpShortcut() {
         return;
       }
       event.preventDefault();
-      if (window.location.pathname !== "/admin/help") router.push("/admin/help");
+      const path = window.location.pathname;
+      if (path === "/admin/help") return;
+      const topic = helpTopicForPath(path);
+      router.push(topic ? `/admin/help?topic=${topic}` : "/admin/help");
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
