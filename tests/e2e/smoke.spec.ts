@@ -58,7 +58,7 @@ test("design check page shows all 8 status badges with words", async ({ page }) 
     "Submitted",
     "Payment submitted",
     "Under review",
-    "Waiting for client",
+    "On hold",
     "In progress",
     "Completed",
     "Cancelled",

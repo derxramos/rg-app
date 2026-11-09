@@ -48,7 +48,7 @@ For each screen: **default**, **loading**, **error**, and **empty** state where 
 | S12 | Review and submit | `/request/[id]/review` | with payment, without payment ("Not paid yet") |
 | S13 | Request submitted | `/request/[id]/done` | code again, what happens next |
 | S14 | Track — form | `/track` | default, errors, locked ("Too many tries, wait 15 minutes"), rate-limited |
-| S15 | Track — result | `/track/result` | each status, with/without admin message, "Pay now" button, "Upload more" button (Waiting for client only), timeline |
+| S15 | Track — result | `/track/result` | each status, with/without admin message, "Pay now" button, "Upload more" button (On hold only), timeline |
 | S16 | Draft expired / no access | `/request/expired` | explains and links to Track or Start again |
 | S17 | 404 and error pages | — | with Messenger/Viber backup block |
 

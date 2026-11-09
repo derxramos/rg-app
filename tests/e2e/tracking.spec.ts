@@ -137,7 +137,7 @@ test("an admin message and a status change are emailed (failed here: no Brevo ke
 }) => {
   const r = await createSentRequest("submitted");
   await page.goto(`/admin/requests/${r.requestId}`);
-  await page.getByLabel("New status").selectOption({ label: "Waiting for client" });
+  await page.getByLabel("New status").selectOption({ label: "On hold" });
   await page.getByLabel("Message to the client (optional)").fill("Please send your valid ID.");
   await page.getByRole("button", { name: "Change status" }).click();
   await expect(page.getByText("Status changed.").first()).toBeVisible();

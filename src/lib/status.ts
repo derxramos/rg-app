@@ -23,7 +23,7 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
   draft: "Draft",
   submitted: "Submitted",
   under_review: "Under review",
-  waiting_for_client: "Waiting for client",
+  waiting_for_client: "On hold",
   payment_submitted: "Payment submitted",
   payment_verified: "Payment verified",
   in_progress: "In progress",

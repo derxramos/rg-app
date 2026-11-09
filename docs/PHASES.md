@@ -127,7 +127,7 @@ Tasks:
 - Brevo account, verified sender/domain (SPF, DKIM, DMARC if we have a domain).
 - `brevo.ts` sender + templates + `email_log` + retry button.
 - Emails: new request (admin + client), status change, client message, payment submitted, payment method changed alert, contact form.
-- Tracking page: code + last 4, Turnstile, rate limits, lockout, minimal view, "Pay now", "Upload more" (Waiting for client only).
+- Tracking page: code + last 4, Turnstile, rate limits, lockout, minimal view, "Pay now", "Upload more" (On hold only).
 - Payment from tracking page (reuses Phase 4 components).
 
 Done when:

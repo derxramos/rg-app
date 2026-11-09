@@ -101,7 +101,7 @@ As a client, I want to check my request status so that I know what is happening.
 - [ ] Shows **only**: service name, current status, simple timeline (status + date), latest client message from admin.
 - [ ] **Never** shows documents, file names, full phone, email, or payment details beyond "Payment received / verified".
 - [ ] Shows "Pay now" if status allows payment.
-- [ ] Shows "Upload more documents" only when status is "Waiting for client".
+- [ ] Shows "Upload more documents" only when status is "On hold".
 
 ### P13 — Backup contact block
 - [ ] On Home, Contact, Track, and error pages: Messenger and Viber buttons from settings.
@@ -159,7 +159,7 @@ As staff, admin or owner, I want a safe login so that only we can see client dat
 - [ ] Inactive admins cannot log in.
 
 ### A2 — Dashboard
-- [ ] Counts by status (Submitted, Under review, Waiting for client, Payment submitted, In progress).
+- [ ] Counts by status (Submitted, Under review, On hold, Payment submitted, In progress).
 - [ ] "Needs action" list: newest Submitted and Payment submitted.
 - [ ] Storage meter: used MB / 1024 MB, yellow at warning %, red at 95%.
 - [ ] Emails sent today / 300.

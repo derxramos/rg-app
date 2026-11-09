@@ -389,7 +389,7 @@ All 9 statuses (8 from FEATURES.md, plus **Payment verified** from DATABASE.md).
 | Payment submitted | `status-payment-submitted-bg` / `status-payment-submitted-fg` | `receipt-text` |
 | Payment verified | `status-payment-verified-bg` / `status-payment-verified-fg` (lime: #EAF3CF / #3F5B0A) | `badge-check` |
 | Under review | `status-under-review-bg` / `status-under-review-fg` | `search` |
-| Waiting for client | `status-waiting-for-client-bg` / `status-waiting-for-client-fg` | `hourglass` |
+| On hold | `status-waiting-for-client-bg` / `status-waiting-for-client-fg` | `hourglass` |
 | In progress | `status-in-progress-bg` / `status-in-progress-fg` | `loader-circle` |
 | Completed | `status-completed-bg` / `status-completed-fg` | `circle-check` |
 | Cancelled | `status-cancelled-bg` / `status-cancelled-fg` | `ban` |
@@ -400,7 +400,7 @@ const STATUS = {
   submitted: { label: "Submitted", icon: Send },
   "payment-submitted": { label: "Payment submitted", icon: ReceiptText },
   "under-review": { label: "Under review", icon: Search },
-  "waiting-for-client": { label: "Waiting for client", icon: Hourglass },
+  "waiting-for-client": { label: "On hold", icon: Hourglass },
   "in-progress": { label: "In progress", icon: LoaderCircle },
   completed: { label: "Completed", icon: CircleCheck },
   cancelled: { label: "Cancelled", icon: Ban },

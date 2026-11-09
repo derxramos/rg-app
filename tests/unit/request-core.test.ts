@@ -436,7 +436,7 @@ describe("requireRequestAccess (core)", () => {
       ).rejects.toMatchObject({ code: "wrong-status" });
     });
 
-    it("can upload more files only when the status is Waiting for client", async () => {
+    it("can upload more files only when the status is On hold", async () => {
       const { d, session } = await submitted("waiting_for_client");
       await check({ requestId: d.requestId, action: "upload", trackingCookie: session });
     });

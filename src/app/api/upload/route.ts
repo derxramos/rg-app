@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const file = form.get("file");
   if (!(file instanceof File)) return json({ ok: false, error: "No file was sent." }, 400);
 
-  // a. access: the draft cookie (or the tracking session when the status is Waiting for client)
+  // a. access: the draft cookie (or the tracking session when the status is On hold)
   try {
     await requireRequestAccess(requestId, "upload");
   } catch (error) {

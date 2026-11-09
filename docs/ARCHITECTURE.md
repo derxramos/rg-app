@@ -150,9 +150,9 @@ Full detail: `docs/AUTH_AND_ROLES.md`. Short version:
 
 A person reaches ONE request in three ways (`requireRequestAccess(requestId, action)` checks them in this order):
 
-1. **Owner.** They are signed in and `requests.user_id` is their id. This is how every new request works. They can view it at any time, upload while it is a Draft or "Waiting for client", and pay while it is open.
+1. **Owner.** They are signed in and `requests.user_id` is their id. This is how every new request works. They can view it at any time, upload while it is a Draft or "On hold", and pay while it is open.
 2. **Draft cookie** (old guest requests only). A 7 day `httpOnly` cookie with a random token; the database stores only its hash.
-3. **Tracking access.** On `/track` a person with only the code + last 4 phone digits gets a 1 hour cookie for that request: see status, pay, and upload more only when "Waiting for client". It **never** shows files.
+3. **Tracking access.** On `/track` a person with only the code + last 4 phone digits gets a 1 hour cookie for that request: see status, pay, and upload more only when "On hold". It **never** shows files.
 
 Another signed-in user gets the same answer as for a request that does not exist.
 
