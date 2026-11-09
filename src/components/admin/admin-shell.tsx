@@ -1,8 +1,9 @@
-import { ShieldCheck } from "lucide-react";
+import { CircleHelp, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
+import { HelpShortcut } from "@/components/admin/help-shortcut";
 import { NavigationProgress } from "@/components/admin/navigation-progress";
 import { Logo } from "@/components/shared/logo";
 import { SignOutForm } from "@/components/shared/sign-out-form";
@@ -17,6 +18,7 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
   return (
     <div className="flex min-h-dvh flex-col bg-surface-subtle">
       <ReloadOnRestore />
+      <HelpShortcut />
       {/* "Loading..." after every click on a link, card, page button or search form. */}
       <Suspense fallback={null}>
         <NavigationProgress />
@@ -46,6 +48,15 @@ export function AdminShell({ admin, children }: { admin: PanelUser; children: Re
           >
             <ShieldCheck aria-hidden="true" />
             <span className="hidden md:inline">Security</span>
+          </Link>
+          <Link
+            href="/admin/help"
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            aria-label="Help (F1)"
+            title="Help (F1)"
+          >
+            <CircleHelp aria-hidden="true" />
+            <span className="hidden md:inline">Help</span>
           </Link>
           <ThemeToggle />
           {/* Same plain form POST as the public header: ends the session on the server, then loads the home page. */}

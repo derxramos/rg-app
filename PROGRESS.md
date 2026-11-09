@@ -9,6 +9,15 @@ Update this file at the end of every work session.
 
 ---
 
+## "On hold" and an admin Help page with F1 (branch `worktree-on-hold-and-help`, 2026-11-09)
+
+- The status "Waiting for client" is now shown as **On hold** everywhere (admin, client tracking page, emails use the same label). The database value `waiting_for_client` did not change, so no migration. The dashboard card no longer has a hint line, so all five cards look the same.
+- New page `/admin/help` (also opened with the **F1** key, and a "Help" link in the admin header for phones). It explains every request status and every admin screen with "What it is", "What to do" and "Example". Sections for settings a role cannot use are hidden (staff do not see Settings help). The text lives in `src/lib/help-content.ts`; a unit test fails if a status has no entry. Access uses the existing action `requests.view` (all panel roles), so the permission table and the SQL mirror did not change.
+- Applied the pending migrations 0009 (one service description) and 0010 (legal documents) with `pnpm db:migrate` on the database that `.env.local` points to.
+- Checks: typecheck, lint and 849 unit tests pass. `pnpm build` could not finish on this computer (the database address needs IPv6), so check the build on Vercel.
+
+---
+
 ## Admin simplify: seven owner questions answered (branch `feat/admin-simplify`, 2026-11-09)
 
 Result of the owner's review of the admin area. Three commits: A (small screen changes), B (one service description), C (editable Privacy notice and Terms).

@@ -183,3 +183,7 @@ Open the request. Use **Delete client data (privacy request)**. Type **DELETE** 
 - **OCR**: the computer reading text from a picture. It only saves typing. It does not prove a payment.
 
 **Make an existing account an admin.** The person first creates an account on the website (Sign in > Create an account) and opens the email link. Then go to Settings > Admin users > "Make an existing account an admin", type their email and choose Staff or Owner. To take the role away, press "Remove admin" next to their name: they become a normal user again.
+
+## 8. Help inside the admin area
+
+Press **F1** on any admin page, or tap **Help** in the top bar, to open the Help page. It explains every status (for example **On hold**: the request is paused while we wait for the client) and every screen, with an example. You only see the parts that match your role.
