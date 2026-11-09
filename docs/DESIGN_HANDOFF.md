@@ -157,6 +157,25 @@ One rule for every admin page. Nothing here changes features, permissions or dat
 - **Bottom bar.** The bar is 60 px tall. The page has bottom padding of the bar height plus the device safe area, so the last card is never hidden. Export is not in the bar (4 items is the most that fits), so Owner and Admin open it from an "Export" card on the Settings page. Staff keep Requests, Services, Activity.
 - **Sidebar collapse** (optional) was not built: it needs saved state and tooltips for the icons, which is a bigger change than this layout fix.
 
+### 3c. Badge and Card rules (2026-11-09, branch `fix/card-overflow`)
+
+Nothing may stick out of its card, overlap its neighbor or be cut off by accident. These rules are in the shared parts, so a page never has to fix it again.
+
+- **One pill: `Badge`** (`src/components/ui/badge.tsx`). Every status, role, tier, "Required / Optional" and "You" pill uses it (`StatusBadge` is `Badge` plus an icon and a color). Never hand-make a pill with `rounded-full` and a background.
+  - Width: only as wide as its words, never wider than its parent (`max-w-full`).
+  - A long label wraps onto a second line (line height 20 px). It is never cut off and never overflows. The icon stays level with the first line.
+  - Long words break (`overflow-wrap: anywhere`). Padding 12 px left and right, text 14 px bold. Colors are unchanged.
+  - Put several pills in a row that can wrap (`flex-wrap`).
+- **One card: `Card`** (`src/components/ui/card.tsx`). `min-w-0` (it can shrink inside a grid or flex row) and `overflow-wrap: anywhere` (a long email or name breaks inside the card). Do not add `overflow-hidden` to hide a problem: it cuts text.
+- **Button:** `max-w-full`, so a long label wraps inside the button.
+- **Grids:** a grid that changes columns at a breakpoint starts with `grid-cols-1`. Without it the single column grows to the width of its longest word.
+- **Button rows:** `flex-col` on a phone and `sm:flex-row sm:flex-wrap` from 640 px.
+- **Status cards (admin Dashboard):** the grid follows the width of the content area (container query), not the screen: 2 columns, 3 columns from 640 px, 5 columns from 1100 px (each card at least 210 px, so never 4 + 1). Cards in a row have the same height and 16 px padding.
+- **Cut-off text ("..."):** only where a single line is needed (the header name, a table cell, the account menu). It always has the full text in a `title` tooltip. On a phone, the same text is shown in full in the card list.
+- **Text size:** never below 14 px to make something fit.
+- **Admin header:** "Sign out" is an icon only under 380 px (the words stay for screen readers).
+- **Test:** `tests/e2e/layout.spec.ts` (see `PROGRESS.md`, "Card, pill and button overflow fix") fails when a page breaks these rules.
+
 ---
 
 ## 4. Components

@@ -9,6 +9,50 @@ Update this file at the end of every work session.
 
 ---
 
+## Card, pill and button overflow fix (branch `fix/card-overflow`, 2026-11-09)
+
+Only layout and styling changed. No feature, permission or data change.
+
+**How it was checked.** A layout checker (`tests/e2e/layout-audit.ts`) runs inside the page and looks for: (a) the whole page scrolling sideways, (b) a box or its text going outside its card or container, (c) two siblings overlapping, (d) text cut off by accident, (e) tap targets under 44 px on phones. It also lists "..." cut-offs that have no tooltip. `tests/e2e/layout.spec.ts` runs it on every public page, the signed-in pages and the request steps, the tracking result, and every admin page, with long test data (a 60 character name, a 50 character email, the longest service name, 12,345 requests, a very long requirement label).
+- Quick run (part of `pnpm test:e2e`, light mode): 360, 768, 1024, 1280, 1366, 1920 px, as Owner. Fails on types a, b, c, d.
+- Full audit: `LAYOUT_FULL=1 pnpm exec playwright test layout --project=desktop` = 17 widths (320, 360, 390, 430, 600, 768, 820, 911, 1024, 1093, 1180, 1280, 1366, 1440, 1536, 1920, 2560), light and dark, as Owner, Admin and Staff. Optional: `LAYOUT_SHOTS=folder` saves pictures at 360, 768, 1280, 1920; `LAYOUT_REPORT=file.json` saves every problem.
+- Browser zoom of 125 % and 150 % gives fewer CSS pixels, so it is the same as a narrower window. The widths 911 and 1093 (1366 px screen) and 1280 and 1536 (1920 px screen) cover it.
+- The admin sidebar is fixed (256 px from 1024 px) and has no collapse button, so "collapsed" means the layout under 1024 px (no sidebar, bottom bar).
+- To run the test on your computer it needs the local test database (`pnpm dev:db`) and a dev server started with the local database address. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `BREVO_API_KEY` and `ADMIN_NOTIFY_EMAIL` to empty for that server, so no real email is sent.
+
+**Problems found (first run, before the fixes) and fixed**
+
+| Page | Width | Problem | Cause and fix |
+|---|---|---|---|
+| Admin Dashboard | 1280 (and any content width of about 950 to 1050 px) | The "Payment submitted" pill stuck out of its card | Pill could not wrap and the 5-column grid followed the screen, not the content area. Pill now wraps (shared Badge), and the grid uses a container query: 2 columns, 3 columns from 640 px, 5 columns from 1100 px of content width (each card at least 210 px). |
+| Every admin page | 768 | Header pushed "Security", theme and "Sign out" off the screen (page 968 px wide) when the name was long | The right side of the header had no `min-w-0`. The name now has a maximum width and a tooltip. |
+| Every admin page | 320 | Header 16 px too wide | "Sign out" shows only its icon under 380 px (the words stay for screen readers). |
+| Admin Request detail | 360 | "Record payment and mark as paid" button stuck out of its card | Shared Button now has `max-w-full`, so its words wrap. |
+| Admin Request detail and other two-column pages | 320 | Content 8 px too wide | A `grid` without a first column made the column as wide as its longest word. All such grids now start with `grid-cols-1`. |
+| Public service detail | 360 | Page 411 px wide with a long requirement label | Same grid cause, plus long words now break inside the requirement card. |
+| Public Auth error and admin "Not allowed" | 768 and up | Three buttons wider than the box | The button row now wraps (`sm:flex-wrap`). |
+| Admin Services (phone cards) | 320 | Long service name squeezed by the checkbox and the actions button | The actions moved to the second row with the fee and the badge. |
+| Admin Services table | 1180 | Select-all checkbox wider than its column | First column 6 % to 8 %. |
+| Admin Services table, header name, account menu | all | Shortened text ("...") without a tooltip | Full text is now in a `title` tooltip. |
+| Admin Users | all | A hand-made "You" pill at 12 px | Now the shared Badge (14 px). |
+
+**Shared parts (the fix is in these, not page by page)**
+- `Badge` (`src/components/ui/badge.tsx`): `max-w-full`, label wraps, icon stays beside the first line, long words break. `StatusBadge` and every other pill use it.
+- `Card` (`src/components/ui/card.tsx`): `min-w-0` and `overflow-wrap: anywhere`.
+- `Button`: `max-w-full`.
+- `StatCard` and the dashboard grid: equal heights, no empty label line.
+
+**Result of the final audit run:** 0 problems of types a, b, c, d, 0 "..." cut-offs without a tooltip and 0 tap targets under 44 px, on all pages above, 17 widths, light and dark, Owner, Admin, Staff. Screenshots of the Dashboard, Admin users, Requests, Settings, Home, Services and the payment step were looked at (360, 768, 1280, 1920; light and dark; a sample of them by eye, the rest by the script).
+
+**Checks:** lint OK, type check OK, 808 unit tests OK, production build OK. Browser tests: 78 passed, 20 failed. All 20 failures are admin screens that redirect to `/login` when the tests run in this setup (the same tests fail on `main` too, checked with `admin.spec.ts` and `accounts-table.spec.ts`), so they are not caused by this branch. The new layout test passes.
+
+**Left open / notes**
+- Loading screens (`loading.tsx`) were not run through the checker, because they show for a moment only. Their markup uses the same Card and grid classes.
+- Counts show as `12345` (no thousands comma). That is a text format change, not layout, so it was left alone.
+- Text that is 30 % longer than English was tested only through the long test data above (there is no Filipino text in the app yet).
+- The first full run of the browser test suite used the live Brevo key from `.env.local`, so it may have sent a few real emails (to `zolb-test+...@example.com` addresses and possibly to the admin notify address). Later runs used empty email variables. All tests ran against the local test database, never the live one. Test data was removed (`pnpm e2e:clean`).
+- Prettier still reports 3 old files (`contact-buttons.tsx`, `contact-links.ts`, `tests/unit/admin-improvements.test.ts`) that this branch did not touch.
+
 ## Admin uniform layout (branch `fix/admin-uniform-layout`, 2026-11-09)
 
 Layout and table or card styling only. No feature, permission or data change.

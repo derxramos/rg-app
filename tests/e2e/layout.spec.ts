@@ -35,7 +35,10 @@ const FULL = process.env.LAYOUT_FULL === "1";
 const WIDTHS = FULL
   ? [320, 360, 390, 430, 600, 768, 820, 911, 1024, 1093, 1180, 1280, 1366, 1440, 1536, 1920, 2560]
   : [360, 768, 1024, 1280, 1366, 1920];
-const THEMES = FULL ? ["light", "dark"] : ["light"];
+const THEMES = (process.env.LAYOUT_THEMES ?? (FULL ? "light,dark" : "light")).split(",");
+// LAYOUT_SHOTS=folder also saves a full-page picture for the widths 360, 768, 1280 and 1920 (to look at by eye).
+const SHOTS = process.env.LAYOUT_SHOTS;
+const SHOT_WIDTHS = new Set([360, 768, 1280, 1920]);
 const FAIL_TYPES = new Set(["a", "b", "c", "d"]);
 
 const LONG_NAME = "Maria Cristina Dela Cruz-Santos de los Reyes Villanueva Jr III"; // 60 characters
@@ -70,6 +73,10 @@ async function checkPage(page: Page, name: string, url: string, role = "owner") 
         await page.waitForLoadState("load");
         await page.waitForTimeout(500);
         problems = await auditPage(page, { phone: width <= 430 });
+      }
+      if (SHOTS && SHOT_WIDTHS.has(width)) {
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        await page.screenshot({ path: `${SHOTS}/${slug}-${width}-${theme}.png`, fullPage: true });
       }
       for (const p of problems) found.push({ ...p, page: name, width, theme, role });
     }
